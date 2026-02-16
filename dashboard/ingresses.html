@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresses - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Ingresses in default</h1>
+
+        <div class="card">
+            <div class="card-title">3 Ingresses</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Namespace</th>
+                            <th>Hosts</th>
+                            <th>Address</th>
+                            <th>Age</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>frontend-ingress</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td>app.example.com</td>
+                            <td>35.123.45.67</td>
+                            <td>3h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>api-ingress</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td>api.example.com</td>
+                            <td>35.123.45.67</td>
+                            <td>3h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>admin-ingress</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td>admin.example.com</td>
+                            <td>35.123.45.67</td>
+                            <td>2h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

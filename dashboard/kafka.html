@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Manager - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Kafka Manager</h1>
+        <p style="color: rgba(0,0,0,0.6); margin-bottom: 24px;">Manage Kafka topics, consumer groups, and brokers</p>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">15</div>
+                <div class="stat-label">Topics</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">8</div>
+                <div class="stat-label">Consumer Groups</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Brokers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">2</div>
+                <div class="stat-label">Kafka Pods</div>
+            </div>
+        </div>
+
+        <!-- Topics Table -->
+        <div class="card">
+            <div class="card-title">Kafka Topics (15)</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Topic Name</th>
+                            <th>Partitions</th>
+                            <th>Replication Factor</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="material-icons" style="vertical-align: middle; color: #667eea;">topic</span> <strong>user-events</strong></td>
+                            <td><span class="chip">6</span></td>
+                            <td><span class="chip" style="background: rgba(103, 126, 234, 0.1); color: #667eea;">3</span></td>
+                            <td>
+                                <span class="material-icons action-icon" title="View Messages">visibility</span>
+                                <span class="material-icons action-icon" title="Produce Message">send</span>
+                                <span class="material-icons action-icon" title="Settings">settings</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="material-icons" style="vertical-align: middle; color: #667eea;">topic</span> <strong>order-processing</strong></td>
+                            <td><span class="chip">12</span></td>
+                            <td><span class="chip" style="background: rgba(103, 126, 234, 0.1); color: #667eea;">3</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">send</span>
+                                <span class="material-icons action-icon">settings</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="material-icons" style="vertical-align: middle; color: #667eea;">topic</span> <strong>payment-transactions</strong></td>
+                            <td><span class="chip">8</span></td>
+                            <td><span class="chip" style="background: rgba(103, 126, 234, 0.1); color: #667eea;">3</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">send</span>
+                                <span class="material-icons action-icon">settings</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="material-icons" style="vertical-align: middle; color: #667eea;">topic</span> <strong>notifications</strong></td>
+                            <td><span class="chip">4</span></td>
+                            <td><span class="chip" style="background: rgba(103, 126, 234, 0.1); color: #667eea;">2</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">send</span>
+                                <span class="material-icons action-icon">settings</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="material-icons" style="vertical-align: middle; color: #667eea;">topic</span> <strong>analytics-stream</strong></td>
+                            <td><span class="chip">10</span></td>
+                            <td><span class="chip" style="background: rgba(103, 126, 234, 0.1); color: #667eea;">3</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">send</span>
+                                <span class="material-icons action-icon">settings</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Brokers -->
+        <div class="card">
+            <div class="card-title">Kafka Brokers (3)</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                <div style="border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <span class="material-icons" style="font-size: 40px; color: #667eea;">storage</span>
+                        <div>
+                            <div style="font-size: 20px; font-weight: 600;">Broker 0</div>
+                            <div style="color: rgba(0,0,0,0.6);">kafka-broker-0:9092</div>
+                        </div>
+                        <span class="status-chip success" style="margin-left: auto;">Online</span>
+                    </div>
+                </div>
+                <div style="border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <span class="material-icons" style="font-size: 40px; color: #667eea;">storage</span>
+                        <div>
+                            <div style="font-size: 20px; font-weight: 600;">Broker 1</div>
+                            <div style="color: rgba(0,0,0,0.6);">kafka-broker-1:9092</div>
+                        </div>
+                        <span class="status-chip success" style="margin-left: auto;">Online</span>
+                    </div>
+                </div>
+                <div style="border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <span class="material-icons" style="font-size: 40px; color: #667eea;">storage</span>
+                        <div>
+                            <div style="font-size: 20px; font-weight: 600;">Broker 2</div>
+                            <div style="color: rgba(0,0,0,0.6);">kafka-broker-2:9092</div>
+                        </div>
+                        <span class="status-chip success" style="margin-left: auto;">Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

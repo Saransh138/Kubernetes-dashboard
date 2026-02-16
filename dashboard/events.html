@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Cluster Events</h1>
+
+        <div class="filters-bar">
+            <select class="filter-select">
+                <option>All Types</option>
+                <option>Normal</option>
+                <option>Warning</option>
+                <option>Error</option>
+            </select>
+            <select class="filter-select">
+                <option>All Namespaces</option>
+                <option>default</option>
+                <option>kube-system</option>
+            </select>
+            <button class="btn-outlined">
+                <span class="material-icons">refresh</span>
+                Refresh
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Recent Events</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Reason</th>
+                            <th>Object</th>
+                            <th>Message</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="status-chip info"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">check_circle</span> Normal</span></td>
+                            <td>Scheduled</td>
+                            <td>Pod/frontend-7d8f9c-xyz</td>
+                            <td>Successfully assigned default/frontend-7d8f9c-xyz to node-1</td>
+                            <td>2m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip info"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">check_circle</span> Normal</span></td>
+                            <td>Pulled</td>
+                            <td>Pod/backend-5b6c8d-abc</td>
+                            <td>Container image "backend:latest" already present on machine</td>
+                            <td>5m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip warning"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">warning</span> Warning</span></td>
+                            <td>FailedScheduling</td>
+                            <td>Pod/worker-3a2b1c-ghi</td>
+                            <td>0/3 nodes are available: insufficient cpu</td>
+                            <td>5m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip info"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">check_circle</span> Normal</span></td>
+                            <td>ScalingReplicaSet</td>
+                            <td>Deployment/frontend</td>
+                            <td>Scaled up replica set frontend-7d8f9c to 3</td>
+                            <td>15m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip info"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">check_circle</span> Normal</span></td>
+                            <td>Created</td>
+                            <td>Pod/kafka-broker-0</td>
+                            <td>Created container kafka</td>
+                            <td>1h</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip info"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">check_circle</span> Normal</span></td>
+                            <td>Started</td>
+                            <td>Pod/redis-master-0</td>
+                            <td>Started container redis</td>
+                            <td>1h</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip warning"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">warning</span> Warning</span></td>
+                            <td>BackOff</td>
+                            <td>Pod/api-gateway-8x9y2z</td>
+                            <td>Back-off restarting failed container</td>
+                            <td>2h</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip info"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">check_circle</span> Normal</span></td>
+                            <td>SuccessfulCreate</td>
+                            <td>ReplicaSet/backend-5b6c8d</td>
+                            <td>Created pod: backend-5b6c8d-abc</td>
+                            <td>3h</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

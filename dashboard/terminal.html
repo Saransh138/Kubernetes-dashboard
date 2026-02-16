@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Pod Terminal</h1>
+
+        <div class="filters-bar">
+            <select class="filter-select">
+                <option>Select Namespace</option>
+                <option selected>default</option>
+            </select>
+            <select class="filter-select">
+                <option>Select Pod</option>
+                <option selected>frontend-7d8f9c-xyz</option>
+                <option>backend-5b6c8d-abc</option>
+            </select>
+            <select class="filter-select">
+                <option selected>Container: main</option>
+            </select>
+            <button class="btn-outlined" style="background: #667eea; color: white; border-color: #667eea;">
+                <span class="material-icons">terminal</span>
+                Connect
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Terminal: frontend-7d8f9c-xyz</div>
+            <div style="background: #1e1e1e; color: #00ff00; padding: 16px; border-radius: 4px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; min-height: 500px;">
+<pre style="margin: 0;">root@frontend-7d8f9c-xyz:/app# ls -la
+total 48
+drwxr-xr-x 1 root root 4096 Feb 16 10:23 .
+drwxr-xr-x 1 root root 4096 Feb 16 10:23 ..
+-rw-r--r-- 1 root root  220 Feb 16 10:23 .bashrc
+-rw-r--r-- 1 root root  807 Feb 16 10:23 .profile
+drwxr-xr-x 2 root root 4096 Feb 16 10:23 bin
+drwxr-xr-x 3 root root 4096 Feb 16 10:23 config
+-rw-r--r-- 1 root root 1234 Feb 16 10:23 package.json
+drwxr-xr-x 5 root root 4096 Feb 16 10:23 src
+drwxr-xr-x 2 root root 4096 Feb 16 10:23 public
+
+root@frontend-7d8f9c-xyz:/app# ps aux
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.5  2.1 1234567 89012 ?       Ssl  10:23   0:15 node server.js
+root        42  0.0  0.1  18376  3456 pts/0    Ss   10:45   0:00 /bin/bash
+root        56  0.0  0.1  34424  2890 pts/0    R+   10:46   0:00 ps aux
+
+root@frontend-7d8f9c-xyz:/app# df -h
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          50G   12G   38G  24% /
+tmpfs            64M     0   64M   0% /dev
+tmpfs           7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda1        50G   12G   38G  24% /etc/hosts
+shm              64M     0   64M   0% /dev/shm
+
+root@frontend-7d8f9c-xyz:/app# <span style="animation: blink 1s infinite;">█</span></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+    <style>
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+    </style>
+</body>
+</html>

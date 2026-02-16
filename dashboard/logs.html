@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Pod Logs</h1>
+
+        <div class="filters-bar">
+            <select class="filter-select">
+                <option>Select Namespace</option>
+                <option selected>default</option>
+                <option>kube-system</option>
+            </select>
+            <select class="filter-select">
+                <option>Select Pod</option>
+                <option selected>frontend-7d8f9c-xyz</option>
+                <option>backend-5b6c8d-abc</option>
+                <option>kafka-broker-0</option>
+            </select>
+            <select class="filter-select">
+                <option selected>Container: main</option>
+            </select>
+            <button class="btn-outlined">
+                <span class="material-icons">refresh</span>
+                Refresh
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Logs: frontend-7d8f9c-xyz</div>
+            <div style="background: #1e1e1e; color: #f8f8f2; padding: 16px; border-radius: 4px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; max-height: 600px; overflow-y: auto;">
+<pre style="margin: 0; white-space: pre-wrap; word-break: break-word;">2024-02-16 10:23:45 INFO  Starting application...
+2024-02-16 10:23:46 INFO  Connecting to database at postgres://db:5432
+2024-02-16 10:23:47 INFO  Database connection established
+2024-02-16 10:23:47 INFO  Loading configuration from /etc/config/app.yaml
+2024-02-16 10:23:48 INFO  Configuration loaded successfully
+2024-02-16 10:23:48 INFO  Initializing HTTP server on port 8080
+2024-02-16 10:23:49 INFO  Server started successfully
+2024-02-16 10:23:49 INFO  Ready to accept connections
+2024-02-16 10:24:12 INFO  GET /api/health - 200 OK (2ms)
+2024-02-16 10:24:15 INFO  GET /api/users - 200 OK (45ms)
+2024-02-16 10:24:18 INFO  POST /api/orders - 201 Created (123ms)
+2024-02-16 10:24:22 WARN  High memory usage detected: 85%
+2024-02-16 10:24:25 INFO  GET /api/products - 200 OK (67ms)
+2024-02-16 10:24:30 INFO  GET /api/health - 200 OK (1ms)
+2024-02-16 10:24:35 INFO  PUT /api/users/1001 - 200 OK (89ms)
+2024-02-16 10:24:40 ERROR Failed to connect to Redis: connection timeout
+2024-02-16 10:24:41 INFO  Retrying Redis connection...
+2024-02-16 10:24:42 INFO  Redis connection restored
+2024-02-16 10:24:45 INFO  GET /api/health - 200 OK (2ms)
+2024-02-16 10:24:50 INFO  DELETE /api/sessions/abc123 - 204 No Content (12ms)
+2024-02-16 10:24:55 INFO  GET /api/metrics - 200 OK (5ms)</pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

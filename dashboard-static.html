@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Dashboard Pro</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f5f5;
+            color: rgba(0, 0, 0, 0.87);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: #fff;
+            border-right: 1px solid rgba(0, 0, 0, 0.12);
+            overflow-y: auto;
+            z-index: 1200;
+        }
+
+        .sidebar-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .menu-list {
+            list-style: none;
+            padding: 8px 0;
+        }
+
+        .menu-item {
+            padding: 8px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: rgba(0, 0, 0, 0.87);
+            text-decoration: none;
+            user-select: none;
+        }
+
+        .menu-item:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .menu-item.active {
+            background: rgba(103, 126, 234, 0.08);
+            color: #667eea;
+            border-right: 3px solid #667eea;
+        }
+
+        .menu-icon {
+            font-size: 24px;
+        }
+
+        /* Top Bar */
+        .topbar {
+            position: fixed;
+            left: 280px;
+            top: 0;
+            right: 0;
+            height: 64px;
+            background: #fff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 16px;
+            z-index: 1100;
+        }
+
+        .namespace-select {
+            padding: 8px 16px;
+            border: 1px solid rgba(0, 0, 0, 0.23);
+            border-radius: 4px;
+            background: white;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .resource-chips {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .chip {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .refresh-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            margin-top: 64px;
+            padding: 24px;
+            min-height: calc(100vh - 64px);
+        }
+
+        .page-title {
+            font-size: 34px;
+            font-weight: 400;
+            margin-bottom: 24px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 4px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .stat-label {
+            font-size: 20px;
+            color: rgba(0, 0, 0, 0.6);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 48px;
+            font-weight: 300;
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            font-size: 60px;
+            opacity: 0.3;
+        }
+
+        .stat-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-chip {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-chip.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-chip.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-chip.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 4px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.6);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        }
+
+        tr:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .event-chip {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .event-chip.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .event-chip.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .event-chip.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Notice Banner */
+        .notice-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .notice-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .notice-icon {
+            font-size: 32px;
+        }
+
+        .notice-text h3 {
+            margin: 0 0 4px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .notice-text p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+
+        .github-btn {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .github-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="material-icons">dashboard</span>
+            </div>
+            <div class="sidebar-title">K8s Dashboard Pro</div>
+        </div>
+        <ul class="menu-list">
+            <li class="menu-item active">
+                <span class="material-icons menu-icon">dashboard</span>
+                <span>Dashboard</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/monitoring.html'">
+                <span class="material-icons menu-icon">notifications</span>
+                <span>Monitoring</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/node-monitoring.html'">
+                <span class="material-icons menu-icon">developer_board</span>
+                <span>Node Monitoring</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/resource-monitor.html'">
+                <span class="material-icons menu-icon">manage_search</span>
+                <span>Resource Monitor</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/pods.html'">
+                <span class="material-icons menu-icon">view_in_ar</span>
+                <span>Pods</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/services.html'">
+                <span class="material-icons menu-icon">hub</span>
+                <span>Services</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/deployments.html'">
+                <span class="material-icons menu-icon">rocket_launch</span>
+                <span>Deployments</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/statefulsets.html'">
+                <span class="material-icons menu-icon">dns</span>
+                <span>StatefulSets</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/daemonsets.html'">
+                <span class="material-icons menu-icon">layers</span>
+                <span>DaemonSets</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/data-services.html'">
+                <span class="material-icons menu-icon">storage</span>
+                <span>Data Services</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/kafka.html'">
+                <span class="material-icons menu-icon">dns</span>
+                <span>Kafka Manager</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/redis.html'">
+                <span class="material-icons menu-icon" style="color: #DC382D;">circle</span>
+                <span>Redis Manager</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/file-manager.html'">
+                <span class="material-icons menu-icon">folder_open</span>
+                <span>File Manager</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/configmaps.html'">
+                <span class="material-icons menu-icon">settings</span>
+                <span>ConfigMaps</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/secrets.html'">
+                <span class="material-icons menu-icon">vpn_key</span>
+                <span>Secrets</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/volumes.html'">
+                <span class="material-icons menu-icon">storage</span>
+                <span>Volumes</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/ingresses.html'">
+                <span class="material-icons menu-icon">router</span>
+                <span>Ingresses</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/network-graph.html'">
+                <span class="material-icons menu-icon">account_tree</span>
+                <span>Network Graph</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/logs.html'">
+                <span class="material-icons menu-icon">article</span>
+                <span>Logs</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/nodes.html'">
+                <span class="material-icons menu-icon">computer</span>
+                <span>Nodes</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/events.html'">
+                <span class="material-icons menu-icon">event</span>
+                <span>Events</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/terminal.html'">
+                <span class="material-icons menu-icon">terminal</span>
+                <span>Terminal</span>
+            </li>
+            <li class="menu-item" onclick="window.location.href='dashboard/yaml-editor.html'">
+                <span class="material-icons menu-icon">code</span>
+                <span>YAML Editor</span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="topbar">
+        <select class="namespace-select">
+            <option>All Namespaces</option>
+            <option selected>default</option>
+            <option>kube-system</option>
+            <option>monitoring</option>
+        </select>
+        <div class="resource-chips">
+            <span class="chip">Pods: 24</span>
+            <span class="chip">Services: 12</span>
+            <span class="chip">Deployments: 8</span>
+            <span class="chip">Nodes: 3</span>
+        </div>
+        <button class="refresh-btn">
+            <span class="material-icons">refresh</span>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h1 class="page-title">Cluster Overview</h1>
+
+        <!-- Notice Banner -->
+        <div class="notice-banner">
+            <div class="notice-content">
+                <span class="material-icons notice-icon">info</span>
+                <div class="notice-text">
+                    <h3>Static Demo Dashboard</h3>
+                    <p>This is a static demo with sample data. For the full project with real Kubernetes integration, visit my GitHub repository.</p>
+                </div>
+            </div>
+            <a href="https://github.com/Saransh138/Kubernetes-dashboard" class="github-btn" target="_blank">
+                <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                View on GitHub
+            </a>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-label">Pods</div>
+                        <div class="stat-value">24</div>
+                        <div class="stat-chips">
+                            <span class="status-chip success">22 Running</span>
+                            <span class="status-chip warning">1 Pending</span>
+                            <span class="status-chip error">1 Failed</span>
+                        </div>
+                    </div>
+                    <span class="material-icons stat-icon" style="color: #1976d2;">view_in_ar</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-label">Services</div>
+                        <div class="stat-value">12</div>
+                        <div style="color: rgba(0, 0, 0, 0.6); font-size: 14px;">Network endpoints</div>
+                    </div>
+                    <span class="material-icons stat-icon" style="color: #9c27b0;">hub</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-label">Deployments</div>
+                        <div class="stat-value">8</div>
+                        <div class="stat-chips">
+                            <span class="status-chip success">7 Healthy</span>
+                            <span class="status-chip warning">1 Issues</span>
+                        </div>
+                    </div>
+                    <span class="material-icons stat-icon" style="color: #0288d1;">rocket_launch</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-label">Nodes</div>
+                        <div class="stat-value">3</div>
+                        <div class="stat-chips">
+                            <span class="status-chip success">3 Ready</span>
+                        </div>
+                    </div>
+                    <span class="material-icons stat-icon" style="color: #f57c00;">computer</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="card">
+                <div class="card-title">Pod Status Distribution</div>
+                <div class="chart-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Resource Overview</div>
+                <div class="chart-container">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Events Table -->
+        <div class="card">
+            <div class="card-title">Recent Events</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Reason</th>
+                            <th>Object</th>
+                            <th>Message</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="event-chip info"><span class="material-icons" style="font-size: 16px;">check_circle</span> Normal</span></td>
+                            <td>Scheduled</td>
+                            <td>Pod/frontend-7d8f9c-xyz</td>
+                            <td>Successfully assigned default/frontend-7d8f9c-xyz to node-1</td>
+                            <td>2m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="event-chip info"><span class="material-icons" style="font-size: 16px;">check_circle</span> Normal</span></td>
+                            <td>Pulled</td>
+                            <td>Pod/backend-5b6c8d-abc</td>
+                            <td>Container image "backend:latest" already present on machine</td>
+                            <td>5m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="event-chip warning"><span class="material-icons" style="font-size: 16px;">warning</span> Warning</span></td>
+                            <td>FailedScheduling</td>
+                            <td>Pod/worker-3a2b1c-ghi</td>
+                            <td>0/3 nodes are available: insufficient cpu</td>
+                            <td>5m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="event-chip info"><span class="material-icons" style="font-size: 16px;">check_circle</span> Normal</span></td>
+                            <td>ScalingReplicaSet</td>
+                            <td>Deployment/frontend</td>
+                            <td>Scaled up replica set frontend-7d8f9c to 3</td>
+                            <td>15m</td>
+                        </tr>
+                        <tr>
+                            <td><span class="event-chip info"><span class="material-icons" style="font-size: 16px;">check_circle</span> Normal</span></td>
+                            <td>Created</td>
+                            <td>Pod/kafka-broker-0</td>
+                            <td>Created container kafka</td>
+                            <td>1h</td>
+                        </tr>
+                        <tr>
+                            <td><span class="event-chip info"><span class="material-icons" style="font-size: 16px;">check_circle</span> Normal</span></td>
+                            <td>Started</td>
+                            <td>Pod/redis-master-0</td>
+                            <td>Started container redis</td>
+                            <td>1h</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pie Chart
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Running', 'Pending', 'Failed'],
+                datasets: [{
+                    data: [22, 1, 1],
+                    backgroundColor: ['#0088FE', '#FFBB28', '#FF8042']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Bar Chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Pods', 'Services', 'Deployments', 'Nodes'],
+                datasets: [{
+                    label: 'Count',
+                    data: [24, 12, 8, 3],
+                    backgroundColor: '#8884d8'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Refresh button animation
+        document.querySelector('.refresh-btn').addEventListener('click', function() {
+            this.querySelector('.material-icons').style.animation = 'spin 1s linear';
+            setTimeout(() => {
+                this.querySelector('.material-icons').style.animation = '';
+            }, 1000);
+        });
+
+        // Add spin animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YAML Editor - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">YAML Editor</h1>
+
+        <div class="filters-bar">
+            <select class="filter-select">
+                <option>Select Resource Type</option>
+                <option>Pod</option>
+                <option>Deployment</option>
+                <option>Service</option>
+                <option>ConfigMap</option>
+            </select>
+            <button class="btn-outlined" style="background: #667eea; color: white; border-color: #667eea;">
+                <span class="material-icons">save</span>
+                Apply
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Edit YAML</div>
+            <textarea style="width: 100%; min-height: 500px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; padding: 16px; border: 1px solid rgba(0,0,0,0.12); border-radius: 4px;">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    app: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: frontend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: API_URL
+          value: "http://backend-svc:3000"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"</textarea>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

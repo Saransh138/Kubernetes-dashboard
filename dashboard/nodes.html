@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nodes - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Cluster Nodes</h1>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Total Nodes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #4caf50;">3</div>
+                <div class="stat-label">Ready Nodes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">12</div>
+                <div class="stat-label">CPU Cores</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">48 GB</div>
+                <div class="stat-label">Total Memory</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">3 Nodes</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Roles</th>
+                            <th>Age</th>
+                            <th>Version</th>
+                            <th>CPU</th>
+                            <th>Memory</th>
+                            <th>Pods</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>node-1</strong></td>
+                            <td><span class="status-chip success">Ready</span></td>
+                            <td><span class="chip">control-plane,master</span></td>
+                            <td>45d</td>
+                            <td>v1.28.2</td>
+                            <td>4 cores</td>
+                            <td>16 GB</td>
+                            <td>8/110</td>
+                        </tr>
+                        <tr>
+                            <td><strong>node-2</strong></td>
+                            <td><span class="status-chip success">Ready</span></td>
+                            <td><span class="chip">worker</span></td>
+                            <td>45d</td>
+                            <td>v1.28.2</td>
+                            <td>4 cores</td>
+                            <td>16 GB</td>
+                            <td>10/110</td>
+                        </tr>
+                        <tr>
+                            <td><strong>node-3</strong></td>
+                            <td><span class="status-chip success">Ready</span></td>
+                            <td><span class="chip">worker</span></td>
+                            <td>45d</td>
+                            <td>v1.28.2</td>
+                            <td>4 cores</td>
+                            <td>16 GB</td>
+                            <td>6/110</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

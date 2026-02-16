@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Services - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Data Services</h1>
+        <p style="color: rgba(0,0,0,0.6); margin-bottom: 24px;">Manage databases and data stores</p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Total Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #4caf50;">4</div>
+                <div class="stat-label">Healthy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #ff9800;">1</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">125 GB</div>
+                <div class="stat-label">Total Storage</div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                    <span class="material-icons" style="font-size: 48px; color: #336791;">storage</span>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600;">PostgreSQL</div>
+                        <span class="status-chip success">Running</span>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Version</span>
+                        <strong>14.5</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Storage</span>
+                        <strong>20 GB</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Connections</span>
+                        <strong>45/100</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                    <span class="material-icons" style="font-size: 48px; color: #DC382D;">circle</span>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600;">Redis</div>
+                        <span class="status-chip success">Running</span>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Version</span>
+                        <strong>7.0.5</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Memory</span>
+                        <strong>256 MB</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Keys</span>
+                        <strong>1,247</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                    <span class="material-icons" style="font-size: 48px; color: #231F20;">dns</span>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600;">Kafka</div>
+                        <span class="status-chip success">Running</span>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Version</span>
+                        <strong>3.4.0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Topics</span>
+                        <strong>15</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Brokers</span>
+                        <strong>3</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                    <span class="material-icons" style="font-size: 48px; color: #4DB33D;">storage</span>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600;">MongoDB</div>
+                        <span class="status-chip success">Running</span>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Version</span>
+                        <strong>6.0.3</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Storage</span>
+                        <strong>50 GB</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Collections</span>
+                        <strong>28</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                    <span class="material-icons" style="font-size: 48px; color: #FF6C37;">storage</span>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600;">Elasticsearch</div>
+                        <span class="status-chip warning">Warning</span>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Version</span>
+                        <strong>8.6.0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Storage</span>
+                        <strong>35 GB</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Indices</span>
+                        <strong>42</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

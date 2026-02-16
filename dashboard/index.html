@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Dashboard - Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional styles for demo */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge.running { background: #10b981; color: white; }
+        .badge.pending { background: #f59e0b; color: white; }
+        .badge.failed { background: #ef4444; color: white; }
+        .badge.ready { background: #10b981; color: white; }
+        
+        .action-btn {
+            padding: 0.25rem 0.75rem;
+            margin: 0 0.25rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .action-btn.logs { background: #3b82f6; color: white; }
+        .action-btn.delete { background: #ef4444; color: white; }
+        .action-btn.scale { background: #10b981; color: white; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header class="header">
+            <h1>🚢 Kubernetes Dashboard</h1>
+            <div class="status-indicator">
+                <span class="status-dot connected"></span>
+                <span>Connected to production-cluster</span>
+            </div>
+        </header>
+
+        <nav class="sidebar">
+            <ul class="nav-menu">
+                <li><a href="#overview" class="nav-link active" data-section="overview">📊 Overview</a></li>
+                <li><a href="#pods" class="nav-link" data-section="pods">🐳 Pods</a></li>
+                <li><a href="#services" class="nav-link" data-section="services">🔗 Services</a></li>
+                <li><a href="#deployments" class="nav-link" data-section="deployments">🚀 Deployments</a></li>
+                <li><a href="#nodes" class="nav-link" data-section="nodes">🖥️ Nodes</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <!-- Overview Section -->
+            <section id="overview" class="content-section active">
+                <h2>Cluster Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Pods</h3>
+                        <div class="stat-number">24</div>
+                        <div class="stat-status">
+                            <span class="running">22 Running</span>
+                            <span class="pending">1 Pending</span>
+                            <span class="failed">1 Failed</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Services</h3>
+                        <div class="stat-number">12</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Deployments</h3>
+                        <div class="stat-number">8</div>
+                        <div class="stat-status">
+                            <span class="ready">7 Ready</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Nodes</h3>
+                        <div class="stat-number">3</div>
+                        <div class="stat-status">
+                            <span class="ready">3 Ready</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pods Section -->
+            <section id="pods" class="content-section">
+                <div class="section-header">
+                    <h2>Pods</h2>
+                    <select id="namespace-filter">
+                        <option value="">All Namespaces</option>
+                        <option value="default">default</option>
+                        <option value="kube-system">kube-system</option>
+                        <option value="monitoring">monitoring</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table class="resource-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Namespace</th>
+                                <th>Status</th>
+                                <th>Ready</th>
+                                <th>Restarts</th>
+                                <th>Age</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>frontend-7d8f9c-xyz</td>
+                                <td>default</td>
+                                <td><span class="badge running">Running</span></td>
+                                <td>1/1</td>
+                                <td>0</td>
+                                <td>2d</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>backend-5b6c8d-abc</td>
+                                <td>default</td>
+                                <td><span class="badge running">Running</span></td>
+                                <td>1/1</td>
+                                <td>0</td>
+                                <td>2d</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>database-9f4e2a-def</td>
+                                <td>default</td>
+                                <td><span class="badge running">Running</span></td>
+                                <td>1/1</td>
+                                <td>1</td>
+                                <td>5d</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>worker-3a2b1c-ghi</td>
+                                <td>default</td>
+                                <td><span class="badge pending">Pending</span></td>
+                                <td>0/1</td>
+                                <td>0</td>
+                                <td>5m</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>kafka-broker-0</td>
+                                <td>default</td>
+                                <td><span class="badge running">Running</span></td>
+                                <td>1/1</td>
+                                <td>0</td>
+                                <td>7d</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>redis-master-0</td>
+                                <td>default</td>
+                                <td><span class="badge running">Running</span></td>
+                                <td>1/1</td>
+                                <td>0</td>
+                                <td>7d</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>coredns-5d78c9869d-abc</td>
+                                <td>kube-system</td>
+                                <td><span class="badge running">Running</span></td>
+                                <td>1/1</td>
+                                <td>0</td>
+                                <td>30d</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>prometheus-server-0</td>
+                                <td>monitoring</td>
+                                <td><span class="badge running">Running</span></td>
+                                <td>1/1</td>
+                                <td>0</td>
+                                <td>15d</td>
+                                <td>
+                                    <button class="action-btn logs">Logs</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Services Section -->
+            <section id="services" class="content-section">
+                <h2>Services</h2>
+                <div class="table-container">
+                    <table class="resource-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Namespace</th>
+                                <th>Type</th>
+                                <th>Cluster IP</th>
+                                <th>External IP</th>
+                                <th>Ports</th>
+                                <th>Age</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>frontend-service</td>
+                                <td>default</td>
+                                <td>LoadBalancer</td>
+                                <td>10.96.0.10</td>
+                                <td>203.0.113.5</td>
+                                <td>80:30080/TCP</td>
+                                <td>2d</td>
+                            </tr>
+                            <tr>
+                                <td>backend-service</td>
+                                <td>default</td>
+                                <td>ClusterIP</td>
+                                <td>10.96.0.11</td>
+                                <td>None</td>
+                                <td>8080/TCP</td>
+                                <td>2d</td>
+                            </tr>
+                            <tr>
+                                <td>database-service</td>
+                                <td>default</td>
+                                <td>ClusterIP</td>
+                                <td>10.96.0.12</td>
+                                <td>None</td>
+                                <td>5432/TCP</td>
+                                <td>5d</td>
+                            </tr>
+                            <tr>
+                                <td>kafka-service</td>
+                                <td>default</td>
+                                <td>ClusterIP</td>
+                                <td>10.96.0.13</td>
+                                <td>None</td>
+                                <td>9092/TCP</td>
+                                <td>7d</td>
+                            </tr>
+                            <tr>
+                                <td>redis-service</td>
+                                <td>default</td>
+                                <td>ClusterIP</td>
+                                <td>10.96.0.14</td>
+                                <td>None</td>
+                                <td>6379/TCP</td>
+                                <td>7d</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Deployments Section -->
+            <section id="deployments" class="content-section">
+                <h2>Deployments</h2>
+                <div class="table-container">
+                    <table class="resource-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Namespace</th>
+                                <th>Ready</th>
+                                <th>Up-to-date</th>
+                                <th>Available</th>
+                                <th>Age</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>frontend</td>
+                                <td>default</td>
+                                <td>3/3</td>
+                                <td>3</td>
+                                <td>3</td>
+                                <td>2d</td>
+                                <td>
+                                    <button class="action-btn scale">Scale</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>backend</td>
+                                <td>default</td>
+                                <td>2/2</td>
+                                <td>2</td>
+                                <td>2</td>
+                                <td>2d</td>
+                                <td>
+                                    <button class="action-btn scale">Scale</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>database</td>
+                                <td>default</td>
+                                <td>1/1</td>
+                                <td>1</td>
+                                <td>1</td>
+                                <td>5d</td>
+                                <td>
+                                    <button class="action-btn scale">Scale</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>worker</td>
+                                <td>default</td>
+                                <td>5/5</td>
+                                <td>5</td>
+                                <td>5</td>
+                                <td>3d</td>
+                                <td>
+                                    <button class="action-btn scale">Scale</button>
+                                    <button class="action-btn delete">Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Nodes Section -->
+            <section id="nodes" class="content-section">
+                <h2>Nodes</h2>
+                <div class="table-container">
+                    <table class="resource-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Roles</th>
+                                <th>Version</th>
+                                <th>OS</th>
+                                <th>Kernel</th>
+                                <th>Age</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>node-1</td>
+                                <td><span class="badge ready">Ready</span></td>
+                                <td>control-plane,master</td>
+                                <td>v1.28.0</td>
+                                <td>Ubuntu 22.04</td>
+                                <td>5.15.0-91</td>
+                                <td>30d</td>
+                            </tr>
+                            <tr>
+                                <td>node-2</td>
+                                <td><span class="badge ready">Ready</span></td>
+                                <td>worker</td>
+                                <td>v1.28.0</td>
+                                <td>Ubuntu 22.04</td>
+                                <td>5.15.0-91</td>
+                                <td>30d</td>
+                            </tr>
+                            <tr>
+                                <td>node-3</td>
+                                <td><span class="badge ready">Ready</span></td>
+                                <td>worker</td>
+                                <td>v1.28.0</td>
+                                <td>Ubuntu 22.04</td>
+                                <td>5.15.0-91</td>
+                                <td>30d</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Navigation functionality
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links and sections
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Show corresponding section
+                const sectionId = this.getAttribute('data-section');
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+        // Demo button actions
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const action = this.textContent;
+                alert(`Demo: ${action} action clicked. In the real dashboard, this would ${action.toLowerCase()} the resource.`);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deployments - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Deployments in default</h1>
+
+        <div class="filters-bar">
+            <input type="text" class="search-input" placeholder="Search deployments...">
+            <button class="btn-outlined">
+                <span class="material-icons">refresh</span>
+                Refresh
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">8 Deployments</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Namespace</th>
+                            <th>Status</th>
+                            <th>Ready</th>
+                            <th>Up-to-date</th>
+                            <th>Available</th>
+                            <th>Age</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>frontend</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td><span class="status-chip success">Healthy</span></td>
+                            <td>3/3</td>
+                            <td>3</td>
+                            <td>3</td>
+                            <td>2h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>backend</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td><span class="status-chip success">Healthy</span></td>
+                            <td>2/2</td>
+                            <td>2</td>
+                            <td>2</td>
+                            <td>2h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>api-gateway</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td><span class="status-chip success">Healthy</span></td>
+                            <td>2/2</td>
+                            <td>2</td>
+                            <td>2</td>
+                            <td>3h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>worker</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td><span class="status-chip warning">Issues</span></td>
+                            <td>2/3</td>
+                            <td>2</td>
+                            <td>2</td>
+                            <td>1h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>nginx-ingress</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td><span class="status-chip success">Healthy</span></td>
+                            <td>1/1</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td>5h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

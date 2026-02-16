@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="postTitle">Blog Post - DevSecOps Solutions</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOps<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html#home" class="nav-link">Home</a></li>
+                <li><a href="index.html#about" class="nav-link">About</a></li>
+                <li><a href="index.html#experience" class="nav-link">Experience</a></li>
+                <li><a href="index.html#projects" class="nav-link">Projects</a></li>
+                <li><a href="blog.html" class="nav-link">Blog</a></li>
+                <li><a href="index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="blog.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Blog
+                </a>
+                <div class="post-icon" id="postIcon">📦</div>
+                <h1 class="post-title" id="postTitleMain">Loading...</h1>
+                <div class="post-meta" id="postMeta">
+                    <span><i class="far fa-calendar"></i> <span id="postDate">...</span></span>
+                    <span><i class="far fa-clock"></i> <span id="postReadTime">...</span></span>
+                    <span><i class="far fa-user"></i> <span id="postAuthor">...</span></span>
+                </div>
+                <div class="post-tags" id="postTags"></div>
+            </div>
+            
+            <div class="post-content" id="postContent">
+                <p>Loading content...</p>
+            </div>
+            
+            <div class="post-footer">
+                <div class="post-share">
+                    <h3>Share this article</h3>
+                    <div class="share-buttons">
+                        <a href="#" class="share-btn twitter" onclick="shareOnTwitter(); return false;">
+                            <i class="fab fa-twitter"></i> Twitter
+                        </a>
+                        <a href="#" class="share-btn linkedin" onclick="shareOnLinkedIn(); return false;">
+                            <i class="fab fa-linkedin"></i> LinkedIn
+                        </a>
+                        <a href="#" class="share-btn facebook" onclick="shareOnFacebook(); return false;">
+                            <i class="fab fa-facebook"></i> Facebook
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="post-navigation">
+                    <a href="#" class="nav-prev" id="prevPost" style="display:none;">
+                        <i class="fas fa-arrow-left"></i>
+                        <div>
+                            <span>Previous</span>
+                            <strong id="prevTitle">...</strong>
+                        </div>
+                    </a>
+                    <a href="#" class="nav-next" id="nextPost" style="display:none;">
+                        <div>
+                            <span>Next</span>
+                            <strong id="nextTitle">...</strong>
+                        </div>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Related Posts -->
+    <section class="related-posts">
+        <div class="container">
+            <h2>Related Articles</h2>
+            <div class="blog-grid" id="relatedPosts"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOps<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html#home">Home</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#projects">Projects</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="blog.js"></script>
+    <script src="blog-post.js"></script>
+</body>
+</html>

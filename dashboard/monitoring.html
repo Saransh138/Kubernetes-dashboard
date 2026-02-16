@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Monitoring & Alerts</h1>
+
+        <!-- Health Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Cluster Health</div>
+                <div class="stat-value" style="color: #4caf50;">92%</div>
+                <span class="status-chip success">Healthy</span>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Critical Alerts</div>
+                <div class="stat-value" style="color: #f44336;">1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Warnings</div>
+                <div class="stat-value" style="color: #ff9800;">3</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Alerts</div>
+                <div class="stat-value">4</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div style="display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px;">
+            <div class="card">
+                <div class="card-title">Pod Status Over Time</div>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="podStatusChart"></canvas>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+                <div class="card">
+                    <div class="card-title">CPU Usage (%)</div>
+                    <div style="position: relative; height: 200px;">
+                        <canvas id="cpuChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">Memory Usage (%)</div>
+                    <div style="position: relative; height: 200px;">
+                        <canvas id="memoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Alerts -->
+        <div class="card">
+            <div class="card-title">Active Alerts</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Type</th>
+                            <th>Message</th>
+                            <th>Namespace</th>
+                            <th>Resource</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="status-chip error"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">error</span> ERROR</span></td>
+                            <td>Pod Failed</td>
+                            <td>Pod has failed and is not restarting</td>
+                            <td><span class="chip">default</span></td>
+                            <td><strong>worker-3a2b1c-ghi</strong></td>
+                            <td>5m ago</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip warning"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">warning</span> WARNING</span></td>
+                            <td>High CPU</td>
+                            <td>CPU usage above 80%</td>
+                            <td><span class="chip">default</span></td>
+                            <td><strong>backend-5b6c8d-abc</strong></td>
+                            <td>10m ago</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip warning"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">warning</span> WARNING</span></td>
+                            <td>Pod Restarts</td>
+                            <td>Pod has restarted 5 times in the last hour</td>
+                            <td><span class="chip">default</span></td>
+                            <td><strong>kafka-broker-0</strong></td>
+                            <td>15m ago</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-chip warning"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">warning</span> WARNING</span></td>
+                            <td>High Memory</td>
+                            <td>Memory usage above 85%</td>
+                            <td><span class="chip">default</span></td>
+                            <td><strong>redis-master-0</strong></td>
+                            <td>20m ago</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+    <script>
+        // Generate time labels
+        const times = [];
+        for (let i = 19; i >= 0; i--) {
+            const d = new Date(Date.now() - i * 30000);
+            times.push(d.toLocaleTimeString());
+        }
+
+        // Pod Status Chart
+        new Chart(document.getElementById('podStatusChart'), {
+            type: 'line',
+            data: {
+                labels: times,
+                datasets: [{
+                    label: 'Running',
+                    data: Array(20).fill().map(() => 22 + Math.random() * 2),
+                    borderColor: '#4caf50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    fill: true
+                }, {
+                    label: 'Pending',
+                    data: Array(20).fill().map(() => 1 + Math.random()),
+                    borderColor: '#ff9800',
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // CPU Chart
+        new Chart(document.getElementById('cpuChart'), {
+            type: 'line',
+            data: {
+                labels: times,
+                datasets: [{
+                    label: 'CPU %',
+                    data: Array(20).fill().map(() => 30 + Math.random() * 40),
+                    borderColor: '#2196f3',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+
+        // Memory Chart
+        new Chart(document.getElementById('memoryChart'), {
+            type: 'line',
+            data: {
+                labels: times,
+                datasets: [{
+                    label: 'Memory %',
+                    data: Array(20).fill().map(() => 40 + Math.random() * 30),
+                    borderColor: '#9c27b0',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

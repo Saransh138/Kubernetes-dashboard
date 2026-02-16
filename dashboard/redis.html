@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Manager - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">🔴 Redis Manager</h1>
+        <p style="color: rgba(0,0,0,0.6); margin-bottom: 24px;">Manage Redis keys and monitor performance</p>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">1,247</div>
+                <div class="stat-label">Total Keys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">256 MB</div>
+                <div class="stat-label">Memory Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">12</div>
+                <div class="stat-label">Connected Clients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">2</div>
+                <div class="stat-label">Redis Pods</div>
+            </div>
+        </div>
+
+        <!-- Key Browser -->
+        <div class="card">
+            <div class="card-title">Key Browser</div>
+            <div class="filters-bar">
+                <input type="text" class="search-input" placeholder="Search keys (e.g., user:*, session:*)" value="*">
+                <button class="btn-outlined">Search</button>
+                <button class="btn-outlined" style="background: #667eea; color: white; border-color: #667eea;">
+                    <span class="material-icons">add</span>
+                    Add Key
+                </button>
+            </div>
+            
+            <div style="color: rgba(0,0,0,0.6); margin-bottom: 16px;">Found 1,247 keys</div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Type</th>
+                            <th>TTL</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <span class="material-icons" style="vertical-align: middle; color: #DC382D;">vpn_key</span>
+                                <strong style="font-family: monospace;">user:1001:session</strong>
+                            </td>
+                            <td><span class="chip" style="background: rgba(33, 150, 243, 0.1); color: #2196f3;">string</span></td>
+                            <td><span class="chip">3600s</span></td>
+                            <td>
+                                <span class="material-icons action-icon" title="View">visibility</span>
+                                <span class="material-icons action-icon" title="Edit">edit</span>
+                                <span class="material-icons action-icon" title="Delete">delete</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="material-icons" style="vertical-align: middle; color: #DC382D;">vpn_key</span>
+                                <strong style="font-family: monospace;">cache:products:list</strong>
+                            </td>
+                            <td><span class="chip" style="background: rgba(76, 175, 80, 0.1); color: #4caf50;">list</span></td>
+                            <td><span class="chip">No Expiry</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">edit</span>
+                                <span class="material-icons action-icon">delete</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="material-icons" style="vertical-align: middle; color: #DC382D;">vpn_key</span>
+                                <strong style="font-family: monospace;">session:active:users</strong>
+                            </td>
+                            <td><span class="chip" style="background: rgba(255, 152, 0, 0.1); color: #ff9800;">set</span></td>
+                            <td><span class="chip">No Expiry</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">edit</span>
+                                <span class="material-icons action-icon">delete</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="material-icons" style="vertical-align: middle; color: #DC382D;">vpn_key</span>
+                                <strong style="font-family: monospace;">user:1002:profile</strong>
+                            </td>
+                            <td><span class="chip" style="background: rgba(33, 150, 243, 0.1); color: #2196f3;">hash</span></td>
+                            <td><span class="chip">7200s</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">edit</span>
+                                <span class="material-icons action-icon">delete</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="material-icons" style="vertical-align: middle; color: #DC382D;">vpn_key</span>
+                                <strong style="font-family: monospace;">leaderboard:scores</strong>
+                            </td>
+                            <td><span class="chip" style="background: rgba(244, 67, 54, 0.1); color: #f44336;">zset</span></td>
+                            <td><span class="chip">No Expiry</span></td>
+                            <td>
+                                <span class="material-icons action-icon">visibility</span>
+                                <span class="material-icons action-icon">edit</span>
+                                <span class="material-icons action-icon">delete</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Server Info -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div class="card">
+                <div class="card-title">Server Information</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Redis Version</span>
+                        <strong>7.0.5</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Uptime</span>
+                        <strong>15 days</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Connected Clients</span>
+                        <strong>12</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Used Memory</span>
+                        <strong>256 MB</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Statistics</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Total Keys</span>
+                        <strong>1,247</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Keyspace Hits</span>
+                        <strong>45,892</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Keyspace Misses</span>
+                        <strong>3,421</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(0,0,0,0.6);">Hit Rate</span>
+                        <strong>93.1%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

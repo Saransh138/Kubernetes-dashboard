@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persistent Volumes - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">Persistent Volumes</h1>
+
+        <div class="card">
+            <div class="card-title">5 Persistent Volumes</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Capacity</th>
+                            <th>Access Modes</th>
+                            <th>Status</th>
+                            <th>Claim</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>pv-kafka-0</strong></td>
+                            <td>10Gi</td>
+                            <td>RWO</td>
+                            <td><span class="status-chip success">Bound</span></td>
+                            <td>default/kafka-data-0</td>
+                            <td>1h</td>
+                        </tr>
+                        <tr>
+                            <td><strong>pv-redis-0</strong></td>
+                            <td>5Gi</td>
+                            <td>RWO</td>
+                            <td><span class="status-chip success">Bound</span></td>
+                            <td>default/redis-data-0</td>
+                            <td>1h</td>
+                        </tr>
+                        <tr>
+                            <td><strong>pv-postgres-0</strong></td>
+                            <td>20Gi</td>
+                            <td>RWO</td>
+                            <td><span class="status-chip success">Bound</span></td>
+                            <td>default/postgres-data-0</td>
+                            <td>2h</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

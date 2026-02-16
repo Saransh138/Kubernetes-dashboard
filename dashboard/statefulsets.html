@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatefulSets - Kubernetes Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../dashboard-styles.css">
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="topbar"></div>
+    
+    <div class="main-content">
+        <h1 class="page-title">StatefulSets in default</h1>
+
+        <div class="card">
+            <div class="card-title">3 StatefulSets</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Namespace</th>
+                            <th>Ready</th>
+                            <th>Age</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>kafka-broker</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td>3/3</td>
+                            <td>1h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>redis-master</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td>1/1</td>
+                            <td>1h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>zookeeper</strong></td>
+                            <td><span class="chip">default</span></td>
+                            <td>3/3</td>
+                            <td>2h</td>
+                            <td><span class="material-icons action-icon">more_vert</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dashboard-common.js"></script>
+</body>
+</html>

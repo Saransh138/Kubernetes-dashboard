@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Dashboard - Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e27;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: #151a35;
+            border-right: 1px solid rgba(0, 245, 255, 0.1);
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .logo {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo h2 {
+            color: #00f5ff;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-section {
+            padding: 1rem 0;
+        }
+
+        .nav-title {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(0, 245, 255, 0.1);
+            color: #00f5ff;
+            border-left: 3px solid #00f5ff;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .topbar {
+            background: #151a35;
+            border-bottom: 1px solid rgba(0, 245, 255, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .cluster-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cluster-badge {
+            padding: 0.5rem 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            color: #10b981;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        /* Dashboard Grid */
+        .dashboard {
+            padding: 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: #94a3b8;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #151a35;
+            border: 1px solid rgba(0, 245, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00f5ff, #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00f5ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .stat-details {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-detail {
+            font-size: 0.85rem;
+        }
+
+        .stat-detail.success { color: #10b981; }
+        .stat-detail.warning { color: #f59e0b; }
+        .stat-detail.error { color: #ef4444; }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background: #151a35;
+            border: 1px solid rgba(0, 245, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00f5ff, #7c3aed);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 245, 255, 0.3);
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem;
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:hover {
+            background: rgba(0, 245, 255, 0.05);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Chart */
+        .chart {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            padding: 1rem;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #00f5ff, #7c3aed);
+            border-radius: 4px 4px 0 0;
+            animation: grow 1s ease-out;
+        }
+
+        @keyframes grow {
+            from { height: 0; }
+        }
+
+        /* Activity Feed */
+        .activity-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 245, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00f5ff;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <h2><i class="fas fa-dharmachakra"></i> K8s Dashboard</h2>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-title">Overview</div>
+            <div class="nav-item active">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Monitoring</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-title">Workloads</div>
+            <div class="nav-item">
+                <i class="fas fa-cube"></i>
+                <span>Pods</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Deployments</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-layer-group"></i>
+                <span>StatefulSets</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-server"></i>
+                <span>DaemonSets</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-title">Network</div>
+            <div class="nav-item">
+                <i class="fas fa-network-wired"></i>
+                <span>Services</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-route"></i>
+                <span>Ingresses</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-project-diagram"></i>
+                <span>Network Graph</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-title">Data Services</div>
+            <div class="nav-item">
+                <i class="fas fa-stream"></i>
+                <span>Kafka</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-database"></i>
+                <span>Redis</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-title">Configuration</div>
+            <div class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>ConfigMaps</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-key"></i>
+                <span>Secrets</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-title">Storage</div>
+            <div class="nav-item">
+                <i class="fas fa-hdd"></i>
+                <span>Volumes</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-folder"></i>
+                <span>File Manager</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="cluster-info">
+                <div class="cluster-badge">
+                    <span class="status-dot"></span>
+                    <span>production-cluster</span>
+                </div>
+                <span style="color: #64748b;">|</span>
+                <span style="color: #94a3b8;">Namespace: <strong style="color: #00f5ff;">default</strong></span>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <i class="fas fa-bell" style="color: #94a3b8; cursor: pointer;"></i>
+                <i class="fas fa-user-circle" style="color: #94a3b8; font-size: 1.5rem; cursor: pointer;"></i>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard">
+            <div class="page-header">
+                <h1>Cluster Overview</h1>
+                <p>Real-time monitoring and management of your Kubernetes cluster</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value">24</div>
+                            <div class="stat-label">Pods</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-detail success"><i class="fas fa-check-circle"></i> 22 Running</span>
+                        <span class="stat-detail warning"><i class="fas fa-clock"></i> 1 Pending</span>
+                        <span class="stat-detail error"><i class="fas fa-times-circle"></i> 1 Failed</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value">12</div>
+                            <div class="stat-label">Deployments</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-detail success"><i class="fas fa-check-circle"></i> 11 Ready</span>
+                        <span class="stat-detail warning"><i class="fas fa-sync"></i> 1 Updating</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value">8</div>
+                            <div class="stat-label">Services</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-network-wired"></i>
+                        </div>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-detail success"><i class="fas fa-check-circle"></i> All Active</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value">3</div>
+                            <div class="stat-label">Nodes</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-server"></i>
+                        </div>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-detail success"><i class="fas fa-check-circle"></i> All Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Pods Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Pods</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-secondary"><i class="fas fa-sync"></i></button>
+                            <button class="btn btn-primary"><i class="fas fa-plus"></i> New Pod</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Ready</th>
+                                    <th>Restarts</th>
+                                    <th>Age</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="fas fa-cube" style="color: #00f5ff; margin-right: 0.5rem;"></i>frontend-7d8f9c-xyz</td>
+                                    <td><span class="badge success">Running</span></td>
+                                    <td>1/1</td>
+                                    <td>0</td>
+                                    <td>2d</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-cube" style="color: #00f5ff; margin-right: 0.5rem;"></i>backend-5b6c8d-abc</td>
+                                    <td><span class="badge success">Running</span></td>
+                                    <td>1/1</td>
+                                    <td>0</td>
+                                    <td>2d</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-cube" style="color: #00f5ff; margin-right: 0.5rem;"></i>database-9f4e2a-def</td>
+                                    <td><span class="badge success">Running</span></td>
+                                    <td>1/1</td>
+                                    <td>1</td>
+                                    <td>5d</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-cube" style="color: #f59e0b; margin-right: 0.5rem;"></i>worker-3a2b1c-ghi</td>
+                                    <td><span class="badge warning">Pending</span></td>
+                                    <td>0/1</td>
+                                    <td>0</td>
+                                    <td>5m</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-cube" style="color: #00f5ff; margin-right: 0.5rem;"></i>kafka-broker-0</td>
+                                    <td><span class="badge success">Running</span></td>
+                                    <td>1/1</td>
+                                    <td>0</td>
+                                    <td>7d</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Activity</h3>
+                    </div>
+                    <div>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Deployment scaled</div>
+                                <div class="activity-time">frontend: 3 → 5 replicas • 2m ago</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-cube"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Pod created</div>
+                                <div class="activity-time">worker-3a2b1c-ghi • 5m ago</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-sync"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Rolling update</div>
+                                <div class="activity-time">backend deployment • 15m ago</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Redis connected</div>
+                                <div class="activity-time">redis-master-0 • 1h ago</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-stream"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Kafka topic created</div>
+                                <div class="activity-time">user-events • 2h ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resource Usage -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Cluster Resource Usage</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary">Last 24h</button>
+                    </div>
+                </div>
+                <div class="chart">
+                    <div class="chart-bar" style="height: 65%;"></div>
+                    <div class="chart-bar" style="height: 80%;"></div>
+                    <div class="chart-bar" style="height: 55%;"></div>
+                    <div class="chart-bar" style="height: 90%;"></div>
+                    <div class="chart-bar" style="height: 70%;"></div>
+                    <div class="chart-bar" style="height: 85%;"></div>
+                    <div class="chart-bar" style="height: 60%;"></div>
+                    <div class="chart-bar" style="height: 75%;"></div>
+                    <div class="chart-bar" style="height: 95%;"></div>
+                    <div class="chart-bar" style="height: 70%;"></div>
+                    <div class="chart-bar" style="height: 80%;"></div>
+                    <div class="chart-bar" style="height: 65%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactivity
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Simulate real-time updates
+        setInterval(() => {
+            const statusDot = document.querySelector('.status-dot');
+            statusDot.style.animation = 'none';
+            setTimeout(() => statusDot.style.animation = 'pulse 2s infinite', 10);
+        }, 5000);
+    </script>
+</body>
+</html>

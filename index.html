@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saransh Jain - DevOps Engineer | Kubernetes & Cloud Infrastructure</title>
+    <meta name="description" content="DevOps Engineer with 2+ years of experience in Kubernetes, CI/CD automation, Azure, AWS, and cloud-native infrastructure">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="#home">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#about" class="nav-link">About</a></li>
+                <li><a href="#experience" class="nav-link">Experience</a></li>
+                <li><a href="#projects" class="nav-link">Projects</a></li>
+                <li><a href="#blog" class="nav-link">Blog</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="particles" id="particles"></div>
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    Hi, I'm <span class="gradient-text">Saransh Jain</span>
+                </h1>
+                <h2 class="hero-subtitle">DevOps Engineer</h2>
+                <p class="hero-description">
+                    Building scalable cloud-native infrastructure with Kubernetes, automating CI/CD pipelines,
+                    and securing cloud environments. Passionate about building scalable, resilient systems.
+                </p>
+                <div class="hero-buttons">
+                    <a href="#projects" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> View Projects
+                    </a>
+                    <a href="#contact" class="btn btn-secondary">
+                        <i class="fas fa-envelope"></i> Get in Touch
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="code-window">
+                    <div class="window-header">
+                        <span class="window-dot red"></span>
+                        <span class="window-dot yellow"></span>
+                        <span class="window-dot green"></span>
+                        <span class="window-title">terminal</span>
+                    </div>
+                    <div class="window-body">
+                        <div id="terminal-content">
+                            <div class="terminal-line">
+                                <span class="prompt">saransh@devsecopssolution:~$</span> <span class="cursor">█</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <div class="mouse">
+                <div class="wheel"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Get to know me</span>
+                <h2 class="section-title">About Me</h2>
+            </div>
+            <div class="about-content">
+                <div class="about-text">
+                    <p class="lead">
+                        I'm a DevOps Engineer with 2+ years of experience designing scalable cloud-native infrastructure.
+                        I specialize in Kubernetes orchestration, CI/CD automation, and cloud platforms (Azure & AWS),
+                        building production-grade deployment pipelines and implementing observability solutions for high-availability applications.
+                    </p>
+                    <p>
+                        My expertise spans across container orchestration with Kubernetes, infrastructure as code,
+                        CI/CD pipeline development, and cloud security. I believe in the power of automation
+                        to transform how teams build and deploy software.
+                    </p>
+                    <div class="about-highlights">
+                        <div class="highlight-item">
+                            <i class="fas fa-code"></i>
+                            <div>
+                                <h4>Clean Code</h4>
+                                <p>Writing maintainable, well-documented infrastructure code</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <div>
+                                <h4>Security First</h4>
+                                <p>Implementing security best practices at every layer</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <i class="fas fa-chart-line"></i>
+                            <div>
+                                <h4>Performance</h4>
+                                <p>Optimizing systems for speed and efficiency</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Skills Grid -->
+            <div class="skills-section">
+                <h3 class="skills-title">Technical Skills</h3>
+                <div class="skills-grid">
+                    <div class="skill-category">
+                        <div class="skill-icon">
+                            <i class="fas fa-cloud"></i>
+                        </div>
+                        <h3>Cloud Platforms</h3>
+                        <div class="skill-items">
+                            <span class="skill-tag">Microsoft Azure</span>
+                            <span class="skill-tag">AWS</span>
+                            <span class="skill-tag">AKS</span>
+                            <span class="skill-tag">EKS</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-icon">
+                            <i class="fas fa-dharmachakra"></i>
+                        </div>
+                        <h3>Container & Orchestration</h3>
+                        <div class="skill-items">
+                            <span class="skill-tag">Kubernetes</span>
+                            <span class="skill-tag">Docker</span>
+                            <span class="skill-tag">Helm</span>
+                            <span class="skill-tag">RBAC</span>
+                            <span class="skill-tag">HPA</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-icon">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <h3>CI/CD & IaC</h3>
+                        <div class="skill-items">
+                            <span class="skill-tag">Jenkins</span>
+                            <span class="skill-tag">GitLab CI/CD</span>
+                            <span class="skill-tag">Azure DevOps</span>
+                            <span class="skill-tag">Terraform</span>
+                            <span class="skill-tag">Git</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3>Databases & Message Brokers</h3>
+                        <div class="skill-items">
+                            <span class="skill-tag">MySQL</span>
+                            <span class="skill-tag">PostgreSQL</span>
+                            <span class="skill-tag">MongoDB</span>
+                            <span class="skill-tag">Redis</span>
+                            <span class="skill-tag">Apache Kafka</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Monitoring & Observability</h3>
+                        <div class="skill-items">
+                            <span class="skill-tag">Prometheus</span>
+                            <span class="skill-tag">Grafana</span>
+                            <span class="skill-tag">Kubernetes Dashboard</span>
+                            <span class="skill-tag">Netdata</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3>Programming & Scripting</h3>
+                        <div class="skill-items">
+                            <span class="skill-tag">Java</span>
+                            <span class="skill-tag">Python</span>
+                            <span class="skill-tag">Bash</span>
+                            <span class="skill-tag">Shell Scripting</span>
+                            <span class="skill-tag">Spring Boot</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experience Section -->
+    <section id="experience" class="experience">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">My Journey</span>
+                <h2 class="section-title">Work Experience</h2>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">June 2025 - Present</div>
+                        <h3>Software Engineer</h3>
+                        <h4>Netlink Software Pvt. Ltd.</h4>
+                        <p>Architecting and managing containerized production workloads with Kubernetes and implementing CI/CD automation.</p>
+                        <ul class="timeline-achievements">
+                            <li>Architected and managed containerized production workloads using Docker, Kubernetes, and Helm with microservices-based architecture</li>
+                            <li>Implemented Horizontal Pod Autoscaling (HPA), RBAC, and self-healing mechanisms, improving cluster efficiency by 30%</li>
+                            <li>Designed secure Kubernetes infrastructure with SSL/TLS termination, NGINX Ingress routing, and persistent volumes (PV/PVC)</li>
+                            <li>Built and optimized end-to-end CI/CD pipelines using Jenkins integrated with Azure DevOps, reducing release cycle time by 40%</li>
+                            <li>Automated Android and iOS application build and release pipelines</li>
+                            <li>Deployed and managed cloud-native workloads on Microsoft Azure including AKS, Azure Blob Storage, Azure SQL Database, Load Balancers, and Azure Front Door</li>
+                            <li>Implemented observability solutions using Prometheus, Grafana, and Kubernetes Dashboard for proactive alerting and real-time performance tracking</li>
+                        </ul>
+                        <div class="timeline-tags">
+                            <span>Kubernetes</span>
+                            <span>Azure</span>
+                            <span>Jenkins</span>
+                            <span>Docker</span>
+                            <span>Helm</span>
+                            <span>Prometheus</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">June 2024 - April 2025</div>
+                        <h3>Junior DevOps Engineer</h3>
+                        <h4>KnightOwl's InfoTech</h4>
+                        <p>Configured distributed systems and gained hands-on experience with AWS cloud infrastructure.</p>
+                        <ul class="timeline-achievements">
+                            <li>Configured and deployed a multi-node Kafka cluster using custom Docker images, resolving port conflicts and optimizing resource allocation</li>
+                            <li>Implemented Kafka Connect for reliable data migration and streaming between heterogeneous data sources</li>
+                            <li>Gained hands-on experience with AWS services including EC2, VPC, Subnets, S3, RDS, Auto Scaling Groups, and EKS</li>
+                            <li>Executed MySQL to PostgreSQL database migration using Python and Shell scripting, ensuring data integrity and schema compatibility</li>
+                            <li>Assisted in provisioning and managing MySQL, Redis, and MongoDB databases with backup strategies and CI/CD pipeline integration</li>
+                        </ul>
+                        <div class="timeline-tags">
+                            <span>Kafka</span>
+                            <span>AWS</span>
+                            <span>Docker</span>
+                            <span>Python</span>
+                            <span>MySQL</span>
+                            <span>PostgreSQL</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">June 2022 - June 2023</div>
+                        <h3>Associate Software Engineer</h3>
+                        <h4>Netlink Software Pvt. Ltd.</h4>
+                        <p>Developed and maintained Java-based backend services and contributed to containerization efforts.</p>
+                        <ul class="timeline-achievements">
+                            <li>Developed and maintained Java-based backend services using Spring Boot framework for enterprise applications</li>
+                            <li>Collaborated with cross-functional teams to design and implement RESTful APIs for client-server communication</li>
+                            <li>Participated in code reviews, unit testing with JUnit, and debugging to ensure code quality and application stability</li>
+                            <li>Assisted in containerizing applications using Docker and deploying to development environments</li>
+                            <li>Contributed to database design and optimization for MySQL databases, improving query performance</li>
+                        </ul>
+                        <div class="timeline-tags">
+                            <span>Java</span>
+                            <span>Spring Boot</span>
+                            <span>Docker</span>
+                            <span>MySQL</span>
+                            <span>REST API</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="projects">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">What I've Built</span>
+                <h2 class="section-title">Featured Projects</h2>
+            </div>
+            <div class="projects-grid">
+                <!-- K8s Dashboard Project -->
+                <div class="project-card featured">
+                    <div class="project-image">
+                        <img src="assets/placeholder-dashboard.svg" alt="Kubernetes Dashboard">
+                        <div class="project-badge">Featured</div>
+                    </div>
+                    <div class="project-content">
+                        <h3>Kubernetes Dashboard Platform</h3>
+                        <p>
+                            Internal monitoring platform with Kubernetes Dashboard capabilities, enabling resource-level and node-level monitoring across clusters.
+                            Integrated Kafka and Redis management interfaces with log filtering and real-time metrics visualization.
+                            Implemented Role-Based Access Control (RBAC) for secure access management and multi-tenant support.
+                        </p>
+                        <div class="project-tech">
+                            <span class="tech-tag">React</span>
+                            <span class="tech-tag">Node.js</span>
+                            <span class="tech-tag">Kubernetes</span>
+                            <span class="tech-tag">Kafka</span>
+                            <span class="tech-tag">Redis</span>
+                            <span class="tech-tag">Material-UI</span>
+                        </div>
+                        <div class="project-features">
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Resource & node-level monitoring</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Kafka & Redis management</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Real-time metrics visualization</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>RBAC for multi-tenant support</span>
+                            </div>
+                        </div>
+                        <div class="project-links">
+                            <a href="https://github.com/Saransh138/Kubernetes-dashboard" class="btn btn-secondary" target="_blank">
+                                <i class="fab fa-github"></i> View Code
+                            </a>
+                            <a href="dashboard-static.html" class="btn btn-primary">
+                                <i class="fas fa-external-link-alt"></i> View Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Projects -->
+                <div class="project-card">
+                    <div class="project-content">
+                        <div class="project-icon">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <h3>CI/CD Pipeline Automation</h3>
+                        <p>
+                            Fully automated deployment pipeline with multi-stage testing, security scanning,
+                            and blue-green deployment strategies for zero-downtime releases.
+                        </p>
+                        <div class="project-tech">
+                            <span class="tech-tag">Jenkins</span>
+                            <span class="tech-tag">Docker</span>
+                            <span class="tech-tag">Terraform</span>
+                            <span class="tech-tag">AWS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-content">
+                        <div class="project-icon">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <h3>Infrastructure as Code</h3>
+                        <p>
+                            Scalable cloud infrastructure provisioning using Terraform with automated
+                            compliance checks, cost optimization, and multi-environment support.
+                        </p>
+                        <div class="project-tech">
+                            <span class="tech-tag">Terraform</span>
+                            <span class="tech-tag">AWS</span>
+                            <span class="tech-tag">Python</span>
+                            <span class="tech-tag">GitOps</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-content">
+                        <div class="project-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Microservices Monitoring Stack</h3>
+                        <p>
+                            Complete observability solution with metrics, logs, and traces for
+                            microservices architecture using Prometheus, Grafana, and Jaeger.
+                        </p>
+                        <div class="project-tech">
+                            <span class="tech-tag">Prometheus</span>
+                            <span class="tech-tag">Grafana</span>
+                            <span class="tech-tag">Jaeger</span>
+                            <span class="tech-tag">ELK</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blog Section -->
+    <section id="blog" class="blog">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Latest Articles</span>
+                <h2 class="section-title">Technical Blog</h2>
+            </div>
+            <div class="blog-grid" id="blogGrid">
+                <!-- Blog posts will be loaded here -->
+            </div>
+            <div class="blog-cta">
+                <a href="blog.html" class="btn btn-primary">
+                    <i class="fas fa-book-open"></i> View All Posts
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Let's Connect</span>
+                <h2 class="section-title">Get In Touch</h2>
+            </div>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div>
+                            <h3>Email</h3>
+                            <a href="mailto:sj138310@gmail.com">sj138310@gmail.com</a>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fab fa-linkedin"></i>
+                        </div>
+                        <div>
+                            <h3>LinkedIn</h3>
+                            <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank">linkedin.com/in/saransh-jain13</a>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fab fa-github"></i>
+                        </div>
+                        <div>
+                            <h3>GitHub</h3>
+                            <a href="https://github.com/Saransh138" target="_blank">github.com/Saransh138</a>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div>
+                            <h3>Location</h3>
+                            <p>Bhopal, Madhya Pradesh</p>
+                        </div>
+                    </div>
+                </div>
+                <form class="contact-form" id="contactForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="text" name="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" name="email" placeholder="Your Email" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="subject" placeholder="Subject" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea name="message" rows="5" placeholder="Your Message" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-paper-plane"></i> Send Message
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank" aria-label="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" aria-label="LinkedIn">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#experience">Experience</a></li>
+                        <li><a href="#projects">Projects</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-newsletter">
+                    <h4>Stay Updated</h4>
+                    <p>Get notified about new blog posts and projects</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Your email">
+                        <button type="submit"><i class="fas fa-arrow-right"></i></button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. Crafted with <i class="fas fa-heart"></i> by Saransh</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="terminal.js"></script>
+</body>
+</html>
