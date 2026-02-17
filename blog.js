@@ -1,6 +1,685 @@
 // Extended blog posts with full content
 const allBlogPosts = [
     {
+        id: 8,
+        title: "Docker Mastery: From Zero to Hero with Visual Architecture",
+        excerpt: "A comprehensive, visually-rich guide to mastering Docker from scratch. Learn containers, images, Dockerfiles, networking, and orchestration with animated explanations and real-world examples.",
+        content: `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+                <h1 style="color: white; margin: 0 0 10px 0;">🐳 Docker Mastery: The Complete Visual Guide</h1>
+                <p style="margin: 0; font-size: 18px;">Master containerization from the ground up with animated architecture diagrams and hands-on examples</p>
+            </div>
+
+            <h2>📚 Table of Contents</h2>
+            <ol style="line-height: 2;">
+                <li><a href="#what-is-docker">What is Docker? The Big Picture</a></li>
+                <li><a href="#architecture">Docker Architecture Explained</a></li>
+                <li><a href="#images-vs-containers">Images vs Containers: The Blueprint Analogy</a></li>
+                <li><a href="#dockerfile">Dockerfile: Building Your First Image</a></li>
+                <li><a href="#container-lifecycle">Container Lifecycle Management</a></li>
+                <li><a href="#networking">Docker Networking Deep Dive</a></li>
+                <li><a href="#volumes">Data Persistence with Volumes</a></li>
+                <li><a href="#docker-compose">Multi-Container Apps with Docker Compose</a></li>
+                <li><a href="#best-practices">Production Best Practices</a></li>
+            </ol>
+
+            <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+            <h2 id="what-is-docker">1. What is Docker? The Big Picture 🎯</h2>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
+                <h3 style="margin-top: 0;">The Problem Docker Solves</h3>
+                <p><strong>Before Docker:</strong> "It works on my machine!" 😫</p>
+                <ul>
+                    <li>Different OS versions across dev, staging, production</li>
+                    <li>Dependency conflicts between applications</li>
+                    <li>Complex setup and deployment processes</li>
+                    <li>Resource waste from running full VMs</li>
+                </ul>
+                <p><strong>After Docker:</strong> "It works everywhere!" 🎉</p>
+            </div>
+
+            <h3>🏗️ The Shipping Container Analogy</h3>
+            <p>Think of Docker like shipping containers in the real world:</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                    <h4>🚢 Physical Shipping Container</h4>
+                    <ul>
+                        <li>Standard size and shape</li>
+                        <li>Can hold anything inside</li>
+                        <li>Works on ships, trucks, trains</li>
+                        <li>Isolated from other containers</li>
+                    </ul>
+                </div>
+                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
+                    <h4>🐳 Docker Container</h4>
+                    <ul>
+                        <li>Standard runtime environment</li>
+                        <li>Can run any application</li>
+                        <li>Works on any OS with Docker</li>
+                        <li>Isolated from other containers</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2 id="architecture">2. Docker Architecture Explained 🏛️</h2>
+            
+            <div style="background: #fff3e0; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                <h3>Visual Architecture Breakdown</h3>
+                <pre style="background: white; padding: 15px; border-radius: 5px; overflow-x: auto;">
+┌─────────────────────────────────────────────────────────────┐
+│                     YOUR COMPUTER                            │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │           DOCKER CLIENT (CLI)                      │    │
+│  │   $ docker run, docker build, docker pull          │    │
+│  └──────────────────┬─────────────────────────────────┘    │
+│                     │ REST API                              │
+│                     ▼                                        │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │           DOCKER DAEMON (dockerd)                  │    │
+│  │   • Manages containers, images, networks, volumes  │    │
+│  │   • Listens for API requests                       │    │
+│  └──────────────────┬─────────────────────────────────┘    │
+│                     │                                        │
+│         ┌───────────┴───────────┬──────────────┐           │
+│         ▼                       ▼              ▼           │
+│  ┌──────────┐          ┌──────────┐    ┌──────────┐       │
+│  │Container1│          │Container2│    │Container3│       │
+│  │  nginx   │          │  redis   │    │  postgres│       │
+│  │  :80     │          │  :6379   │    │  :5432   │       │
+│  └──────────┘          └──────────┘    └──────────┘       │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              DOCKER IMAGES (Local)                 │    │
+│  │   ubuntu:22.04, nginx:latest, node:18-alpine      │    │
+│  └────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ docker pull/push
+                          ▼
+              ┌─────────────────────────┐
+              │   DOCKER HUB (Registry) │
+              │   hub.docker.com        │
+              └─────────────────────────┘
+                </pre>
+            </div>
+
+            <h3>Key Components Explained</h3>
+            <ol>
+                <li><strong>Docker Client:</strong> The command-line tool you interact with (<code>docker</code> command)</li>
+                <li><strong>Docker Daemon:</strong> The background service that does the heavy lifting</li>
+                <li><strong>Docker Registry:</strong> Storage for Docker images (Docker Hub, private registries)</li>
+                <li><strong>Containers:</strong> Running instances of images</li>
+                <li><strong>Images:</strong> Read-only templates for creating containers</li>
+            </ol>
+
+            <h2 id="images-vs-containers">3. Images vs Containers: The Blueprint Analogy 📐</h2>
+            
+            <div style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h3>Think of it like Building a House</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
+                    <div>
+                        <h4>🏗️ Docker Image = Blueprint</h4>
+                        <ul>
+                            <li>Read-only template</li>
+                            <li>Contains OS, app code, dependencies</li>
+                            <li>Can create multiple containers from one image</li>
+                            <li>Stored in layers (like floors in a building)</li>
+                        </ul>
+                        <pre><code>docker images
+# Lists all blueprints</code></pre>
+                    </div>
+                    <div>
+                        <h4>🏠 Docker Container = Actual House</h4>
+                        <ul>
+                            <li>Running instance of an image</li>
+                            <li>Has its own filesystem, network, processes</li>
+                            <li>Can be started, stopped, deleted</li>
+                            <li>Changes don't affect the image</li>
+                        </ul>
+                        <pre><code>docker ps
+# Lists all running houses</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Image Layers: The Secret Sauce 🎂</h3>
+            <p>Docker images are built in layers, like a cake:</p>
+            <pre style="background: #263238; color: #aed581; padding: 20px; border-radius: 8px; overflow-x: auto;">
+┌─────────────────────────────────────┐
+│  Layer 4: Your Application Code    │  ← Your app (5 MB)
+├─────────────────────────────────────┤
+│  Layer 3: Node.js Dependencies      │  ← npm packages (50 MB)
+├─────────────────────────────────────┤
+│  Layer 2: Node.js Runtime           │  ← Node.js (100 MB)
+├─────────────────────────────────────┤
+│  Layer 1: Base OS (Ubuntu/Alpine)   │  ← Operating system (30 MB)
+└─────────────────────────────────────┘
+
+💡 Each layer is cached! If Layer 1-3 don't change,
+   Docker reuses them = SUPER FAST builds!
+            </pre>
+
+            <h2 id="dockerfile">4. Dockerfile: Building Your First Image 🔨</h2>
+            
+            <p>A Dockerfile is a recipe for creating an image. Let's build a Node.js app step by step:</p>
+
+            <h3>Example: Simple Node.js Web Server</h3>
+            
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4>Step 1: Create app.js</h4>
+                <pre><code>// app.js
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+    res.send('Hello from Docker! 🐳');
+});
+
+app.listen(3000, () => {
+    console.log('Server running on port 3000');
+});</code></pre>
+            </div>
+
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4>Step 2: Create package.json</h4>
+                <pre><code>{
+  "name": "docker-demo",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.18.0"
+  },
+  "scripts": {
+    "start": "node app.js"
+  }
+}</code></pre>
+            </div>
+
+            <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4>Step 3: Create Dockerfile (The Magic Recipe! ✨)</h4>
+                <pre><code># Dockerfile - Every line creates a new layer!
+
+# 1. Start with a base image (the foundation)
+FROM node:18-alpine
+# Why alpine? It's tiny! (5MB vs 900MB for full node image)
+
+# 2. Set working directory inside container
+WORKDIR /app
+# All commands run from here
+
+# 3. Copy package files first (for caching!)
+COPY package*.json ./
+# If these don't change, Docker reuses this layer
+
+# 4. Install dependencies
+RUN npm install --production
+# Only runs if package.json changed
+
+# 5. Copy application code
+COPY . .
+# Your app code goes here
+
+# 6. Expose port (documentation, not security)
+EXPOSE 3000
+# Tells others which port the app uses
+
+# 7. Define startup command
+CMD ["npm", "start"]
+# Runs when container starts</code></pre>
+            </div>
+
+            <h3>🎯 Dockerfile Best Practices Explained</h3>
+            <div style="background: #e1f5fe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h4>1. Order Matters for Caching</h4>
+                <pre><code># ❌ BAD: Copy everything first
+COPY . .
+RUN npm install
+# Every code change = reinstall all packages!
+
+# ✅ GOOD: Copy package.json first
+COPY package*.json ./
+RUN npm install
+COPY . .
+# Code changes don't trigger npm install!</code></pre>
+
+                <h4>2. Use .dockerignore</h4>
+                <pre><code># .dockerignore (like .gitignore)
+node_modules
+npm-debug.log
+.git
+.env
+*.md</code></pre>
+
+                <h4>3. Multi-stage Builds (Advanced)</h4>
+                <pre><code># Build stage
+FROM node:18 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY package*.json ./
+RUN npm install --production
+CMD ["node", "dist/server.js"]
+
+# Result: Smaller final image! 🎉</code></pre>
+            </div>
+
+            <h3>Building and Running Your Image</h3>
+            <pre><code># Build the image
+docker build -t my-node-app:1.0 .
+#        │      │           │    │
+#        │      │           │    └─ Build context (current directory)
+#        │      │           └────── Version tag
+#        │      └────────────────── Image name
+#        └───────────────────────── Tag flag
+
+# Run a container from the image
+docker run -d -p 3000:3000 --name my-app my-node-app:1.0
+#          │  │            │              │
+#          │  │            │              └─ Image to use
+#          │  │            └──────────────── Container name
+#          │  └───────────────────────────── Port mapping (host:container)
+#          └──────────────────────────────── Detached mode (background)
+
+# Test it!
+curl http://localhost:3000
+# Output: Hello from Docker! 🐳</code></pre>
+
+            <h2 id="container-lifecycle">5. Container Lifecycle Management 🔄</h2>
+            
+            <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                <h3>Container States Visualized</h3>
+                <pre style="background: white; padding: 15px; border-radius: 5px;">
+                    ┌─────────┐
+                    │ CREATED │
+                    └────┬────┘
+                         │ docker start
+                         ▼
+    ┌──────────────────────────────────┐
+    │          RUNNING                 │ ◄─┐
+    │  • Processes executing           │   │
+    │  • Using CPU/Memory              │   │ docker restart
+    │  • Network accessible            │   │
+    └──┬───────────────────────────┬───┘   │
+       │                           │       │
+       │ docker stop               │ docker pause
+       │                           │       │
+       ▼                           ▼       │
+    ┌─────────┐               ┌─────────┐ │
+    │ STOPPED │               │ PAUSED  │─┘
+    └────┬────┘               └─────────┘
+         │                         │
+         │ docker rm               │ docker unpause
+         ▼                         ▼
+    ┌─────────┐               (back to RUNNING)
+    │ DELETED │
+    └─────────┘
+                </pre>
+            </div>
+
+            <h3>Essential Container Commands</h3>
+            <pre><code># List containers
+docker ps              # Running containers only
+docker ps -a           # All containers (including stopped)
+
+# Start/Stop containers
+docker start my-app    # Start stopped container
+docker stop my-app     # Graceful shutdown (SIGTERM)
+docker kill my-app     # Force stop (SIGKILL)
+docker restart my-app  # Stop then start
+
+# Interact with containers
+docker exec -it my-app bash        # Open shell inside container
+docker logs my-app                 # View container logs
+docker logs -f my-app              # Follow logs (like tail -f)
+docker stats                       # Real-time resource usage
+
+# Inspect containers
+docker inspect my-app              # Detailed JSON info
+docker top my-app                  # Running processes
+docker port my-app                 # Port mappings
+
+# Clean up
+docker rm my-app                   # Remove stopped container
+docker rm -f my-app                # Force remove running container
+docker container prune             # Remove all stopped containers</code></pre>
+
+            <h3>🎓 Pro Tips for Container Management</h3>
+            <div style="background: #fff9c4; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <ul>
+                    <li><strong>Always name your containers:</strong> <code>--name my-app</code> instead of random names</li>
+                    <li><strong>Use restart policies:</strong> <code>--restart unless-stopped</code> for production</li>
+                    <li><strong>Limit resources:</strong> <code>--memory="512m" --cpus="1.0"</code></li>
+                    <li><strong>Health checks:</strong> Add HEALTHCHECK in Dockerfile for monitoring</li>
+                </ul>
+            </div>
+
+            <h2 id="networking">6. Docker Networking Deep Dive 🌐</h2>
+            
+            <p>Docker networking allows containers to communicate with each other and the outside world.</p>
+
+            <h3>Network Types</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                    <h4>🌉 Bridge (Default)</h4>
+                    <p>Containers on same host communicate via internal network</p>
+                    <pre><code>docker network create my-network
+docker run --network my-network nginx</code></pre>
+                </div>
+                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
+                    <h4>🏠 Host</h4>
+                    <p>Container uses host's network directly (no isolation)</p>
+                    <pre><code>docker run --network host nginx</code></pre>
+                </div>
+                <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+                    <h4>🚫 None</h4>
+                    <p>No network access (complete isolation)</p>
+                    <pre><code>docker run --network none alpine</code></pre>
+                </div>
+                <div style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+                    <h4>🔗 Overlay</h4>
+                    <p>Multi-host networking (Docker Swarm)</p>
+                    <pre><code>docker network create -d overlay my-overlay</code></pre>
+                </div>
+            </div>
+
+            <h3>Container Communication Example</h3>
+            <pre><code># Create a custom network
+docker network create app-network
+
+# Run database container
+docker run -d \\
+  --name postgres-db \\
+  --network app-network \\
+  -e POSTGRES_PASSWORD=secret \\
+  postgres:15
+
+# Run app container (can access db by name!)
+docker run -d \\
+  --name web-app \\
+  --network app-network \\
+  -e DATABASE_URL=postgresql://postgres-db:5432/mydb \\
+  my-node-app:1.0
+
+# Inside web-app container, you can:
+# ping postgres-db  ← Works! DNS resolution by container name</code></pre>
+
+            <h2 id="volumes">7. Data Persistence with Volumes 💾</h2>
+            
+            <div style="background: #ffebee; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                <h3>⚠️ Important: Containers are Ephemeral!</h3>
+                <p>When you delete a container, all data inside is LOST! Use volumes to persist data.</p>
+            </div>
+
+            <h3>Three Ways to Persist Data</h3>
+            <pre style="background: #263238; color: #aed581; padding: 20px; border-radius: 8px;">
+1. VOLUMES (Recommended) 🏆
+   Managed by Docker, stored in /var/lib/docker/volumes/
+   
+   docker volume create my-data
+   docker run -v my-data:/app/data nginx
+
+2. BIND MOUNTS
+   Mount host directory into container
+   
+   docker run -v /host/path:/container/path nginx
+
+3. TMPFS MOUNTS (Memory only)
+   Stored in RAM, lost on container stop
+   
+   docker run --tmpfs /app/cache nginx
+            </pre>
+
+            <h3>Volume Management Commands</h3>
+            <pre><code># Create volume
+docker volume create postgres-data
+
+# List volumes
+docker volume ls
+
+# Inspect volume
+docker volume inspect postgres-data
+
+# Use volume with container
+docker run -d \\
+  --name db \\
+  -v postgres-data:/var/lib/postgresql/data \\
+  postgres:15
+
+# Backup volume
+docker run --rm \\
+  -v postgres-data:/data \\
+  -v $(pwd):/backup \\
+  alpine tar czf /backup/backup.tar.gz /data
+
+# Remove volume
+docker volume rm postgres-data
+
+# Clean up unused volumes
+docker volume prune</code></pre>
+
+            <h2 id="docker-compose">8. Multi-Container Apps with Docker Compose 🎼</h2>
+            
+            <p>Docker Compose lets you define and run multi-container applications using a YAML file.</p>
+
+            <h3>Complete Example: Full-Stack Application</h3>
+            <pre><code># docker-compose.yml
+version: '3.8'
+
+services:
+  # Frontend React App
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Backend Node.js API
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://postgres:secret@db:5432/myapp
+      - REDIS_URL=redis://cache:6379
+    depends_on:
+      - db
+      - cache
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=myapp
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Redis Cache
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-data:</code></pre>
+
+            <h3>Docker Compose Commands</h3>
+            <pre><code># Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+docker-compose logs backend  # Specific service
+
+# List services
+docker-compose ps
+
+# Stop services
+docker-compose stop
+
+# Stop and remove containers
+docker-compose down
+
+# Rebuild images
+docker-compose build
+docker-compose up -d --build
+
+# Scale services
+docker-compose up -d --scale backend=3
+
+# Execute command in service
+docker-compose exec backend bash</code></pre>
+
+            <h2 id="best-practices">9. Production Best Practices 🏆</h2>
+            
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 10px; color: white; margin: 20px 0;">
+                <h3 style="color: white;">Security Best Practices</h3>
+                <ul style="line-height: 1.8;">
+                    <li>✅ Use official base images from trusted sources</li>
+                    <li>✅ Scan images for vulnerabilities (docker scan, Trivy)</li>
+                    <li>✅ Run containers as non-root user</li>
+                    <li>✅ Use secrets management (Docker secrets, Vault)</li>
+                    <li>✅ Keep images updated and minimal</li>
+                    <li>✅ Use read-only filesystems where possible</li>
+                </ul>
+            </div>
+
+            <h3>Dockerfile Security Example</h3>
+            <pre><code># Secure Dockerfile
+FROM node:18-alpine
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \\
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy files with correct ownership
+COPY --chown=nodejs:nodejs package*.json ./
+RUN npm ci --only=production
+
+COPY --chown=nodejs:nodejs . .
+
+# Switch to non-root user
+USER nodejs
+
+# Use exec form for proper signal handling
+CMD ["node", "server.js"]</code></pre>
+
+            <h3>Performance Optimization</h3>
+            <ul>
+                <li><strong>Use Alpine images:</strong> 5MB vs 900MB for full images</li>
+                <li><strong>Multi-stage builds:</strong> Separate build and runtime stages</li>
+                <li><strong>Layer caching:</strong> Order Dockerfile commands strategically</li>
+                <li><strong>Minimize layers:</strong> Combine RUN commands with &&</li>
+                <li><strong>.dockerignore:</strong> Exclude unnecessary files</li>
+            </ul>
+
+            <h3>Monitoring and Logging</h3>
+            <pre><code># View container stats
+docker stats
+
+# Export logs to file
+docker logs my-app > app.log 2>&1
+
+# Use logging drivers
+docker run --log-driver=json-file \\
+  --log-opt max-size=10m \\
+  --log-opt max-file=3 \\
+  my-app
+
+# Health checks in Dockerfile
+HEALTHCHECK --interval=30s --timeout=3s \\
+  CMD curl -f http://localhost:3000/health || exit 1</code></pre>
+
+            <h2>🎓 Summary: Your Docker Journey</h2>
+            
+            <div style="background: #e8f5e9; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h3>What You've Learned</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Docker architecture and how it works</li>
+                    <li>✅ Difference between images and containers</li>
+                    <li>✅ Writing efficient Dockerfiles</li>
+                    <li>✅ Managing container lifecycle</li>
+                    <li>✅ Docker networking concepts</li>
+                    <li>✅ Data persistence with volumes</li>
+                    <li>✅ Multi-container apps with Docker Compose</li>
+                    <li>✅ Production best practices</li>
+                </ol>
+            </div>
+
+            <h3>Next Steps 🚀</h3>
+            <ul>
+                <li>Practice building your own Dockerfiles</li>
+                <li>Containerize an existing application</li>
+                <li>Learn Kubernetes for orchestration</li>
+                <li>Explore Docker Swarm for clustering</li>
+                <li>Implement CI/CD with Docker</li>
+            </ul>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white; margin: 30px 0; text-align: center;">
+                <h3 style="color: white; margin: 0 0 10px 0;">🐳 Happy Dockerizing!</h3>
+                <p style="margin: 0;">You're now ready to containerize the world!</p>
+            </div>
+
+            <hr style="margin: 30px 0;">
+            
+            <p><em>Questions or feedback? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank">GitHub</a>!</em></p>
+        `,
+        date: "2026-02-17",
+        readTime: "25 min read",
+        tags: ["Docker", "Containers", "DevOps", "Tutorial", "Beginner"],
+        icon: "🐳",
+        author: "Saransh Jain"
+    },
+    {
         id: 7,
         title: "Building iOS Apps with Azure Pipelines and Xcode",
         excerpt: "Complete guide to automating iOS app builds using Azure DevOps Pipelines with Xcode, including code signing, testing, and deployment to App Store Connect.",
