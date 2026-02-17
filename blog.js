@@ -1,6 +1,523 @@
 // Extended blog posts with full content
 const allBlogPosts = [
     {
+        id: 10,
+        title: "Multi-Stage Dockerfile: Build Smaller, Faster Images",
+        excerpt: "Master multi-stage Docker builds to create production-ready images that are 10x smaller. Learn optimization techniques, caching strategies, and real-world examples for Node.js, Python, Go, and Java applications.",
+        content: `
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+                <h1 style="color: white; margin: 0 0 10px 0;">🚀 Multi-Stage Dockerfile Mastery</h1>
+                <p style="margin: 0; font-size: 18px;">Build production images that are 10x smaller and infinitely more secure</p>
+            </div>
+
+            <p>Multi-stage builds revolutionized Docker by allowing you to use multiple FROM statements in a single Dockerfile. This means you can build your application in one stage and copy only the necessary artifacts to the final stage, resulting in dramatically smaller images.</p>
+
+            <h2 style="color: #f5576c;">📋 Table of Contents</h2>
+            <ol style="background: #2d3748; padding: 20px 20px 20px 40px; border-radius: 8px; color: #e2e8f0; line-height: 2;">
+                <li><a href="#why-multistage" style="color: #90cdf4; text-decoration: none;">Why Multi-Stage Builds?</a></li>
+                <li><a href="#basic-concept" style="color: #90cdf4; text-decoration: none;">Basic Concept</a></li>
+                <li><a href="#nodejs-example" style="color: #90cdf4; text-decoration: none;">Node.js Application</a></li>
+                <li><a href="#python-example" style="color: #90cdf4; text-decoration: none;">Python Application</a></li>
+                <li><a href="#go-example" style="color: #90cdf4; text-decoration: none;">Go Application</a></li>
+                <li><a href="#java-example" style="color: #90cdf4; text-decoration: none;">Java Application</a></li>
+                <li><a href="#advanced-patterns" style="color: #90cdf4; text-decoration: none;">Advanced Patterns</a></li>
+                <li><a href="#optimization" style="color: #90cdf4; text-decoration: none;">Optimization Techniques</a></li>
+                <li><a href="#best-practices" style="color: #90cdf4; text-decoration: none;">Best Practices</a></li>
+            </ol>
+
+            <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+            <h2 id="why-multistage">1. Why Multi-Stage Builds? 🤔</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">The Problem with Single-Stage Builds</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ❌ Traditional Dockerfile (Node.js)
+FROM node:18
+WORKDIR /app
+COPY package*.json ./
+RUN npm install  # Installs ALL dependencies (dev + prod)
+COPY . .
+RUN npm run build
+CMD ["npm", "start"]
+
+# Result: 1.2 GB image! 😱
+# Contains: Node.js, npm, build tools, dev dependencies, source code</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">The Multi-Stage Solution</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ✅ Multi-Stage Dockerfile
+FROM node:18 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+RUN npm install --production
+CMD ["node", "dist/server.js"]
+
+# Result: 150 MB image! 🎉 (8x smaller!)
+# Contains: Only runtime, production dependencies, compiled code</code></pre>
+            </div>
+
+            <h3>Benefits of Multi-Stage Builds</h3>
+            <ul style="line-height: 2;">
+                <li>✅ <strong>Smaller Images:</strong> 5-10x size reduction</li>
+                <li>✅ <strong>Faster Deployments:</strong> Less data to transfer</li>
+                <li>✅ <strong>Better Security:</strong> No build tools in production</li>
+                <li>✅ <strong>Cleaner Images:</strong> No source code or dev dependencies</li>
+                <li>✅ <strong>Easier Maintenance:</strong> Clear separation of concerns</li>
+            </ul>
+
+            <h2 id="basic-concept">2. Basic Concept 🏗️</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Anatomy of Multi-Stage Build</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stage 1: Build Stage (named "builder")
+FROM node:18 AS builder
+# Heavy image with all build tools
+# Install dependencies, compile code, run tests
+
+# Stage 2: Production Stage (final image)
+FROM node:18-alpine
+# Lightweight image
+# Copy only necessary artifacts from builder
+COPY --from=builder /app/dist ./dist
+
+# Only this final stage becomes the image!</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Key Concepts</h3>
+                <ul>
+                    <li><strong>AS keyword:</strong> Names a build stage (FROM node:18 AS builder)</li>
+                    <li><strong>COPY --from:</strong> Copies files from a previous stage</li>
+                    <li><strong>Final stage:</strong> Only the last FROM creates the final image</li>
+                    <li><strong>Intermediate stages:</strong> Discarded after build (unless cached)</li>
+                </ul>
+            </div>
+
+            <h2 id="nodejs-example">3. Node.js Application 📦</h2>
+            
+            <h3 style="color: #f5576c;">Complete Production-Ready Example</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stage 1: Dependencies
+FROM node:18-alpine AS dependencies
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production && \\
+    cp -R node_modules /prod_node_modules && \\
+    npm ci
+
+# Stage 2: Build
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+RUN npm run build && \\
+    npm run test
+
+# Stage 3: Production
+FROM node:18-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \\
+    adduser -S nodejs -u 1001
+
+# Copy production dependencies
+COPY --from=dependencies /prod_node_modules ./node_modules
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+
+# Set ownership
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=3s \\
+    CMD node healthcheck.js || exit 1
+
+CMD ["node", "dist/server.js"]</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Size Comparison</h3>
+                <ul>
+                    <li>Single-stage: ~1.2 GB</li>
+                    <li>Multi-stage: ~150 MB</li>
+                    <li>Reduction: 87% smaller! 🎉</li>
+                </ul>
+            </div>
+
+            <h2 id="python-example">4. Python Application 🐍</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Flask/Django Application</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stage 1: Build dependencies
+FROM python:3.11 AS builder
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && \\
+    apt-get install -y --no-install-recommends gcc && \\
+    rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Production
+FROM python:3.11-slim
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY . .
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \\
+    chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 5000
+
+HEALTHCHECK CMD curl -f http://localhost:5000/health || exit 1
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "app:app"]</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Size Comparison</h3>
+                <ul>
+                    <li>Single-stage: ~1.1 GB</li>
+                    <li>Multi-stage: ~180 MB</li>
+                    <li>Reduction: 84% smaller!</li>
+                </ul>
+            </div>
+
+            <h2 id="go-example">5. Go Application 🔵</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Go produces static binaries - perfect for multi-stage!</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stage 1: Build
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build static binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+
+# Stage 2: Production (scratch = empty image!)
+FROM scratch
+
+# Copy CA certificates for HTTPS
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy binary
+COPY --from=builder /app/main /main
+
+EXPOSE 8080
+
+CMD ["/main"]</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Size Comparison</h3>
+                <ul>
+                    <li>Single-stage: ~800 MB</li>
+                    <li>Multi-stage with scratch: ~10 MB! 😱</li>
+                    <li>Reduction: 98.7% smaller!</li>
+                </ul>
+            </div>
+
+            <h2 id="java-example">6. Java Application ☕</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Spring Boot Application</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stage 1: Build with Maven
+FROM maven:3.9-eclipse-temurin-17 AS builder
+WORKDIR /app
+
+# Copy pom.xml and download dependencies (cached layer)
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+# Copy source and build
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Stage 2: Production with JRE
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+# Copy JAR from builder
+COPY --from=builder /app/target/*.jar app.jar
+
+# Create non-root user
+RUN addgroup -g 1001 -S spring && \\
+    adduser -S spring -u 1001
+USER spring
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s \\
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Size Comparison</h3>
+                <ul>
+                    <li>Single-stage (with Maven): ~700 MB</li>
+                    <li>Multi-stage (JRE only): ~250 MB</li>
+                    <li>Reduction: 64% smaller!</li>
+                </ul>
+            </div>
+
+            <h2 id="advanced-patterns">7. Advanced Patterns 🎯</h2>
+            
+            <h3 style="color: #f5576c;">Pattern 1: Multiple Build Stages</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stage 1: Install dependencies
+FROM node:18-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+# Stage 2: Build application
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# Stage 3: Run tests
+FROM node:18-alpine AS tester
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run test
+
+# Stage 4: Production
+FROM node:18-alpine AS production
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=deps /app/node_modules ./node_modules
+CMD ["node", "dist/server.js"]</code></pre>
+            </div>
+
+            <h3 style="color: #f5576c;">Pattern 2: Development vs Production</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Base stage
+FROM node:18-alpine AS base
+WORKDIR /app
+COPY package*.json ./
+
+# Development stage
+FROM base AS development
+RUN npm install
+COPY . .
+CMD ["npm", "run", "dev"]
+
+# Production build stage
+FROM base AS builder
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+CMD ["node", "dist/server.js"]
+
+# Build for development:
+# docker build --target development -t myapp:dev .
+
+# Build for production:
+# docker build --target production -t myapp:prod .</code></pre>
+            </div>
+
+            <h3 style="color: #f5576c;">Pattern 3: Copy from External Image</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Copy from another image (not just previous stages!)
+FROM nginx:alpine
+COPY --from=node:18-alpine /usr/local/bin/node /usr/local/bin/
+COPY --from=myregistry.com/myapp:latest /app/dist /usr/share/nginx/html</code></pre>
+            </div>
+
+            <h2 id="optimization">8. Optimization Techniques 🚀</h2>
+            
+            <div style="background: #1c4532; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #9ae6b4;">1. Layer Caching Strategy</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ✅ GOOD: Dependencies cached separately
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+# ❌ BAD: Everything invalidates cache
+COPY . .
+RUN npm install</code></pre>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">2. Use .dockerignore</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># .dockerignore
+node_modules
+npm-debug.log
+.git
+.env
+*.md
+.vscode
+.idea
+coverage
+.DS_Store</code></pre>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">3. Minimize Layers in Final Stage</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ✅ GOOD: Combined RUN commands
+RUN apt-get update && \\
+    apt-get install -y curl && \\
+    apt-get clean && \\
+    rm -rf /var/lib/apt/lists/*
+
+# ❌ BAD: Multiple layers
+RUN apt-get update
+RUN apt-get install -y curl
+RUN apt-get clean</code></pre>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">4. Use Specific Base Images</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Image size comparison:
+node:18           → 900 MB
+node:18-slim      → 200 MB
+node:18-alpine    → 150 MB
+distroless/nodejs → 120 MB</code></pre>
+            </div>
+
+            <h2 id="best-practices">9. Best Practices 🏆</h2>
+            
+            <div style="background: #744210; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #fbd38d;">Security Best Practices</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Use official base images from trusted sources</li>
+                    <li>✅ Pin specific versions (node:18.19.0, not node:18)</li>
+                    <li>✅ Run as non-root user in final stage</li>
+                    <li>✅ Don't copy secrets into any stage</li>
+                    <li>✅ Scan images with tools like Trivy or Snyk</li>
+                    <li>✅ Use distroless or scratch for maximum security</li>
+                </ol>
+
+                <h3 style="color: #fbd38d; margin-top: 20px;">Performance Best Practices</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Order stages from least to most frequently changing</li>
+                    <li>✅ Use BuildKit for parallel stage execution</li>
+                    <li>✅ Leverage layer caching effectively</li>
+                    <li>✅ Use .dockerignore to exclude unnecessary files</li>
+                    <li>✅ Combine RUN commands to minimize layers</li>
+                </ol>
+
+                <h3 style="color: #fbd38d; margin-top: 20px;">Maintenance Best Practices</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Name stages descriptively (AS builder, AS production)</li>
+                    <li>✅ Add comments explaining complex operations</li>
+                    <li>✅ Use consistent patterns across projects</li>
+                    <li>✅ Document build arguments and environment variables</li>
+                    <li>✅ Version your Dockerfiles in Git</li>
+                </ol>
+            </div>
+
+            <h2>🎯 Real-World Size Comparisons</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <table style="width: 100%; border-collapse: collapse; color: #e2e8f0;">
+                    <thead>
+                        <tr style="background: #1a202c;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Application</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Single-Stage</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Multi-Stage</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Reduction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Node.js</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">1.2 GB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">150 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568; color: #9ae6b4;">87% ↓</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Python</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">1.1 GB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">180 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568; color: #9ae6b4;">84% ↓</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Go</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">800 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">10 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568; color: #9ae6b4;">98.7% ↓</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Java</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">700 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">250 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568; color: #9ae6b4;">64% ↓</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>🎓 Quick Reference Cheat Sheet</h2>
+            
+            <div style="background: #742a2a; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Basic multi-stage syntax
+FROM image:tag AS stage-name
+# ... build commands ...
+
+FROM image:tag
+COPY --from=stage-name /source /destination
+
+# Build specific stage
+docker build --target stage-name -t myapp:dev .
+
+# Copy from external image
+COPY --from=nginx:alpine /etc/nginx/nginx.conf /etc/nginx/
+
+# Use build arguments
+ARG NODE_VERSION=18
+FROM node:\${NODE_VERSION}-alpine AS builder
+
+# Enable BuildKit for better performance
+DOCKER_BUILDKIT=1 docker build -t myapp .</code></pre>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 10px; color: white; margin: 30px 0; text-align: center;">
+                <h3 style="color: white; margin: 0 0 10px 0;">🎉 You're Now a Multi-Stage Build Expert!</h3>
+                <p style="margin: 0;">Start building smaller, faster, more secure Docker images today!</p>
+            </div>
+
+            <hr style="margin: 30px 0;">
+            <p><em>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank">GitHub</a>!</em></p>
+        `,
+        date: "2026-02-17",
+        readTime: "20 min read",
+        tags: ["Docker", "Dockerfile", "Multi-Stage", "DevOps", "Optimization"],
+        icon: "🚀",
+        author: "Saransh Jain"
+    },
+    {
         id: 9,
         title: "Dockerfile Mastery: Complete Guide to Every Instruction",
         excerpt: "Master every Dockerfile instruction with real-world examples. Learn FROM, RUN, CMD, ENTRYPOINT, COPY, ADD, ENV, ARG, WORKDIR, EXPOSE, VOLUME, USER, HEALTHCHECK with parameters, best practices, and production-ready templates.",
