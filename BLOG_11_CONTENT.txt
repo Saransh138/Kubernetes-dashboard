@@ -1,0 +1,27 @@
+BLOG POST #11: Kubernetes Ingress vs API Gateway
+
+=== COPY THIS INTO blog.js AFTER POST ID 10 ===
+
+Add this object to the allBlogPosts array:
+
+{
+    id: 11,
+    title: "Kubernetes Ingress vs API Gateway: Complete Comparison Guide",
+    excerpt: "Deep dive into Kubernetes Ingress and API Gateway patterns. Learn when to use each, key differences, implementation examples with NGINX, Kong, and AWS API Gateway.",
+    content: `
+        [CONTENT TOO LARGE - SEE FULL_BLOG_CONTENT.md]
+    `,
+    date: "2026-02-17",
+    readTime: "15 min read",
+    tags: ["Kubernetes", "Ingress", "API Gateway", "Networking", "Architecture"],
+    icon: "🌐",
+    author: "Saransh Jain"
+},
+
+=== INSTRUCTIONS ===
+1. Open portfolio/blog.js
+2. Find: const allBlogPosts = [
+3. After the post with id: 10, add the above object
+4. Save and commit
+
+The full blog content is being created in parts due to size...

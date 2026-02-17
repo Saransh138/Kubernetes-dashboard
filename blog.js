@@ -1,4 +1,16 @@
 // Extended blog posts with full content
+// K8s Ingress vs API Gateway Post - ID 11
+const ingressVsApiGatewayPost = {
+    id: 11,
+    title: "Kubernetes Ingress vs API Gateway: Complete Comparison Guide",
+    excerpt: "Deep dive into Kubernetes Ingress and API Gateway patterns. Learn when to use each, key differences, implementation examples with NGINX, Kong, and AWS API Gateway, and best practices for production.",
+    date: "2026-02-17",
+    readTime: "15 min read",
+    tags: ["Kubernetes", "Ingress", "API Gateway", "Networking", "Architecture"],
+    icon: "🌐",
+    author: "Saransh Jain"
+};
+
 const allBlogPosts = [
     {
         id: 10,
