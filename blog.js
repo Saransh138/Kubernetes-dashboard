@@ -67,7 +67,7 @@ const allBlogPosts = [
             
             <div style="background: #fff3e0; padding: 20px; border-radius: 10px; margin: 20px 0;">
                 <h3>Visual Architecture Breakdown</h3>
-                <pre style="background: white; padding: 15px; border-radius: 5px; overflow-x: auto;">
+                <pre style="background: #263238; color: #aed581; padding: 15px; border-radius: 5px; overflow-x: auto;">
 ┌─────────────────────────────────────────────────────────────┐
 │                     YOUR COMPUTER                            │
 │                                                              │
@@ -128,7 +128,7 @@ const allBlogPosts = [
                             <li>Can create multiple containers from one image</li>
                             <li>Stored in layers (like floors in a building)</li>
                         </ul>
-                        <pre><code>docker images
+                        <pre style="background: #263238; color: #aed581; padding: 10px; border-radius: 5px;"><code>docker images
 # Lists all blueprints</code></pre>
                     </div>
                     <div>
@@ -139,7 +139,7 @@ const allBlogPosts = [
                             <li>Can be started, stopped, deleted</li>
                             <li>Changes don't affect the image</li>
                         </ul>
-                        <pre><code>docker ps
+                        <pre style="background: #263238; color: #aed581; padding: 10px; border-radius: 5px;"><code>docker ps
 # Lists all running houses</code></pre>
                     </div>
                 </div>
@@ -297,7 +297,7 @@ curl http://localhost:3000
             
             <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; margin: 20px 0;">
                 <h3>Container States Visualized</h3>
-                <pre style="background: white; padding: 15px; border-radius: 5px;">
+                <pre style="background: #263238; color: #aed581; padding: 15px; border-radius: 5px;">
                     ┌─────────┐
                     │ CREATED │
                     └────┬────┘
