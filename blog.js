@@ -11,16 +11,16 @@ const allBlogPosts = [
             </div>
 
             <h2>📚 Table of Contents</h2>
-            <ol style="line-height: 2;">
-                <li><a href="#what-is-docker">What is Docker? The Big Picture</a></li>
-                <li><a href="#architecture">Docker Architecture Explained</a></li>
-                <li><a href="#images-vs-containers">Images vs Containers: The Blueprint Analogy</a></li>
-                <li><a href="#dockerfile">Dockerfile: Building Your First Image</a></li>
-                <li><a href="#container-lifecycle">Container Lifecycle Management</a></li>
-                <li><a href="#networking">Docker Networking Deep Dive</a></li>
-                <li><a href="#volumes">Data Persistence with Volumes</a></li>
-                <li><a href="#docker-compose">Multi-Container Apps with Docker Compose</a></li>
-                <li><a href="#best-practices">Production Best Practices</a></li>
+            <ol style="line-height: 2; background: #2d3748; padding: 20px 20px 20px 40px; border-radius: 8px; color: #e2e8f0;">
+                <li><a href="#what-is-docker" style="color: #90cdf4; text-decoration: none;">What is Docker? The Big Picture</a></li>
+                <li><a href="#architecture" style="color: #90cdf4; text-decoration: none;">Docker Architecture Explained</a></li>
+                <li><a href="#images-vs-containers" style="color: #90cdf4; text-decoration: none;">Images vs Containers: The Blueprint Analogy</a></li>
+                <li><a href="#dockerfile" style="color: #90cdf4; text-decoration: none;">Dockerfile: Building Your First Image</a></li>
+                <li><a href="#container-lifecycle" style="color: #90cdf4; text-decoration: none;">Container Lifecycle Management</a></li>
+                <li><a href="#networking" style="color: #90cdf4; text-decoration: none;">Docker Networking Deep Dive</a></li>
+                <li><a href="#volumes" style="color: #90cdf4; text-decoration: none;">Data Persistence with Volumes</a></li>
+                <li><a href="#docker-compose" style="color: #90cdf4; text-decoration: none;">Multi-Container Apps with Docker Compose</a></li>
+                <li><a href="#best-practices" style="color: #90cdf4; text-decoration: none;">Production Best Practices</a></li>
             </ol>
 
             <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
