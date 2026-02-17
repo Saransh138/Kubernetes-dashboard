@@ -27,8 +27,8 @@ const allBlogPosts = [
 
             <h2 id="what-is-docker">1. What is Docker? The Big Picture 🎯</h2>
             
-            <div style="background: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
-                <h3 style="margin-top: 0;">The Problem Docker Solves</h3>
+            <div style="background: #2d3748; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="margin-top: 0; color: #fff;">The Problem Docker Solves</h3>
                 <p><strong>Before Docker:</strong> "It works on my machine!" 😫</p>
                 <ul>
                     <li>Different OS versions across dev, staging, production</li>
@@ -43,8 +43,8 @@ const allBlogPosts = [
             <p>Think of Docker like shipping containers in the real world:</p>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
-                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
-                    <h4>🚢 Physical Shipping Container</h4>
+                <div style="background: #1a365d; padding: 15px; border-radius: 8px; color: #e2e8f0;">
+                    <h4 style="color: #90cdf4;">🚢 Physical Shipping Container</h4>
                     <ul>
                         <li>Standard size and shape</li>
                         <li>Can hold anything inside</li>
@@ -52,8 +52,8 @@ const allBlogPosts = [
                         <li>Isolated from other containers</li>
                     </ul>
                 </div>
-                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
-                    <h4>🐳 Docker Container</h4>
+                <div style="background: #44337a; padding: 15px; border-radius: 8px; color: #e2e8f0;">
+                    <h4 style="color: #d6bcfa;">🐳 Docker Container</h4>
                     <ul>
                         <li>Standard runtime environment</li>
                         <li>Can run any application</li>
@@ -65,8 +65,8 @@ const allBlogPosts = [
 
             <h2 id="architecture">2. Docker Architecture Explained 🏛️</h2>
             
-            <div style="background: #fff3e0; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                <h3>Visual Architecture Breakdown</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 10px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #fff;">Visual Architecture Breakdown</h3>
                 <pre style="background: #263238; color: #aed581; padding: 15px; border-radius: 5px; overflow-x: auto;">
 ┌─────────────────────────────────────────────────────────────┐
 │                     YOUR COMPUTER                            │
@@ -117,11 +117,11 @@ const allBlogPosts = [
 
             <h2 id="images-vs-containers">3. Images vs Containers: The Blueprint Analogy 📐</h2>
             
-            <div style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); padding: 25px; border-radius: 10px; margin: 20px 0;">
-                <h3>Think of it like Building a House</h3>
+            <div style="background: #1a202c; padding: 25px; border-radius: 10px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #fff;">Think of it like Building a House</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
                     <div>
-                        <h4>🏗️ Docker Image = Blueprint</h4>
+                        <h4 style="color: #90cdf4;">🏗️ Docker Image = Blueprint</h4>
                         <ul>
                             <li>Read-only template</li>
                             <li>Contains OS, app code, dependencies</li>
@@ -132,7 +132,7 @@ const allBlogPosts = [
 # Lists all blueprints</code></pre>
                     </div>
                     <div>
-                        <h4>🏠 Docker Container = Actual House</h4>
+                        <h4 style="color: #d6bcfa;">🏠 Docker Container = Actual House</h4>
                         <ul>
                             <li>Running instance of an image</li>
                             <li>Has its own filesystem, network, processes</li>
@@ -168,8 +168,8 @@ const allBlogPosts = [
 
             <h3>Example: Simple Node.js Web Server</h3>
             
-            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h4>Step 1: Create app.js</h4>
+            <div style="background: #2d3748; padding: 15px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h4 style="color: #90cdf4;">Step 1: Create app.js</h4>
                 <pre><code>// app.js
 const express = require('express');
 const app = express();
@@ -183,8 +183,8 @@ app.listen(3000, () => {
 });</code></pre>
             </div>
 
-            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h4>Step 2: Create package.json</h4>
+            <div style="background: #1c4532; padding: 15px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h4 style="color: #9ae6b4;">Step 2: Create package.json</h4>
                 <pre><code>{
   "name": "docker-demo",
   "version": "1.0.0",
@@ -197,8 +197,8 @@ app.listen(3000, () => {
 }</code></pre>
             </div>
 
-            <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h4>Step 3: Create Dockerfile (The Magic Recipe! ✨)</h4>
+            <div style="background: #744210; padding: 15px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h4 style="color: #fbd38d;">Step 3: Create Dockerfile (The Magic Recipe! ✨)</h4>
                 <pre><code># Dockerfile - Every line creates a new layer!
 
 # 1. Start with a base image (the foundation)
@@ -231,8 +231,8 @@ CMD ["npm", "start"]
             </div>
 
             <h3>🎯 Dockerfile Best Practices Explained</h3>
-            <div style="background: #e1f5fe; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h4>1. Order Matters for Caching</h4>
+            <div style="background: #1e4e5f; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h4 style="color: #90cdf4;">1. Order Matters for Caching</h4>
                 <pre><code># ❌ BAD: Copy everything first
 COPY . .
 RUN npm install
@@ -295,8 +295,8 @@ curl http://localhost:3000
 
             <h2 id="container-lifecycle">5. Container Lifecycle Management 🔄</h2>
             
-            <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                <h3>Container States Visualized</h3>
+            <div style="background: #44337a; padding: 20px; border-radius: 10px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #fff;">Container States Visualized</h3>
                 <pre style="background: #263238; color: #aed581; padding: 15px; border-radius: 5px;">
                     ┌─────────┐
                     │ CREATED │
@@ -353,11 +353,11 @@ docker rm -f my-app                # Force remove running container
 docker container prune             # Remove all stopped containers</code></pre>
 
             <h3>🎓 Pro Tips for Container Management</h3>
-            <div style="background: #fff9c4; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <div style="background: #744210; padding: 15px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
                 <ul>
-                    <li><strong>Always name your containers:</strong> <code>--name my-app</code> instead of random names</li>
-                    <li><strong>Use restart policies:</strong> <code>--restart unless-stopped</code> for production</li>
-                    <li><strong>Limit resources:</strong> <code>--memory="512m" --cpus="1.0"</code></li>
+                    <li><strong>Always name your containers:</strong> <code style="background: #2d3748; padding: 2px 6px; border-radius: 3px;">--name my-app</code> instead of random names</li>
+                    <li><strong>Use restart policies:</strong> <code style="background: #2d3748; padding: 2px 6px; border-radius: 3px;">--restart unless-stopped</code> for production</li>
+                    <li><strong>Limit resources:</strong> <code style="background: #2d3748; padding: 2px 6px; border-radius: 3px;">--memory="512m" --cpus="1.0"</code></li>
                     <li><strong>Health checks:</strong> Add HEALTHCHECK in Dockerfile for monitoring</li>
                 </ul>
             </div>
@@ -368,24 +368,24 @@ docker container prune             # Remove all stopped containers</code></pre>
 
             <h3>Network Types</h3>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0;">
-                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
-                    <h4>🌉 Bridge (Default)</h4>
+                <div style="background: #1a365d; padding: 15px; border-radius: 8px; color: #e2e8f0;">
+                    <h4 style="color: #90cdf4;">🌉 Bridge (Default)</h4>
                     <p>Containers on same host communicate via internal network</p>
                     <pre><code>docker network create my-network
 docker run --network my-network nginx</code></pre>
                 </div>
-                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
-                    <h4>🏠 Host</h4>
+                <div style="background: #44337a; padding: 15px; border-radius: 8px; color: #e2e8f0;">
+                    <h4 style="color: #d6bcfa;">🏠 Host</h4>
                     <p>Container uses host's network directly (no isolation)</p>
                     <pre><code>docker run --network host nginx</code></pre>
                 </div>
-                <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
-                    <h4>🚫 None</h4>
+                <div style="background: #744210; padding: 15px; border-radius: 8px; color: #e2e8f0;">
+                    <h4 style="color: #fbd38d;">🚫 None</h4>
                     <p>No network access (complete isolation)</p>
                     <pre><code>docker run --network none alpine</code></pre>
                 </div>
-                <div style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
-                    <h4>🔗 Overlay</h4>
+                <div style="background: #1c4532; padding: 15px; border-radius: 8px; color: #e2e8f0;">
+                    <h4 style="color: #9ae6b4;">🔗 Overlay</h4>
                     <p>Multi-host networking (Docker Swarm)</p>
                     <pre><code>docker network create -d overlay my-overlay</code></pre>
                 </div>
@@ -414,8 +414,8 @@ docker run -d \\
 
             <h2 id="volumes">7. Data Persistence with Volumes 💾</h2>
             
-            <div style="background: #ffebee; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                <h3>⚠️ Important: Containers are Ephemeral!</h3>
+            <div style="background: #742a2a; padding: 20px; border-radius: 10px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #fff;">⚠️ Important: Containers are Ephemeral!</h3>
                 <p>When you delete a container, all data inside is LOST! Use volumes to persist data.</p>
             </div>
 
@@ -641,8 +641,8 @@ HEALTHCHECK --interval=30s --timeout=3s \\
 
             <h2>🎓 Summary: Your Docker Journey</h2>
             
-            <div style="background: #e8f5e9; padding: 25px; border-radius: 10px; margin: 20px 0;">
-                <h3>What You've Learned</h3>
+            <div style="background: #1c4532; padding: 25px; border-radius: 10px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #fff;">What You've Learned</h3>
                 <ol style="line-height: 2;">
                     <li>✅ Docker architecture and how it works</li>
                     <li>✅ Difference between images and containers</li>
