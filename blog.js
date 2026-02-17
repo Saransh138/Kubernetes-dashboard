@@ -1,6 +1,231 @@
 // Extended blog posts with full content
 const allBlogPosts = [
     {
+        id: 7,
+        title: "Building iOS Apps with Azure Pipelines and Xcode",
+        excerpt: "Complete guide to automating iOS app builds using Azure DevOps Pipelines with Xcode, including code signing, testing, and deployment to App Store Connect.",
+        content: `
+            <p>Automating iOS app builds and deployments can significantly improve your development workflow. This guide walks you through setting up Azure Pipelines to build Xcode projects and deploy to Apple's App Store Connect.</p>
+            
+            <h2>Prerequisites</h2>
+            <p>Before starting, ensure you have:</p>
+            <ul>
+                <li>An Azure DevOps account and project</li>
+                <li>An Apple Developer account</li>
+                <li>Xcode project in a Git repository</li>
+                <li>App Store Connect API key</li>
+                <li>Valid provisioning profiles and certificates</li>
+            </ul>
+            
+            <h2>Step 1: Set Up Azure Pipeline Agent</h2>
+            <p>Azure Pipelines provides macOS agents with Xcode pre-installed. Specify the agent in your pipeline YAML:</p>
+            <pre><code>pool:
+  vmImage: 'macOS-latest'
+
+variables:
+  scheme: 'YourAppScheme'
+  configuration: 'Release'
+  sdk: 'iphoneos'</code></pre>
+            
+            <h2>Step 2: Install Certificates and Provisioning Profiles</h2>
+            <p>Use the InstallAppleCertificate and InstallAppleProvisioningProfile tasks to securely install your signing credentials:</p>
+            <pre><code>- task: InstallAppleCertificate@2
+  inputs:
+    certSecureFile: 'ios_distribution.p12'
+    certPwd: '$(P12Password)'
+    keychain: 'temp'
+
+- task: InstallAppleProvisioningProfile@1
+  inputs:
+    provisioningProfileLocation: 'secureFiles'
+    provProfileSecureFile: 'YourApp_AppStore.mobileprovision'</code></pre>
+            
+            <h2>Step 3: Build the Xcode Project</h2>
+            <p>Use the Xcode task to build and archive your iOS app:</p>
+            <pre><code>- task: Xcode@5
+  inputs:
+    actions: 'build archive'
+    scheme: '$(scheme)'
+    sdk: '$(sdk)'
+    configuration: '$(configuration)'
+    xcWorkspacePath: '**/*.xcworkspace'
+    xcodeVersion: 'default'
+    packageApp: true
+    exportPath: '$(Build.ArtifactStagingDirectory)'
+    exportOptions: 'plist'
+    exportOptionsPlist: 'ExportOptions.plist'
+    signingOption: 'manual'
+    signingIdentity: '$(APPLE_CERTIFICATE_SIGNING_IDENTITY)'
+    provisioningProfileUuid: '$(APPLE_PROV_PROFILE_UUID)'</code></pre>
+            
+            <h2>Step 4: Run Unit Tests</h2>
+            <p>Execute your test suite before deployment:</p>
+            <pre><code>- task: Xcode@5
+  inputs:
+    actions: 'test'
+    scheme: '$(scheme)'
+    sdk: 'iphonesimulator'
+    configuration: 'Debug'
+    xcWorkspacePath: '**/*.xcworkspace'
+    destinationPlatformOption: 'iOS'
+    destinationSimulators: 'iPhone 14'
+    publishJUnitResults: true</code></pre>
+            
+            <h2>Step 5: Deploy to App Store Connect</h2>
+            <p>Use the AppStoreRelease task to upload your IPA to App Store Connect:</p>
+            <pre><code>- task: AppStoreRelease@1
+  inputs:
+    serviceEndpoint: 'AppStoreConnection'
+    appIdentifier: 'com.yourcompany.yourapp'
+    appType: 'iOS'
+    ipaPath: '$(Build.ArtifactStagingDirectory)/**/*.ipa'
+    releaseTrack: 'TestFlight'
+    shouldSkipWaitingForProcessing: true
+    shouldSkipSubmission: true</code></pre>
+            
+            <h2>Step 6: Complete Pipeline YAML</h2>
+            <p>Here's the complete azure-pipelines.yml file:</p>
+            <pre><code>trigger:
+  branches:
+    include:
+    - main
+    - release/*
+
+pool:
+  vmImage: 'macOS-latest'
+
+variables:
+  scheme: 'YourApp'
+  configuration: 'Release'
+  sdk: 'iphoneos'
+
+steps:
+- task: InstallAppleCertificate@2
+  displayName: 'Install Apple Certificate'
+  inputs:
+    certSecureFile: 'ios_distribution.p12'
+    certPwd: '$(P12Password)'
+    keychain: 'temp'
+
+- task: InstallAppleProvisioningProfile@1
+  displayName: 'Install Provisioning Profile'
+  inputs:
+    provisioningProfileLocation: 'secureFiles'
+    provProfileSecureFile: 'YourApp_AppStore.mobileprovision'
+
+- task: CocoaPods@0
+  displayName: 'Install CocoaPods'
+  inputs:
+    forceRepoUpdate: false
+
+- task: Xcode@5
+  displayName: 'Build and Archive'
+  inputs:
+    actions: 'build archive'
+    scheme: '$(scheme)'
+    sdk: '$(sdk)'
+    configuration: '$(configuration)'
+    xcWorkspacePath: '**/*.xcworkspace'
+    xcodeVersion: 'default'
+    packageApp: true
+    exportPath: '$(Build.ArtifactStagingDirectory)'
+    exportOptions: 'plist'
+    exportOptionsPlist: 'ExportOptions.plist'
+    signingOption: 'manual'
+    signingIdentity: '$(APPLE_CERTIFICATE_SIGNING_IDENTITY)'
+    provisioningProfileUuid: '$(APPLE_PROV_PROFILE_UUID)'
+
+- task: CopyFiles@2
+  displayName: 'Copy IPA to Artifacts'
+  inputs:
+    contents: '**/*.ipa'
+    targetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifacts'
+  inputs:
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: 'drop'
+
+- task: AppStoreRelease@1
+  displayName: 'Deploy to TestFlight'
+  inputs:
+    serviceEndpoint: 'AppStoreConnection'
+    appIdentifier: 'com.yourcompany.yourapp'
+    appType: 'iOS'
+    ipaPath: '$(Build.ArtifactStagingDirectory)/**/*.ipa'
+    releaseTrack: 'TestFlight'
+    shouldSkipWaitingForProcessing: true
+    shouldSkipSubmission: true</code></pre>
+            
+            <h2>Setting Up Secure Files</h2>
+            <p>Store your certificates and provisioning profiles securely in Azure DevOps:</p>
+            <ol>
+                <li>Go to Pipelines → Library → Secure files</li>
+                <li>Upload your .p12 certificate file</li>
+                <li>Upload your .mobileprovision file</li>
+                <li>Create a variable group for sensitive data like P12Password</li>
+            </ol>
+            
+            <h2>Creating ExportOptions.plist</h2>
+            <p>Create an ExportOptions.plist file in your repository root:</p>
+            <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;
+&lt;dict&gt;
+    &lt;key&gt;method&lt;/key&gt;
+    &lt;string&gt;app-store&lt;/string&gt;
+    &lt;key&gt;teamID&lt;/key&gt;
+    &lt;string&gt;YOUR_TEAM_ID&lt;/string&gt;
+    &lt;key&gt;uploadBitcode&lt;/key&gt;
+    &lt;false/&gt;
+    &lt;key&gt;uploadSymbols&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;compileBitcode&lt;/key&gt;
+    &lt;false/&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;</code></pre>
+            
+            <h2>Troubleshooting Common Issues</h2>
+            <h3>Code Signing Errors</h3>
+            <ul>
+                <li>Verify certificate and provisioning profile match</li>
+                <li>Check that the bundle identifier matches</li>
+                <li>Ensure the certificate hasn't expired</li>
+                <li>Verify the provisioning profile includes all required devices</li>
+            </ul>
+            
+            <h3>Build Failures</h3>
+            <ul>
+                <li>Check Xcode version compatibility</li>
+                <li>Verify all dependencies are installed (CocoaPods, Carthage)</li>
+                <li>Ensure scheme is shared in Xcode</li>
+                <li>Check for missing frameworks or resources</li>
+            </ul>
+            
+            <h2>Best Practices</h2>
+            <ul>
+                <li>Use separate pipelines for development, staging, and production</li>
+                <li>Implement automated testing before deployment</li>
+                <li>Version your builds using semantic versioning</li>
+                <li>Store sensitive data in Azure Key Vault</li>
+                <li>Enable notifications for build failures</li>
+                <li>Archive build artifacts for rollback capability</li>
+                <li>Use TestFlight for beta testing before App Store release</li>
+            </ul>
+            
+            <h2>Conclusion</h2>
+            <p>Automating iOS builds with Azure Pipelines streamlines your development workflow, reduces manual errors, and enables continuous delivery. By following this guide, you can set up a robust CI/CD pipeline that builds, tests, and deploys your iOS applications automatically.</p>
+            
+            <p>Remember to keep your certificates and provisioning profiles up to date, and regularly review your pipeline configuration to ensure it meets your team's evolving needs.</p>
+        `,
+        date: "2026-02-16",
+        readTime: "12 min read",
+        tags: ["Azure DevOps", "iOS", "Xcode", "CI/CD", "App Store"],
+        icon: "📱",
+        author: "Saransh Jain"
+    },
+    {
         id: 1,
         title: "Kubernetes Best Practices for Production",
         excerpt: "Learn essential best practices for running Kubernetes clusters in production environments, including security, monitoring, and resource management.",
