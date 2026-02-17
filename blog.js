@@ -1,6 +1,382 @@
 // Extended blog posts with full content
 const allBlogPosts = [
     {
+        id: 9,
+        title: "Dockerfile Mastery: Complete Guide to Every Instruction",
+        excerpt: "Master every Dockerfile instruction with real-world examples. Learn FROM, RUN, CMD, ENTRYPOINT, COPY, ADD, ENV, ARG, WORKDIR, EXPOSE, VOLUME, USER, HEALTHCHECK with parameters, best practices, and production-ready templates.",
+        content: `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+                <h1 style="color: white; margin: 0 0 10px 0;">📝 Dockerfile Mastery</h1>
+                <p style="margin: 0; font-size: 18px;">Complete reference guide to all Dockerfile instructions</p>
+            </div>
+
+            <p>A Dockerfile is a text file containing instructions to build a Docker image. This comprehensive guide covers every instruction with real-world examples.</p>
+
+            <h2 style="color: #667eea;">📋 Table of Contents</h2>
+            <ol style="background: #2d3748; padding: 20px 20px 20px 40px; border-radius: 8px; color: #e2e8f0; line-height: 2;">
+                <li><a href="#from" style="color: #90cdf4; text-decoration: none;">FROM - Base Image</a></li>
+                <li><a href="#run" style="color: #90cdf4; text-decoration: none;">RUN - Execute Commands</a></li>
+                <li><a href="#cmd-entrypoint" style="color: #90cdf4; text-decoration: none;">CMD vs ENTRYPOINT</a></li>
+                <li><a href="#copy-add" style="color: #90cdf4; text-decoration: none;">COPY vs ADD</a></li>
+                <li><a href="#env-arg" style="color: #90cdf4; text-decoration: none;">ENV and ARG</a></li>
+                <li><a href="#workdir" style="color: #90cdf4; text-decoration: none;">WORKDIR</a></li>
+                <li><a href="#expose" style="color: #90cdf4; text-decoration: none;">EXPOSE</a></li>
+                <li><a href="#volume" style="color: #90cdf4; text-decoration: none;">VOLUME</a></li>
+                <li><a href="#user" style="color: #90cdf4; text-decoration: none;">USER</a></li>
+                <li><a href="#healthcheck" style="color: #90cdf4; text-decoration: none;">HEALTHCHECK</a></li>
+                <li><a href="#label" style="color: #90cdf4; text-decoration: none;">LABEL</a></li>
+                <li><a href="#examples" style="color: #90cdf4; text-decoration: none;">Real-World Examples</a></li>
+            </ol>
+
+            <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+            <h2 id="from">1. FROM - Base Image Selection 🏗️</h2>
+            
+            <p>The FROM instruction sets the base image for your Docker image. It must be the first instruction (except ARG).</p>
+
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Syntax</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>FROM [--platform=&lt;platform&gt;] &lt;image&gt;[:&lt;tag&gt;] [AS &lt;name&gt;]</code></pre>
+                
+                <h3 style="color: #90cdf4; margin-top: 20px;">Examples</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Official image with specific version
+FROM node:18-alpine
+
+# Multi-platform support
+FROM --platform=linux/amd64 ubuntu:22.04
+
+# Named stage for multi-stage builds
+FROM python:3.11-slim AS builder</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Best Practices</h3>
+                <ul>
+                    <li>✅ Use official images from Docker Hub</li>
+                    <li>✅ Pin specific versions (node:18.19.0 not node:latest)</li>
+                    <li>✅ Use Alpine variants for smaller images (node:18-alpine)</li>
+                    <li>✅ Use slim variants for Python (python:3.11-slim)</li>
+                    <li>❌ Avoid using :latest tag in production</li>
+                </ul>
+            </div>
+
+            <h2 id="run">2. RUN - Execute Commands 🔧</h2>
+            
+            <p>RUN executes commands during image build. Each RUN creates a new layer.</p>
+
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Two Forms</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Shell form (runs in /bin/sh -c)
+RUN apt-get update && apt-get install -y curl
+
+# Exec form (no shell processing)
+RUN ["apt-get", "update"]</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Optimization Tips</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ❌ BAD: Multiple layers
+RUN apt-get update
+RUN apt-get install -y curl
+RUN apt-get install -y git
+
+# ✅ GOOD: Single layer, cleanup
+RUN apt-get update && \\
+    apt-get install -y --no-install-recommends \\
+        curl \\
+        git && \\
+    apt-get clean && \\
+    rm -rf /var/lib/apt/lists/*</code></pre>
+            </div>
+
+            <h2 id="cmd-entrypoint">3. CMD vs ENTRYPOINT 🚀</h2>
+            
+            <p>Both define what runs when container starts, but they work differently.</p>
+
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">CMD - Default Command</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Shell form
+CMD npm start
+
+# Exec form (preferred)
+CMD ["npm", "start"]
+
+# Can be overridden
+docker run myimage python app.py  # Overrides CMD</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">ENTRYPOINT - Fixed Command</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Exec form (preferred)
+ENTRYPOINT ["python", "app.py"]
+
+# Cannot be easily overridden
+docker run myimage --port 8080  # Passes args to ENTRYPOINT</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Combined Usage</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ENTRYPOINT defines executable, CMD provides default args
+ENTRYPOINT ["python", "app.py"]
+CMD ["--port", "8080"]
+
+# Run with defaults
+docker run myimage  # python app.py --port 8080
+
+# Override defaults
+docker run myimage --port 3000  # python app.py --port 3000</code></pre>
+            </div>
+
+            <h2 id="copy-add">4. COPY vs ADD 📦</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">COPY - Simple File Copy</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Basic copy
+COPY package.json /app/
+
+# Copy with ownership
+COPY --chown=node:node . /app/
+
+# Copy from build stage
+COPY --from=builder /app/dist /app/dist</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">ADD - Advanced Copy</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Auto-extracts tar files
+ADD archive.tar.gz /app/
+
+# Download from URL (not recommended)
+ADD https://example.com/file.txt /app/</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">When to Use Which?</h3>
+                <ul>
+                    <li>✅ Use COPY for most cases (more transparent)</li>
+                    <li>✅ Use ADD only for auto-extracting tar files</li>
+                    <li>❌ Don't use ADD for URLs (use RUN curl instead)</li>
+                </ul>
+            </div>
+
+            <h2 id="env-arg">5. ENV and ARG - Variables 🔐</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">ENV - Runtime Variables</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Multiple variables
+ENV NODE_ENV=production \\
+    PORT=8080 \\
+    LOG_LEVEL=info
+
+# Available in running container
+docker run myimage  # NODE_ENV is set</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">ARG - Build-time Variables</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Define build argument
+ARG NODE_VERSION=18
+FROM node:\${NODE_VERSION}-alpine
+
+ARG BUILD_DATE
+ARG VERSION=1.0.0
+
+# Use during build
+docker build --build-arg NODE_VERSION=20 --build-arg VERSION=2.0.0 .</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Key Differences</h3>
+                <ul>
+                    <li><strong>ARG:</strong> Only available during build, not in running container</li>
+                    <li><strong>ENV:</strong> Available during build AND in running container</li>
+                    <li><strong>Security:</strong> Don't use ARG for secrets (visible in docker history)</li>
+                </ul>
+            </div>
+
+            <h2 id="workdir">6. WORKDIR - Working Directory 📁</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Set working directory (creates if doesn't exist)
+WORKDIR /app
+
+# All subsequent commands run from /app
+COPY package.json .
+RUN npm install
+
+# Can use multiple times
+WORKDIR /app/src
+COPY . .
+
+# ✅ GOOD: Use WORKDIR
+WORKDIR /app
+RUN npm install
+
+# ❌ BAD: Don't use cd
+RUN cd /app && npm install  # Won't persist!</code></pre>
+            </div>
+
+            <h2 id="expose">7. EXPOSE - Port Documentation 🔌</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Document which ports the app uses
+EXPOSE 8080
+EXPOSE 443/tcp
+EXPOSE 53/udp
+
+# Note: EXPOSE doesn't actually publish ports!
+# It's documentation for users
+
+# To actually publish:
+docker run -p 8080:8080 myimage</code></pre>
+            </div>
+
+            <h2 id="volume">8. VOLUME - Data Persistence 💾</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create mount point
+VOLUME /data
+VOLUME ["/var/log", "/var/db"]
+
+# Data in these directories persists
+# even when container is removed
+
+# Use with docker run
+docker run -v mydata:/data myimage</code></pre>
+            </div>
+
+            <h2 id="user">9. USER - Security 🔒</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create non-root user
+RUN addgroup -g 1001 -S nodejs && \\
+    adduser -S nodejs -u 1001
+
+# Switch to non-root user
+USER nodejs
+
+# All subsequent commands run as nodejs user
+COPY --chown=nodejs:nodejs . .
+CMD ["node", "server.js"]
+
+# ✅ BEST PRACTICE: Never run as root in production!</code></pre>
+            </div>
+
+            <h2 id="healthcheck">10. HEALTHCHECK - Container Health 🏥</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check if container is healthy
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \\
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Options:
+# --interval: How often to check (default: 30s)
+# --timeout: Max time for check (default: 30s)
+# --start-period: Grace period (default: 0s)
+# --retries: Consecutive failures needed (default: 3)
+
+# Disable healthcheck
+HEALTHCHECK NONE</code></pre>
+            </div>
+
+            <h2 id="label">11. LABEL - Metadata 🏷️</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Add metadata
+LABEL maintainer="saransh@devsecopssolution.in"
+LABEL version="1.0.0"
+LABEL description="My awesome app"
+
+# Multiple labels
+LABEL org.opencontainers.image.authors="Saransh Jain" \\
+      org.opencontainers.image.version="1.0.0" \\
+      org.opencontainers.image.source="https://github.com/Saransh138"</code></pre>
+            </div>
+
+            <h2 id="examples">12. Real-World Examples 🌍</h2>
+            
+            <h3 style="color: #667eea;">Node.js Application</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>FROM node:18-alpine
+
+# Create app user
+RUN addgroup -g 1001 -S nodejs && \\
+    adduser -S nodejs -u 1001
+
+WORKDIR /app
+
+# Copy package files
+COPY --chown=nodejs:nodejs package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy app code
+COPY --chown=nodejs:nodejs . .
+
+# Switch to non-root user
+USER nodejs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \\
+    CMD node healthcheck.js
+
+# Start app
+CMD ["node", "server.js"]</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Python Flask Application</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \\
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \\
+    chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 5000
+
+HEALTHCHECK CMD curl -f http://localhost:5000/health || exit 1
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]</code></pre>
+            </div>
+
+            <h2>🎯 Best Practices Summary</h2>
+            
+            <div style="background: #1c4532; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ol style="line-height: 2;">
+                    <li>✅ Use official base images with specific versions</li>
+                    <li>✅ Minimize layers by combining RUN commands</li>
+                    <li>✅ Order instructions from least to most frequently changing</li>
+                    <li>✅ Use .dockerignore to exclude unnecessary files</li>
+                    <li>✅ Run as non-root user</li>
+                    <li>✅ Use COPY instead of ADD (unless extracting tar)</li>
+                    <li>✅ Add HEALTHCHECK for production containers</li>
+                    <li>✅ Clean up in the same RUN command (apt-get clean)</li>
+                    <li>✅ Use multi-stage builds for smaller images</li>
+                    <li>✅ Pin dependency versions</li>
+                </ol>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white; margin: 30px 0; text-align: center;">
+                <h3 style="color: white; margin: 0 0 10px 0;">🎓 You're Now a Dockerfile Expert!</h3>
+                <p style="margin: 0;">Next: Learn Multi-Stage Builds for even smaller images</p>
+            </div>
+
+            <hr style="margin: 30px 0;">
+            <p><em>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank">GitHub</a>!</em></p>
+        `,
+        date: "2026-02-17",
+        readTime: "18 min read",
+        tags: ["Docker", "Dockerfile", "DevOps", "Containers", "Tutorial"],
+        icon: "📝",
+        author: "Saransh Jain"
+    },
+    {
         id: 8,
         title: "Docker Mastery: From Zero to Hero with Visual Architecture",
         excerpt: "A comprehensive, visually-rich guide to mastering Docker from scratch. Learn containers, images, Dockerfiles, networking, and orchestration with animated explanations and real-world examples.",
