@@ -391,10 +391,10 @@ backToTopButton?.addEventListener('click', () => {
     });
 });
 
-// Add loading animation to page
-window.addEventListener('load', () => {
-    document.body.classList.add('loaded');
-});
+// Add loading animation to page - REMOVED (was causing issues)
+// window.addEventListener('load', () => {
+//     document.body.classList.add('loaded');
+// });
 
 // Improve mobile menu close on link click
 const navLinks = document.querySelectorAll('.nav-link');
