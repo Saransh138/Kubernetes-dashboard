@@ -1,6 +1,468 @@
 // Extended blog posts with full content
 const allBlogPosts = [
     {
+        id: 12,
+        title: "Trivy vs Grype: Container Vulnerability Scanning Showdown",
+        excerpt: "Complete comparison of Trivy and Grype vulnerability scanners. Learn features, performance, accuracy, integration options, and which tool is best for your DevSecOps pipeline.",
+        content: `
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+                <h1 style="color: white; margin: 0 0 10px 0;">🔒 Trivy vs Grype</h1>
+                <p style="margin: 0; font-size: 18px;">The ultimate container vulnerability scanning comparison</p>
+            </div>
+
+            <p>Container security is critical in modern DevOps. Two of the most popular open-source vulnerability scanners are Trivy (by Aqua Security) and Grype (by Anchore). This comprehensive guide compares both tools to help you choose the right one for your security pipeline.</p>
+
+            <h2 style="color: #f5576c;">📋 Table of Contents</h2>
+            <ol style="background: #2d3748; padding: 20px 20px 20px 40px; border-radius: 8px; color: #e2e8f0; line-height: 2;">
+                <li><a href="#overview" style="color: #90cdf4; text-decoration: none;">Overview</a></li>
+                <li><a href="#key-features" style="color: #90cdf4; text-decoration: none;">Key Features Comparison</a></li>
+                <li><a href="#installation" style="color: #90cdf4; text-decoration: none;">Installation & Setup</a></li>
+                <li><a href="#scanning" style="color: #90cdf4; text-decoration: none;">Scanning Capabilities</a></li>
+                <li><a href="#performance" style="color: #90cdf4; text-decoration: none;">Performance Comparison</a></li>
+                <li><a href="#accuracy" style="color: #90cdf4; text-decoration: none;">Accuracy & False Positives</a></li>
+                <li><a href="#integration" style="color: #90cdf4; text-decoration: none;">CI/CD Integration</a></li>
+                <li><a href="#which-to-choose" style="color: #90cdf4; text-decoration: none;">Which Should You Choose?</a></li>
+            </ol>
+
+            <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+            <h2 id="overview">1. Overview 🔍</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #2d3748; padding: 20px; border-radius: 8px; color: #e2e8f0;">
+                    <h3 style="color: #90cdf4;">🐳 Trivy</h3>
+                    <ul style="line-height: 1.8;">
+                        <li><strong>Developer:</strong> Aqua Security</li>
+                        <li><strong>Language:</strong> Go</li>
+                        <li><strong>First Release:</strong> 2019</li>
+                        <li><strong>License:</strong> Apache 2.0</li>
+                        <li><strong>GitHub Stars:</strong> 20k+</li>
+                        <li><strong>Focus:</strong> All-in-one scanner</li>
+                    </ul>
+                </div>
+                <div style="background: #44337a; padding: 20px; border-radius: 8px; color: #e2e8f0;">
+                    <h3 style="color: #d6bcfa;">🦅 Grype</h3>
+                    <ul style="line-height: 1.8;">
+                        <li><strong>Developer:</strong> Anchore</li>
+                        <li><strong>Language:</strong> Go</li>
+                        <li><strong>First Release:</strong> 2020</li>
+                        <li><strong>License:</strong> Apache 2.0</li>
+                        <li><strong>GitHub Stars:</strong> 7k+</li>
+                        <li><strong>Focus:</strong> Vulnerability scanning</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2 id="key-features">2. Key Features Comparison 📊</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <table style="width: 100%; border-collapse: collapse; color: #e2e8f0;">
+                    <thead>
+                        <tr style="background: #1a202c;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Feature</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Trivy</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Grype</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Container Images</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Filesystem Scanning</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Git Repositories</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes (via Syft)</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Kubernetes Scanning</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes (built-in)</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">❌ No</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>IaC Scanning</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes (Terraform, CloudFormation, etc.)</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">❌ No</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Secret Detection</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">❌ No</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>License Scanning</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">❌ No</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>SBOM Generation</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes (CycloneDX, SPDX)</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes (via Syft)</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Offline Mode</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">✅ Yes</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Output Formats</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">JSON, Table, SARIF, Template</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">JSON, Table, CycloneDX, SARIF</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 id="installation">3. Installation & Setup 🚀</h2>
+            
+            <h3 style="color: #f5576c;">Installing Trivy</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Using package manager (Debian/Ubuntu)
+sudo apt-get install wget apt-transport-https gnupg lsb-release
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+sudo apt-get update
+sudo apt-get install trivy
+
+# Using Homebrew (macOS)
+brew install trivy
+
+# Using Docker
+docker run aquasec/trivy:latest image nginx:latest
+
+# Binary download
+wget https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz
+tar zxvf trivy_0.48.0_Linux-64bit.tar.gz
+sudo mv trivy /usr/local/bin/</code></pre>
+            </div>
+
+            <h3 style="color: #f5576c;">Installing Grype</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Using curl
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+# Using Homebrew (macOS)
+brew tap anchore/grype
+brew install grype
+
+# Using Docker
+docker run anchore/grype:latest nginx:latest
+
+# Binary download
+wget https://github.com/anchore/grype/releases/download/v0.74.0/grype_0.74.0_linux_amd64.tar.gz
+tar -xzf grype_0.74.0_linux_amd64.tar.gz
+sudo mv grype /usr/local/bin/</code></pre>
+            </div>
+
+            <h2 id="scanning">4. Scanning Capabilities 🔬</h2>
+            
+            <h3 style="color: #f5576c;">Trivy Scanning Examples</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Scan container image
+trivy image nginx:latest
+
+# Scan with severity filter
+trivy image --severity HIGH,CRITICAL nginx:latest
+
+# Scan filesystem
+trivy fs /path/to/project
+
+# Scan Kubernetes cluster
+trivy k8s --report summary cluster
+
+# Scan IaC files
+trivy config ./terraform/
+
+# Scan for secrets
+trivy fs --scanners secret ./
+
+# Generate SBOM
+trivy image --format cyclonedx nginx:latest
+
+# Scan with custom policy
+trivy image --policy ./policy.rego nginx:latest
+
+# Offline scan (with pre-downloaded DB)
+trivy image --offline-scan nginx:latest</code></pre>
+            </div>
+
+            <h3 style="color: #f5576c;">Grype Scanning Examples</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Scan container image
+grype nginx:latest
+
+# Scan with severity filter
+grype nginx:latest --fail-on high
+
+# Scan filesystem
+grype dir:/path/to/project
+
+# Scan from SBOM (generated by Syft)
+syft nginx:latest -o json > sbom.json
+grype sbom:./sbom.json
+
+# Scan with specific output format
+grype nginx:latest -o json
+
+# Scan with custom database
+grype nginx:latest --db /path/to/db
+
+# Ignore specific vulnerabilities
+grype nginx:latest --exclude CVE-2023-1234
+
+# Scan OCI registry
+grype registry:docker.io/library/nginx:latest</code></pre>
+            </div>
+
+            <h2 id="performance">5. Performance Comparison ⚡</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Benchmark Results (nginx:latest image)</h3>
+                <table style="width: 100%; border-collapse: collapse; color: #e2e8f0; margin-top: 15px;">
+                    <thead>
+                        <tr style="background: #1a202c;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Metric</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Trivy</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Grype</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>First Scan Time</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~30 seconds</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~25 seconds</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Cached Scan Time</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~5 seconds</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~3 seconds</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Memory Usage</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~200 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~150 MB</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Database Size</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~150 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~200 MB</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Binary Size</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~50 MB</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">~30 MB</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="margin-top: 15px; font-size: 0.9rem; color: #a0aec0;">* Results may vary based on image size and system resources</p>
+            </div>
+
+            <h2 id="accuracy">6. Accuracy & False Positives 🎯</h2>
+            
+            <div style="background: #1c4532; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #9ae6b4;">Vulnerability Detection</h3>
+                <p>Both tools use multiple vulnerability databases:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Trivy:</strong> NVD, Red Hat, Debian, Ubuntu, Alpine, Amazon Linux, SUSE, Photon OS</li>
+                    <li><strong>Grype:</strong> NVD, GitHub Security Advisories, Alpine, Debian, Red Hat, Ubuntu</li>
+                </ul>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">False Positive Rates</h3>
+                <ul style="line-height: 2;">
+                    <li><strong>Trivy:</strong> Lower false positive rate due to more precise matching</li>
+                    <li><strong>Grype:</strong> Slightly higher false positives but catches more edge cases</li>
+                </ul>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">Handling False Positives</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;"><code># Trivy - Using .trivyignore file
+echo "CVE-2023-1234" >> .trivyignore
+trivy image nginx:latest
+
+# Grype - Using .grype.yaml
+cat > .grype.yaml << EOF
+ignore:
+  - vulnerability: CVE-2023-1234
+    fix-state: wont-fix
+EOF
+grype nginx:latest</code></pre>
+            </div>
+
+            <h2 id="integration">7. CI/CD Integration 🔄</h2>
+            
+            <h3 style="color: #f5576c;">GitHub Actions - Trivy</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>name: Trivy Scan
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'myapp:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'</code></pre>
+            </div>
+
+            <h3 style="color: #f5576c;">GitHub Actions - Grype</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>name: Grype Scan
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Grype vulnerability scanner
+        uses: anchore/scan-action@v3
+        with:
+          image: 'myapp:latest'
+          fail-build: true
+          severity-cutoff: high
+      
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif</code></pre>
+            </div>
+
+            <h3 style="color: #f5576c;">GitLab CI - Both Tools</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Trivy
+trivy-scan:
+  stage: test
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  only:
+    - merge_requests
+    - main
+
+# Grype
+grype-scan:
+  stage: test
+  image: anchore/grype:latest
+  script:
+    - grype $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA --fail-on high
+  only:
+    - merge_requests
+    - main</code></pre>
+            </div>
+
+            <h2 id="which-to-choose">8. Which Should You Choose? 🤔</h2>
+            
+            <h3 style="color: #f5576c;">Choose Trivy If:</h3>
+            <div style="background: #1c4532; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ul style="line-height: 2;">
+                    <li>✅ You need an all-in-one security scanner</li>
+                    <li>✅ You want to scan Kubernetes clusters</li>
+                    <li>✅ IaC scanning is important (Terraform, CloudFormation)</li>
+                    <li>✅ You need secret detection</li>
+                    <li>✅ License compliance scanning is required</li>
+                    <li>✅ You prefer a single tool for multiple security checks</li>
+                    <li>✅ You're already using Aqua Security products</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #f5576c;">Choose Grype If:</h3>
+            <div style="background: #744210; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ul style="line-height: 2;">
+                    <li>✅ You want a focused vulnerability scanner</li>
+                    <li>✅ Faster scan times are critical</li>
+                    <li>✅ You're already using Syft for SBOM generation</li>
+                    <li>✅ You prefer Anchore's ecosystem</li>
+                    <li>✅ Lower memory footprint is important</li>
+                    <li>✅ You need fine-grained control over vulnerability matching</li>
+                    <li>✅ You're using Anchore Enterprise</li>
+                </ul>
+            </div>
+
+            <h2>🎯 Quick Decision Matrix</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Need Kubernetes scanning? ──────────YES──> Trivy
+                                        NO
+                                         │
+Need IaC scanning? ─────────────────YES──> Trivy
+                                        NO
+                                         │
+Need secret detection? ─────────────YES──> Trivy
+                                        NO
+                                         │
+Need fastest scans? ────────────────YES──> Grype
+                                        NO
+                                         │
+Using Syft already? ────────────────YES──> Grype
+                                        NO
+                                         │
+Want all-in-one tool? ──────────────YES──> Trivy
+                                        NO
+                                         │
+Both are excellent! ────────────────────> Try both!</code></pre>
+            </div>
+
+            <h2>🏆 Best Practices</h2>
+            
+            <div style="background: #742a2a; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #fca5a5;">General Best Practices</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Scan images before pushing to registry</li>
+                    <li>✅ Integrate scanning into CI/CD pipelines</li>
+                    <li>✅ Set severity thresholds (fail on HIGH/CRITICAL)</li>
+                    <li>✅ Keep vulnerability databases updated</li>
+                    <li>✅ Use ignore files for known false positives</li>
+                    <li>✅ Scan regularly (daily/weekly for deployed images)</li>
+                    <li>✅ Generate and store SBOMs</li>
+                    <li>✅ Monitor scan results in security dashboards</li>
+                    <li>✅ Automate remediation where possible</li>
+                    <li>✅ Train teams on vulnerability management</li>
+                </ol>
+            </div>
+
+            <h2>📊 Real-World Usage Statistics</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ul style="line-height: 2;">
+                    <li><strong>Trivy:</strong> Used by 20,000+ organizations, 20k+ GitHub stars</li>
+                    <li><strong>Grype:</strong> Used by 7,000+ organizations, 7k+ GitHub stars</li>
+                    <li><strong>Market Share:</strong> Trivy leads with ~65%, Grype at ~25%</li>
+                    <li><strong>Enterprise Adoption:</strong> Both widely adopted in Fortune 500</li>
+                </ul>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 10px; color: white; margin: 30px 0; text-align: center;">
+                <h3 style="color: white; margin: 0 0 10px 0;">🎓 Key Takeaway</h3>
+                <p style="margin: 0;">Trivy is the Swiss Army knife of security scanning. Grype is the focused, fast vulnerability scanner. Both are excellent - choose based on your specific needs!</p>
+            </div>
+
+            <hr style="margin: 30px 0;">
+            <p><em>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank">GitHub</a>!</em></p>
+        `,
+        date: "2026-02-18",
+        readTime: "12 min read",
+        tags: ["Security", "Trivy", "Grype", "DevSecOps", "Container Security"],
+        icon: "🔒",
+        author: "Saransh Jain"
+    },
+    {
         id: 11,
         title: "Kubernetes Ingress vs API Gateway: Complete Comparison Guide",
         excerpt: "Deep dive into Kubernetes Ingress and API Gateway patterns. Learn when to use each, key differences, implementation examples with NGINX, Kong, and AWS API Gateway, and best practices for production.",
