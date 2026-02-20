@@ -1,6 +1,568 @@
 // Extended blog posts with full content
 const allBlogPosts = [
     {
+        id: 13,
+        title: "Self-Service Infrastructure Using Kubernetes: Complete Guide",
+        excerpt: "Build a self-service platform on Kubernetes enabling developers to provision resources on-demand. Learn about namespaces, RBAC, resource quotas, Crossplane, and internal developer platforms.",
+        content: `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+                <h1 style="color: white; margin: 0 0 10px 0;">🚀 Self-Service Infrastructure with Kubernetes</h1>
+                <p style="margin: 0; font-size: 18px;">Empower developers with on-demand infrastructure provisioning</p>
+            </div>
+
+            <p>Self-service infrastructure empowers development teams to provision and manage their own resources without waiting for operations teams. Kubernetes provides the perfect foundation for building such platforms.</p>
+
+            <h2 style="color: #667eea;">📋 Table of Contents</h2>
+            <ol style="background: #2d3748; padding: 20px 20px 20px 40px; border-radius: 8px; color: #e2e8f0; line-height: 2;">
+                <li><a href="#what-is-self-service" style="color: #90cdf4; text-decoration: none;">What is Self-Service Infrastructure?</a></li>
+                <li><a href="#benefits" style="color: #90cdf4; text-decoration: none;">Benefits & Challenges</a></li>
+                <li><a href="#building-blocks" style="color: #90cdf4; text-decoration: none;">Kubernetes Building Blocks</a></li>
+                <li><a href="#implementation" style="color: #90cdf4; text-decoration: none;">Implementation Patterns</a></li>
+                <li><a href="#tools" style="color: #90cdf4; text-decoration: none;">Tools & Platforms</a></li>
+                <li><a href="#security" style="color: #90cdf4; text-decoration: none;">Security & Governance</a></li>
+                <li><a href="#best-practices" style="color: #90cdf4; text-decoration: none;">Best Practices</a></li>
+            </ol>
+
+            <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+            <h2 id="what-is-self-service">1. What is Self-Service Infrastructure? 🤔</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Definition</h3>
+                <p>Self-service infrastructure allows developers to provision, configure, and manage infrastructure resources through automated interfaces without manual intervention from operations teams.</p>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Traditional vs Self-Service</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                    <div style="background: #742a2a; padding: 15px; border-radius: 8px;">
+                        <h4 style="color: #fca5a5;">❌ Traditional Approach</h4>
+                        <ul>
+                            <li>Submit ticket to ops team</li>
+                            <li>Wait days/weeks for provisioning</li>
+                            <li>Manual configuration</li>
+                            <li>Limited visibility</li>
+                            <li>Bottleneck on ops team</li>
+                        </ul>
+                    </div>
+                    <div style="background: #1c4532; padding: 15px; border-radius: 8px;">
+                        <h4 style="color: #9ae6b4;">✅ Self-Service Approach</h4>
+                        <ul>
+                            <li>Instant provisioning via UI/CLI</li>
+                            <li>Minutes to deploy</li>
+                            <li>Automated configuration</li>
+                            <li>Full visibility & control</li>
+                            <li>Ops team focuses on platform</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h2 id="benefits">2. Benefits & Challenges 📊</h2>
+            
+            <h3 style="color: #667eea;">Benefits</h3>
+            <div style="background: #1c4532; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ul style="line-height: 2;">
+                    <li>✅ <strong>Faster Time to Market:</strong> Deploy in minutes instead of days</li>
+                    <li>✅ <strong>Developer Productivity:</strong> No waiting for ops team</li>
+                    <li>✅ <strong>Reduced Ops Burden:</strong> Ops focuses on platform, not tickets</li>
+                    <li>✅ <strong>Standardization:</strong> Consistent environments across teams</li>
+                    <li>✅ <strong>Cost Optimization:</strong> Better resource utilization</li>
+                    <li>✅ <strong>Innovation:</strong> Developers can experiment freely</li>
+                    <li>✅ <strong>Scalability:</strong> Platform scales with organization</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">Challenges</h3>
+            <div style="background: #744210; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ul style="line-height: 2;">
+                    <li>⚠️ <strong>Security Risks:</strong> Need proper RBAC and policies</li>
+                    <li>⚠️ <strong>Cost Control:</strong> Risk of resource sprawl</li>
+                    <li>⚠️ <strong>Complexity:</strong> Platform requires maintenance</li>
+                    <li>⚠️ <strong>Learning Curve:</strong> Developers need training</li>
+                    <li>⚠️ <strong>Governance:</strong> Ensuring compliance and standards</li>
+                </ul>
+            </div>
+
+            <h2 id="building-blocks">3. Kubernetes Building Blocks 🧱</h2>
+            
+            <h3 style="color: #667eea;">1. Namespaces - Logical Isolation</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Namespaces provide logical isolation for teams and projects.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-frontend
+  labels:
+    team: frontend
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-backend
+  labels:
+    team: backend
+    environment: production</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">2. RBAC - Access Control</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Role-Based Access Control ensures developers can only access their resources.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Role for developers in their namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+  namespace: team-frontend
+rules:
+- apiGroups: ["", "apps", "batch"]
+  resources: ["pods", "deployments", "services", "jobs", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods/log", "pods/exec"]
+  verbs: ["get", "list"]
+
+---
+# Bind role to team
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-binding
+  namespace: team-frontend
+subjects:
+- kind: Group
+  name: frontend-team
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">3. Resource Quotas - Cost Control</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Prevent resource sprawl with quotas and limits.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-quota
+  namespace: team-frontend
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "2"
+    pods: "50"
+
+---
+# Limit ranges for individual resources
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: resource-limits
+  namespace: team-frontend
+spec:
+  limits:
+  - max:
+      cpu: "4"
+      memory: 8Gi
+    min:
+      cpu: "100m"
+      memory: 128Mi
+    default:
+      cpu: "500m"
+      memory: 512Mi
+    defaultRequest:
+      cpu: "200m"
+      memory: 256Mi
+    type: Container</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">4. Network Policies - Security</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: team-frontend
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+# Allow specific traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: team-frontend
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          team: backend
+    ports:
+    - protocol: TCP
+      port: 8080</code></pre>
+            </div>
+
+            <h2 id="implementation">4. Implementation Patterns 🏗️</h2>
+            
+            <h3 style="color: #667eea;">Pattern 1: Namespace-as-a-Service</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Automatically provision namespaces with all necessary resources.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Automation script example
+#!/bin/bash
+TEAM_NAME=$1
+NAMESPACE="team-$TEAM_NAME"
+
+# Create namespace
+kubectl create namespace $NAMESPACE
+
+# Apply labels
+kubectl label namespace $NAMESPACE team=$TEAM_NAME
+
+# Apply resource quota
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: $TEAM_NAME-quota
+  namespace: $NAMESPACE
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    pods: "30"
+EOF
+
+# Create service account
+kubectl create serviceaccount $TEAM_NAME-sa -n $NAMESPACE
+
+# Apply RBAC
+kubectl apply -f rbac-$TEAM_NAME.yaml
+
+echo "Namespace $NAMESPACE ready for team $TEAM_NAME"</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Pattern 2: GitOps-Based Provisioning</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Use ArgoCD or Flux for declarative infrastructure.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ArgoCD Application for team namespace
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: team-frontend-infra
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/company/k8s-infra
+    targetRevision: main
+    path: teams/frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: team-frontend
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Pattern 3: Custom Resource Definitions (CRDs)</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Create custom resources for infrastructure requests.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Custom Resource Definition
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: teamspaces.platform.company.com
+spec:
+  group: platform.company.com
+  names:
+    kind: TeamSpace
+    plural: teamspaces
+  scope: Cluster
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              teamName:
+                type: string
+              cpuQuota:
+                type: string
+              memoryQuota:
+                type: string
+              members:
+                type: array
+                items:
+                  type: string
+
+---
+# Developer creates a TeamSpace
+apiVersion: platform.company.com/v1
+kind: TeamSpace
+metadata:
+  name: frontend-team
+spec:
+  teamName: frontend
+  cpuQuota: "20"
+  memoryQuota: "40Gi"
+  members:
+  - alice@company.com
+  - bob@company.com</code></pre>
+            </div>
+
+            <h2 id="tools">5. Tools & Platforms 🛠️</h2>
+            
+            <h3 style="color: #667eea;">1. Crossplane - Infrastructure as Code</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Provision cloud resources using Kubernetes APIs.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Crossplane
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane --namespace crossplane-system --create-namespace
+
+# Example: Provision AWS RDS
+apiVersion: database.aws.crossplane.io/v1beta1
+kind: RDSInstance
+metadata:
+  name: team-frontend-db
+spec:
+  forProvider:
+    region: us-east-1
+    dbInstanceClass: db.t3.micro
+    masterUsername: admin
+    engine: postgres
+    engineVersion: "13.7"
+    allocatedStorage: 20
+  writeConnectionSecretToRef:
+    name: db-credentials
+    namespace: team-frontend</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">2. Backstage - Developer Portal</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Spotify's open-source developer portal for self-service.</p>
+                <ul>
+                    <li>✅ Service catalog</li>
+                    <li>✅ Software templates</li>
+                    <li>✅ TechDocs</li>
+                    <li>✅ Kubernetes plugin</li>
+                    <li>✅ Custom plugins</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">3. Kubevela - Application Platform</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># KubeVela Application
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: my-app
+spec:
+  components:
+  - name: frontend
+    type: webservice
+    properties:
+      image: nginx:latest
+      port: 80
+      cpu: "0.5"
+      memory: "512Mi"
+  - name: database
+    type: mysql
+    properties:
+      storage: 10Gi</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">4. Rancher - Multi-Cluster Management</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ul>
+                    <li>✅ Web UI for cluster management</li>
+                    <li>✅ Project-based multi-tenancy</li>
+                    <li>✅ App catalog</li>
+                    <li>✅ Built-in monitoring</li>
+                </ul>
+            </div>
+
+            <h2 id="security">6. Security & Governance 🔒</h2>
+            
+            <h3 style="color: #667eea;">Policy Enforcement with OPA/Gatekeeper</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Gatekeeper ConstraintTemplate
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredLabels
+      validation:
+        openAPIV3Schema:
+          properties:
+            labels:
+              type: array
+              items:
+                type: string
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package k8srequiredlabels
+      violation[{"msg": msg}] {
+        provided := {label | input.review.object.metadata.labels[label]}
+        required := {label | label := input.parameters.labels[_]}
+        missing := required - provided
+        count(missing) > 0
+        msg := sprintf("Missing required labels: %v", [missing])
+      }
+
+---
+# Constraint requiring team and cost-center labels
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredLabels
+metadata:
+  name: require-team-labels
+spec:
+  match:
+    kinds:
+    - apiGroups: [""]
+      kinds: ["Namespace"]
+  parameters:
+    labels: ["team", "cost-center"]</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Cost Tracking & Chargeback</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Use tools like Kubecost or OpenCost for cost visibility.</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Kubecost
+helm repo add kubecost https://kubecost.github.io/cost-analyzer/
+helm install kubecost kubecost/cost-analyzer --namespace kubecost --create-namespace
+
+# Label resources for cost allocation
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    team: frontend
+    cost-center: engineering
+    project: web-app</code></pre>
+            </div>
+
+            <h2 id="best-practices">7. Best Practices 🏆</h2>
+            
+            <div style="background: #1c4532; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #9ae6b4;">Platform Design</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Start simple, add complexity gradually</li>
+                    <li>✅ Provide golden paths (templates) for common use cases</li>
+                    <li>✅ Make it easy to do the right thing</li>
+                    <li>✅ Provide excellent documentation</li>
+                    <li>✅ Offer multiple interfaces (UI, CLI, API)</li>
+                    <li>✅ Build feedback loops with users</li>
+                </ol>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">Security</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Implement least privilege access</li>
+                    <li>✅ Use Pod Security Standards</li>
+                    <li>✅ Enable audit logging</li>
+                    <li>✅ Scan images for vulnerabilities</li>
+                    <li>✅ Enforce network policies</li>
+                    <li>✅ Rotate credentials regularly</li>
+                </ol>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">Cost Management</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Set resource quotas per team</li>
+                    <li>✅ Implement auto-scaling</li>
+                    <li>✅ Use spot instances where appropriate</li>
+                    <li>✅ Monitor and alert on costs</li>
+                    <li>✅ Implement idle resource cleanup</li>
+                    <li>✅ Provide cost visibility to teams</li>
+                </ol>
+
+                <h3 style="color: #9ae6b4; margin-top: 20px;">Operations</h3>
+                <ol style="line-height: 2;">
+                    <li>✅ Automate everything</li>
+                    <li>✅ Use GitOps for infrastructure</li>
+                    <li>✅ Implement comprehensive monitoring</li>
+                    <li>✅ Provide self-service troubleshooting</li>
+                    <li>✅ Regular platform updates</li>
+                    <li>✅ Disaster recovery planning</li>
+                </ol>
+            </div>
+
+            <h2>🎯 Implementation Roadmap</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Phase 1: Foundation (Weeks 1-4)</h3>
+                <ul>
+                    <li>✅ Set up Kubernetes cluster(s)</li>
+                    <li>✅ Implement RBAC and namespaces</li>
+                    <li>✅ Configure resource quotas</li>
+                    <li>✅ Set up monitoring and logging</li>
+                </ul>
+
+                <h3 style="color: #90cdf4; margin-top: 15px;">Phase 2: Self-Service Basics (Weeks 5-8)</h3>
+                <ul>
+                    <li>✅ Create namespace provisioning automation</li>
+                    <li>✅ Implement basic templates</li>
+                    <li>✅ Set up GitOps (ArgoCD/Flux)</li>
+                    <li>✅ Create documentation</li>
+                </ul>
+
+                <h3 style="color: #90cdf4; margin-top: 15px;">Phase 3: Advanced Features (Weeks 9-12)</h3>
+                <ul>
+                    <li>✅ Deploy Crossplane for cloud resources</li>
+                    <li>✅ Implement policy enforcement</li>
+                    <li>✅ Add cost tracking</li>
+                    <li>✅ Build developer portal</li>
+                </ul>
+
+                <h3 style="color: #90cdf4; margin-top: 15px;">Phase 4: Optimization (Ongoing)</h3>
+                <ul>
+                    <li>✅ Gather user feedback</li>
+                    <li>✅ Add more templates</li>
+                    <li>✅ Improve automation</li>
+                    <li>✅ Scale platform</li>
+                </ul>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white; margin: 30px 0; text-align: center;">
+                <h3 style="color: white; margin: 0 0 10px 0;">🎓 Key Takeaway</h3>
+                <p style="margin: 0;">Self-service infrastructure accelerates development while maintaining control. Start simple, iterate based on feedback, and scale gradually!</p>
+            </div>
+
+            <hr style="margin: 30px 0;">
+            <p><em>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank">GitHub</a>!</em></p>
+        `,
+        date: "2026-02-18",
+        readTime: "16 min read",
+        tags: ["Kubernetes", "Self-Service", "Platform Engineering", "DevOps", "IDP"],
+        icon: "🚀",
+        author: "Saransh Jain"
+    },
+    {
         id: 12,
         title: "Trivy vs Grype: Container Vulnerability Scanning Showdown",
         excerpt: "Complete comparison of Trivy and Grype vulnerability scanners. Learn features, performance, accuracy, integration options, and which tool is best for your DevSecOps pipeline.",
