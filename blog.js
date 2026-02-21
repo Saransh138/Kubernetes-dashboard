@@ -1,6 +1,543 @@
 // Extended blog posts with full content
 const allBlogPosts = [
     {
+        id: 14,
+        title: "Node Readiness Controller: Managing Node Lifecycle in Kubernetes",
+        excerpt: "Deep dive into Kubernetes Node Readiness Controller. Learn how it manages node lifecycle, prevents pod scheduling on unready nodes, and ensures cluster stability with practical examples.",
+        content: `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+                <h1 style="color: white; margin: 0 0 10px 0;">🎯 Node Readiness Controller</h1>
+                <p style="margin: 0; font-size: 18px;">Managing node lifecycle and ensuring cluster stability</p>
+            </div>
+
+            <p>The Node Readiness Controller is a critical component in Kubernetes that manages node lifecycle and ensures pods are only scheduled on healthy, ready nodes. Understanding how it works is essential for maintaining cluster reliability.</p>
+
+            <h2 style="color: #667eea;">📋 Table of Contents</h2>
+            <ol style="background: #2d3748; padding: 20px 20px 20px 40px; border-radius: 8px; color: #e2e8f0; line-height: 2;">
+                <li><a href="#what-is" style="color: #90cdf4; text-decoration: none;">What is Node Readiness Controller?</a></li>
+                <li><a href="#how-it-works" style="color: #90cdf4; text-decoration: none;">How It Works</a></li>
+                <li><a href="#node-conditions" style="color: #90cdf4; text-decoration: none;">Node Conditions & Taints</a></li>
+                <li><a href="#lifecycle" style="color: #90cdf4; text-decoration: none;">Node Lifecycle Management</a></li>
+                <li><a href="#examples" style="color: #90cdf4; text-decoration: none;">Practical Examples</a></li>
+                <li><a href="#custom-controller" style="color: #90cdf4; text-decoration: none;">Building Custom Controllers</a></li>
+                <li><a href="#troubleshooting" style="color: #90cdf4; text-decoration: none;">Troubleshooting</a></li>
+            </ol>
+
+            <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+            <h2 id="what-is">1. What is Node Readiness Controller? 🤔</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Definition</h3>
+                <p>The Node Readiness Controller is a Kubernetes controller that monitors node health and manages node readiness status. It ensures that:</p>
+                <ul>
+                    <li>✅ Pods are only scheduled on ready nodes</li>
+                    <li>✅ Unready nodes are properly tainted</li>
+                    <li>✅ Pods are evicted from failing nodes</li>
+                    <li>✅ Node conditions are accurately reflected</li>
+                </ul>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Key Responsibilities</h3>
+                <ol style="line-height: 2;">
+                    <li><strong>Health Monitoring:</strong> Continuously checks node health via kubelet</li>
+                    <li><strong>Taint Management:</strong> Applies/removes taints based on node conditions</li>
+                    <li><strong>Pod Eviction:</strong> Triggers pod eviction from unhealthy nodes</li>
+                    <li><strong>Status Updates:</strong> Updates node status in the API server</li>
+                </ol>
+            </div>
+
+            <h2 id="how-it-works">2. How It Works ⚙️</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Architecture Overview</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; color: #aed581;"><code>┌─────────────────────────────────────────────────────────┐
+│                    Control Plane                         │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │         Node Lifecycle Controller                 │  │
+│  │  (Part of kube-controller-manager)               │  │
+│  │                                                   │  │
+│  │  • Monitors node heartbeats                      │  │
+│  │  • Updates node conditions                       │  │
+│  │  • Applies taints                                │  │
+│  │  • Triggers evictions                            │  │
+│  └──────────────────┬───────────────────────────────┘  │
+│                     │                                    │
+│                     ▼                                    │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │            API Server                             │  │
+│  │  (Stores node status & conditions)               │  │
+│  └──────────────────┬───────────────────────────────┘  │
+└────────────────────┼────────────────────────────────────┘
+                     │
+        ┌────────────┴────────────┐
+        │                         │
+        ▼                         ▼
+┌───────────────┐         ┌───────────────┐
+│   Worker      │         │   Worker      │
+│   Node 1      │         │   Node 2      │
+│               │         │               │
+│  ┌─────────┐  │         │  ┌─────────┐  │
+│  │ Kubelet │  │         │  │ Kubelet │  │
+│  │         │  │         │  │         │  │
+│  │ Sends   │  │         │  │ Sends   │  │
+│  │ Status  │  │         │  │ Status  │  │
+│  └─────────┘  │         │  └─────────┘  │
+└───────────────┘         └───────────────┘</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Workflow</h3>
+                <ol style="line-height: 2;">
+                    <li><strong>Kubelet Heartbeat:</strong> Kubelet sends status updates every 10s (default)</li>
+                    <li><strong>Controller Monitoring:</strong> Node controller checks for missed heartbeats</li>
+                    <li><strong>Grace Period:</strong> Waits 40s (default) before marking node as Unknown</li>
+                    <li><strong>Taint Application:</strong> Applies NoSchedule/NoExecute taints</li>
+                    <li><strong>Pod Eviction:</strong> Evicts pods after 5 minutes (default)</li>
+                </ol>
+            </div>
+
+            <h2 id="node-conditions">3. Node Conditions & Taints 🏷️</h2>
+            
+            <h3 style="color: #667eea;">Node Conditions</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <table style="width: 100%; border-collapse: collapse; color: #e2e8f0;">
+                    <thead>
+                        <tr style="background: #1a202c;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Condition</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Meaning</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #4a5568;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>Ready</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Node is healthy and ready to accept pods</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">True/False/Unknown</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>MemoryPressure</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Node is running low on memory</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">True/False</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>DiskPressure</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Node is running low on disk space</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">True/False</td>
+                        </tr>
+                        <tr style="background: #1a202c;">
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>PIDPressure</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Too many processes running</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">True/False</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #4a5568;"><strong>NetworkUnavailable</strong></td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">Network not properly configured</td>
+                            <td style="padding: 12px; border: 1px solid #4a5568;">True/False</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="color: #667eea;">Automatic Taints</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>The controller automatically applies these taints:</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># When node becomes NotReady
+node.kubernetes.io/not-ready:NoExecute
+
+# When node becomes Unreachable
+node.kubernetes.io/unreachable:NoExecute
+
+# When node has memory pressure
+node.kubernetes.io/memory-pressure:NoSchedule
+
+# When node has disk pressure
+node.kubernetes.io/disk-pressure:NoSchedule
+
+# When node has PID pressure
+node.kubernetes.io/pid-pressure:NoSchedule
+
+# When network is unavailable
+node.kubernetes.io/network-unavailable:NoSchedule</code></pre>
+            </div>
+
+            <h2 id="lifecycle">4. Node Lifecycle Management 🔄</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Node States</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; color: #aed581;"><code>┌──────────┐
+│   NEW    │  Node joins cluster
+└────┬─────┘
+     │
+     ▼
+┌──────────┐
+│  READY   │  Healthy, accepting pods
+└────┬─────┘
+     │
+     ├─────► MemoryPressure ──► Taint: NoSchedule
+     │
+     ├─────► DiskPressure ──► Taint: NoSchedule
+     │
+     ▼
+┌──────────┐
+│ NOT READY│  Kubelet stopped responding
+└────┬─────┘
+     │ (40s grace period)
+     ▼
+┌──────────┐
+│ UNKNOWN  │  No heartbeat received
+└────┬─────┘
+     │ (5 min default)
+     ▼
+┌──────────┐
+│  EVICT   │  Pods evicted from node
+└──────────┘</code></pre>
+
+                <h3 style="color: #90cdf4; margin-top: 20px;">Timing Parameters</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># kube-controller-manager flags
+--node-monitor-period=5s              # How often to check node status
+--node-monitor-grace-period=40s       # Grace before marking NotReady
+--pod-eviction-timeout=5m             # Time before evicting pods</code></pre>
+            </div>
+
+            <h2 id="examples">5. Practical Examples 💻</h2>
+            
+            <h3 style="color: #667eea;">Example 1: Checking Node Status</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Get node status
+kubectl get nodes
+
+# Output:
+# NAME           STATUS   ROLES           AGE   VERSION
+# node-1         Ready    control-plane   10d   v1.28.0
+# node-2         Ready    worker          10d   v1.28.0
+# node-3         NotReady worker          10d   v1.28.0
+
+# Detailed node information
+kubectl describe node node-3
+
+# Output shows:
+# Conditions:
+#   Type             Status  LastHeartbeatTime                 Reason
+#   ----             ------  -----------------                 ------
+#   MemoryPressure   False   Mon, 18 Feb 2024 10:30:00 +0000   KubeletHasSufficientMemory
+#   DiskPressure     False   Mon, 18 Feb 2024 10:30:00 +0000   KubeletHasNoDiskPressure
+#   PIDPressure      False   Mon, 18 Feb 2024 10:30:00 +0000   KubeletHasSufficientPID
+#   Ready            False   Mon, 18 Feb 2024 10:30:00 +0000   KubeletNotReady
+#
+# Taints:
+#   node.kubernetes.io/not-ready:NoExecute</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Example 2: Tolerating Node Taints</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <p>Allow pods to run on nodes with specific conditions:</p>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: critical-app
+spec:
+  containers:
+  - name: app
+    image: nginx
+  tolerations:
+  # Tolerate NotReady for 5 minutes
+  - key: "node.kubernetes.io/not-ready"
+    operator: "Exists"
+    effect: "NoExecute"
+    tolerationSeconds: 300
+  
+  # Tolerate Unreachable for 5 minutes
+  - key: "node.kubernetes.io/unreachable"
+    operator: "Exists"
+    effect: "NoExecute"
+    tolerationSeconds: 300
+  
+  # Tolerate memory pressure
+  - key: "node.kubernetes.io/memory-pressure"
+    operator: "Exists"
+    effect: "NoSchedule"</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Example 3: Manual Node Maintenance</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Mark node as unschedulable (cordon)
+kubectl cordon node-2
+
+# Drain node (evict all pods)
+kubectl drain node-2 --ignore-daemonsets --delete-emptydir-data
+
+# Perform maintenance...
+
+# Mark node as schedulable again (uncordon)
+kubectl uncordon node-2
+
+# Verify node is ready
+kubectl get node node-2</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Example 4: Custom Node Taints</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Add custom taint for GPU nodes
+kubectl taint nodes node-gpu-1 gpu=true:NoSchedule
+
+# Pod that requires GPU
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-workload
+spec:
+  containers:
+  - name: cuda-app
+    image: nvidia/cuda:11.0-base
+  tolerations:
+  - key: "gpu"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+  nodeSelector:
+    gpu: "true"
+
+# Remove taint
+kubectl taint nodes node-gpu-1 gpu=true:NoSchedule-</code></pre>
+            </div>
+
+            <h2 id="custom-controller">6. Building Custom Node Controllers 🛠️</h2>
+            
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h3 style="color: #90cdf4;">Simple Node Watcher (Go)</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+    
+    corev1 "k8s.io/api/core/v1"
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/client-go/kubernetes"
+    "k8s.io/client-go/rest"
+)
+
+func main() {
+    // Create in-cluster config
+    config, err := rest.InClusterConfig()
+    if err != nil {
+        panic(err)
+    }
+    
+    // Create clientset
+    clientset, err := kubernetes.NewForConfig(config)
+    if err != nil {
+        panic(err)
+    }
+    
+    // Watch nodes
+    for {
+        nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+        if err != nil {
+            fmt.Printf("Error listing nodes: %v\n", err)
+            continue
+        }
+        
+        for _, node := range nodes.Items {
+            checkNodeHealth(node)
+        }
+        
+        time.Sleep(30 * time.Second)
+    }
+}
+
+func checkNodeHealth(node corev1.Node) {
+    for _, condition := range node.Status.Conditions {
+        if condition.Type == corev1.NodeReady {
+            if condition.Status != corev1.ConditionTrue {
+                fmt.Printf("⚠️  Node %s is NOT READY: %s\n", 
+                    node.Name, condition.Reason)
+                // Take action: send alert, update external system, etc.
+            } else {
+                fmt.Printf("✅ Node %s is READY\n", node.Name)
+            }
+        }
+        
+        // Check for pressure conditions
+        if condition.Type == corev1.NodeMemoryPressure && 
+           condition.Status == corev1.ConditionTrue {
+            fmt.Printf("⚠️  Node %s has MEMORY PRESSURE\n", node.Name)
+        }
+        
+        if condition.Type == corev1.NodeDiskPressure && 
+           condition.Status == corev1.ConditionTrue {
+            fmt.Printf("⚠️  Node %s has DISK PRESSURE\n", node.Name)
+        }
+    }
+}</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Deployment for Custom Controller</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-watcher
+  namespace: kube-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-watcher
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-watcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-watcher
+subjects:
+- kind: ServiceAccount
+  name: node-watcher
+  namespace: kube-system
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-watcher
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-watcher
+  template:
+    metadata:
+      labels:
+        app: node-watcher
+    spec:
+      serviceAccountName: node-watcher
+      containers:
+      - name: watcher
+        image: your-registry/node-watcher:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi</code></pre>
+            </div>
+
+            <h2 id="troubleshooting">7. Troubleshooting 🔧</h2>
+            
+            <h3 style="color: #667eea;">Common Issues</h3>
+            <div style="background: #742a2a; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h4 style="color: #fca5a5;">Issue 1: Node Stuck in NotReady</h4>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check kubelet status
+ssh node-3
+systemctl status kubelet
+
+# Check kubelet logs
+journalctl -u kubelet -f
+
+# Common causes:
+# - Kubelet not running
+# - Network issues
+# - Certificate problems
+# - Resource exhaustion
+
+# Restart kubelet
+systemctl restart kubelet</code></pre>
+
+                <h4 style="color: #fca5a5; margin-top: 20px;">Issue 2: Pods Not Evicting</h4>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check pod tolerations
+kubectl get pod <pod-name> -o yaml | grep -A 10 tolerations
+
+# Check eviction timeout
+kubectl get pod <pod-name> -o yaml | grep deletionTimestamp
+
+# Force delete if stuck
+kubectl delete pod <pod-name> --force --grace-period=0</code></pre>
+
+                <h4 style="color: #fca5a5; margin-top: 20px;">Issue 3: Frequent Node Flapping</h4>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Increase grace period in controller manager
+--node-monitor-grace-period=60s  # Default: 40s
+
+# Check for network issues
+ping <node-ip>
+traceroute <node-ip>
+
+# Check kubelet heartbeat
+kubectl get --raw /api/v1/nodes/<node-name>/proxy/healthz</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Monitoring & Alerts</h3>
+            <div style="background: #2d3748; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <h4 style="color: #90cdf4;">Prometheus Alerts</h4>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>groups:
+- name: node-health
+  rules:
+  - alert: NodeNotReady
+    expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Node {{ $labels.node }} is not ready"
+      description: "Node has been NotReady for more than 5 minutes"
+  
+  - alert: NodeMemoryPressure
+    expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Node {{ $labels.node }} has memory pressure"
+  
+  - alert: NodeDiskPressure
+    expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Node {{ $labels.node }} has disk pressure"</code></pre>
+            </div>
+
+            <h2>🎯 Best Practices</h2>
+            
+            <div style="background: #1c4532; padding: 20px; border-radius: 8px; margin: 20px 0; color: #e2e8f0;">
+                <ol style="line-height: 2;">
+                    <li>✅ <strong>Monitor Node Health:</strong> Set up alerts for NotReady nodes</li>
+                    <li>✅ <strong>Use Tolerations Wisely:</strong> Only for critical workloads</li>
+                    <li>✅ <strong>Regular Maintenance:</strong> Schedule node updates during low traffic</li>
+                    <li>✅ <strong>Resource Limits:</strong> Prevent resource exhaustion</li>
+                    <li>✅ <strong>Pod Disruption Budgets:</strong> Ensure availability during evictions</li>
+                    <li>✅ <strong>Test Failover:</strong> Regularly test node failure scenarios</li>
+                    <li>✅ <strong>Document Procedures:</strong> Have runbooks for common issues</li>
+                    <li>✅ <strong>Automate Recovery:</strong> Use node auto-repair where possible</li>
+                </ol>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white; margin: 30px 0; text-align: center;">
+                <h3 style="color: white; margin: 0 0 10px 0;">🎓 Key Takeaway</h3>
+                <p style="margin: 0;">Understanding Node Readiness Controller is crucial for maintaining cluster stability. Monitor node health, use tolerations appropriately, and automate recovery!</p>
+            </div>
+
+            <hr style="margin: 30px 0;">
+            <p><em>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank">GitHub</a>!</em></p>
+        `,
+        date: "2026-02-18",
+        readTime: "14 min read",
+        tags: ["Kubernetes", "Node Management", "Controllers", "Cluster Operations", "DevOps"],
+        icon: "🎯",
+        author: "Saransh Jain"
+    },
+    {
         id: 13,
         title: "Self-Service Infrastructure Using Kubernetes: Complete Guide",
         excerpt: "Build a self-service platform on Kubernetes enabling developers to provision resources on-demand. Learn about namespaces, RBAC, resource quotas, Crossplane, and internal developer platforms.",
