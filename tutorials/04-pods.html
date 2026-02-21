@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pods - The Building Blocks of Kubernetes | Complete Guide | K8s Tutorial #4</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">📦</div>
+                <h1 class="post-title">Pods — The Building Blocks of Kubernetes</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #4 of 20</span>
+                    <span><i class="fas fa-signal"></i> Beginner</span>
+                    <span><i class="far fa-clock"></i> 35 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>What is a Pod and why not just containers</li>
+                    <li>Pod lifecycle and all possible states</li>
+                    <li>Single-container vs multi-container pods</li>
+                    <li>Pod networking and communication</li>
+                    <li>YAML structure and all fields explained</li>
+                    <li>Init containers and sidecar patterns</li>
+                    <li>Pod resource management</li>
+                    <li>Pod security contexts</li>
+                    <li>Pod scheduling and affinity</li>
+                    <li>Troubleshooting pods</li>
+                </ul>
+
+                <h2>📦 What is a Pod?</h2>
+                
+                <p>A <strong>Pod</strong> is the smallest deployable unit in Kubernetes. It's a wrapper around one or more containers that share storage, network, and specifications for how to run the containers.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of a Pod as a "logical host" - just like you might run multiple processes on a single machine, you can run multiple containers in a single Pod. These containers share the same network namespace (IP address and ports) and can share storage volumes.</p>
+                </div>
+
+                <h3 style="color: #667eea;">Why Pods, Not Just Containers?</h3>
+
+                <p>You might wonder: "Why not just deploy containers directly?" Here's why Kubernetes uses Pods:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">1. Co-location of Tightly Coupled Containers</h4>
+                    <p>Some applications need helper containers (sidecars) that must run on the same machine:</p>
+                    <ul>
+                        <li><strong>Log shippers:</strong> Collect logs from main container</li>
+                        <li><strong>Proxies:</strong> Handle network traffic</li>
+                        <li><strong>Adapters:</strong> Transform data formats</li>
+                        <li><strong>Monitoring agents:</strong> Collect metrics</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">2. Shared Resources</h4>
+                    <p>Containers in a Pod share:</p>
+                    <ul>
+                        <li><strong>Network namespace:</strong> Same IP address, can communicate via localhost</li>
+                        <li><strong>IPC namespace:</strong> Can use System V IPC or POSIX message queues</li>
+                        <li><strong>Storage volumes:</strong> Can mount and share the same volumes</li>
+                        <li><strong>Process namespace (optional):</strong> Can see each other's processes</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">3. Atomic Scheduling Unit</h4>
+                    <p>Kubernetes schedules Pods as a unit. All containers in a Pod:</p>
+                    <ul>
+                        <li>Run on the same node</li>
+                        <li>Start and stop together</li>
+                        <li>Share the same lifecycle</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Pod vs Container: Visual Comparison</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.9rem; line-height: 1.5;"><code>┌─────────────────────────────────────────────────────────────┐
+│                         POD                                  │
+│  IP: 10.244.1.5                                             │
+│                                                              │
+│  ┌──────────────────────┐    ┌──────────────────────┐      │
+│  │  Container 1         │    │  Container 2         │      │
+│  │  (nginx)             │    │  (log-shipper)       │      │
+│  │                      │    │                      │      │
+│  │  Port: 80            │    │  Port: 9000          │      │
+│  │                      │    │                      │      │
+│  │  Can talk to         │◄──►│  Can talk via        │      │
+│  │  Container 2 via     │    │  localhost           │      │
+│  │  localhost:9000      │    │                      │      │
+│  └──────────────────────┘    └──────────────────────┘      │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │           Shared Volumes                            │    │
+│  │  /var/log  (both containers can read/write)        │    │
+│  └────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+
+Compare to running containers separately:
+
+┌──────────────────────┐         ┌──────────────────────┐
+│  Container 1         │         │  Container 2         │
+│  IP: 10.244.1.5      │         │  IP: 10.244.1.6      │
+│  (nginx)             │         │  (log-shipper)       │
+│                      │         │                      │
+│  Must use network    │◄───────►│  Must use network    │
+│  to communicate      │         │  to communicate      │
+│  (slower, complex)   │         │  (slower, complex)   │
+└──────────────────────┘         └──────────────────────┘
+   Different nodes possible         Different nodes possible
+   No shared volumes                No shared volumes</code></pre>
+                </div>
+
+                <h2>🔄 Pod Lifecycle</h2>
+
+                <p>Understanding the Pod lifecycle is crucial for debugging and managing applications. A Pod goes through several phases from creation to termination.</p>
+
+                <h3 style="color: #667eea;">Pod Phases</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Phase</th>
+                                <th style="padding: 15px; text-align: left;">Description</th>
+                                <th style="padding: 15px; text-align: left;">What's Happening</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Pending</strong></td>
+                                <td style="padding: 15px;">Pod accepted but not running yet</td>
+                                <td style="padding: 15px;">
+                                    • Scheduler finding a node<br>
+                                    • Pulling container images<br>
+                                    • Waiting for resources
+                                </td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Running</strong></td>
+                                <td style="padding: 15px;">Pod bound to node, containers created</td>
+                                <td style="padding: 15px;">
+                                    • At least one container running<br>
+                                    • Or starting/restarting
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Succeeded</strong></td>
+                                <td style="padding: 15px;">All containers terminated successfully</td>
+                                <td style="padding: 15px;">
+                                    • Exit code 0<br>
+                                    • Won't be restarted
+                                </td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Failed</strong></td>
+                                <td style="padding: 15px;">All containers terminated, at least one failed</td>
+                                <td style="padding: 15px;">
+                                    • Non-zero exit code<br>
+                                    • Or terminated by system
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Unknown</strong></td>
+                                <td style="padding: 15px;">Pod state cannot be determined</td>
+                                <td style="padding: 15px;">
+                                    • Node communication lost<br>
+                                    • Network issues
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+                <h3 style="color: #667eea;">Pod Lifecycle Diagram</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem; line-height: 1.4;"><code>Pod Creation Flow:
+
+1. kubectl apply -f pod.yaml
+         │
+         ▼
+2. API Server validates and stores in etcd
+         │
+         ▼
+3. Scheduler assigns Pod to Node
+         │
+         ▼
+4. Kubelet on Node pulls images
+         │
+         ▼
+5. Container Runtime creates containers
+         │
+         ▼
+6. Pod Status: Pending → Running
+         │
+         ├──► Container runs successfully
+         │    │
+         │    ▼
+         │    Status: Succeeded (for Jobs)
+         │    or
+         │    Continues Running (for long-running apps)
+         │
+         └──► Container fails
+              │
+              ▼
+              Restart Policy determines next action:
+              • Always: Restart container
+              • OnFailure: Restart only if failed
+              • Never: Don't restart</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Container States</h3>
+
+                <p>Within a Pod, each container has its own state:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">1. Waiting</h4>
+                    <p>Container is not running yet. Reasons:</p>
+                    <ul>
+                        <li><strong>ContainerCreating:</strong> Being created</li>
+                        <li><strong>PodInitializing:</strong> Init containers running</li>
+                        <li><strong>ImagePullBackOff:</strong> Failed to pull image</li>
+                        <li><strong>CrashLoopBackOff:</strong> Container keeps crashing</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">2. Running</h4>
+                    <p>Container is executing. Check with:</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pod <pod-name> -o jsonpath='{.status.containerStatuses[0].state}'</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">3. Terminated</h4>
+                    <p>Container finished execution or was killed. Includes:</p>
+                    <ul>
+                        <li><strong>Exit code:</strong> 0 (success) or non-zero (failure)</li>
+                        <li><strong>Reason:</strong> Completed, Error, OOMKilled, etc.</li>
+                        <li><strong>Start/Finish times:</strong> When it ran</li>
+                    </ul>
+                </div>
+
+                <h2>📝 Pod YAML Structure - Complete Reference</h2>
+
+                <p>Let's break down every field in a Pod specification. This is your complete reference guide.</p>
+
+                <h3 style="color: #667eea;">Basic Pod Structure</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1                    # API version (always v1 for Pods)
+kind: Pod                         # Resource type
+metadata:                         # Metadata about the Pod
+  name: my-pod                    # Pod name (must be unique in namespace)
+  namespace: default              # Namespace (default if not specified)
+  labels:                         # Key-value pairs for organization
+    app: myapp
+    tier: frontend
+    version: v1.0
+  annotations:                    # Non-identifying metadata
+    description: "My application pod"
+    owner: "team-a"
+spec:                            # Pod specification
+  containers:                    # List of containers
+  - name: main-container         # Container name
+    image: nginx:1.21            # Container image
+    ports:                       # Ports to expose
+    - containerPort: 80
+      name: http
+      protocol: TCP</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Complete Pod Specification with All Fields</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: comprehensive-pod
+  namespace: production
+  labels:
+    app: myapp
+    environment: prod
+    version: "1.0"
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  # ============ CONTAINER SPECIFICATIONS ============
+  containers:
+  - name: main-app
+    image: myapp:1.0
+    imagePullPolicy: IfNotPresent  # Always, Never, or IfNotPresent
+    
+    # Command and arguments
+    command: ["/bin/sh"]           # Overrides ENTRYPOINT
+    args: ["-c", "while true; do echo hello; sleep 10; done"]  # Overrides CMD
+    
+    # Working directory
+    workingDir: /app
+    
+    # Ports
+    ports:
+    - name: http
+      containerPort: 8080
+      protocol: TCP
+    - name: metrics
+      containerPort: 9090
+      protocol: TCP
+    
+    # Environment variables
+    env:
+    - name: DATABASE_HOST
+      value: "postgres.default.svc.cluster.local"
+    - name: DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-secret
+          key: password
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    
+    # Environment from ConfigMap/Secret
+    envFrom:
+    - configMapRef:
+        name: app-config
+    - secretRef:
+        name: app-secrets
+    
+    # Resource requests and limits
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "250m"
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+    
+    # Volume mounts
+    volumeMounts:
+    - name: data
+      mountPath: /data
+    - name: config
+      mountPath: /etc/config
+      readOnly: true
+    
+    # Liveness probe
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        httpHeaders:
+        - name: Custom-Header
+          value: Awesome
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 3
+    
+    # Readiness probe
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    
+    # Startup probe (for slow-starting containers)
+    startupProbe:
+      httpGet:
+        path: /startup
+        port: 8080
+      failureThreshold: 30
+      periodSeconds: 10
+    
+    # Lifecycle hooks
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "echo Hello from postStart > /usr/share/message"]
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "nginx -s quit; while killall -0 nginx; do sleep 1; done"]
+    
+    # Security context (container level)
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        add: ["NET_ADMIN", "SYS_TIME"]
+        drop: ["ALL"]
+  
+  # ============ INIT CONTAINERS ============
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+  
+  # ============ VOLUMES ============
+  volumes:
+  - name: data
+    emptyDir: {}
+  - name: config
+    configMap:
+      name: app-config
+  - name: secret-volume
+    secret:
+      secretName: app-secret
+  - name: host-volume
+    hostPath:
+      path: /data
+      type: Directory
+  
+  # ============ POD-LEVEL SETTINGS ============
+  
+  # Restart policy
+  restartPolicy: Always  # Always, OnFailure, or Never
+  
+  # Termination grace period
+  terminationGracePeriodSeconds: 30
+  
+  # DNS policy
+  dnsPolicy: ClusterFirst  # ClusterFirst, Default, ClusterFirstWithHostNet, None
+  
+  # DNS config
+  dnsConfig:
+    nameservers:
+    - 1.1.1.1
+    searches:
+    - ns1.svc.cluster.local
+    options:
+    - name: ndots
+      value: "2"
+  
+  # Host network
+  hostNetwork: false
+  hostPID: false
+  hostIPC: false
+  
+  # Service account
+  serviceAccountName: my-service-account
+  automountServiceAccountToken: true
+  
+  # Node selection
+  nodeSelector:
+    disktype: ssd
+    region: us-west
+  
+  # Node name (manual scheduling)
+  nodeName: node-1
+  
+  # Affinity rules
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/e2e-az-name
+            operator: In
+            values:
+            - e2e-az1
+            - e2e-az2
+    podAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - cache
+          topologyKey: kubernetes.io/hostname
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - myapp
+        topologyKey: kubernetes.io/hostname
+  
+  # Tolerations
+  tolerations:
+  - key: "key1"
+    operator: "Equal"
+    value: "value1"
+    effect: "NoSchedule"
+  - key: "key2"
+    operator: "Exists"
+    effect: "NoExecute"
+    tolerationSeconds: 3600
+  
+  # Priority
+  priorityClassName: high-priority
+  priority: 1000
+  
+  # Security context (pod level)
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 2000
+    fsGroupChangePolicy: "OnRootMismatch"
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Image pull secrets
+  imagePullSecrets:
+  - name: regcred
+  
+  # Hostname and subdomain
+  hostname: my-pod
+  subdomain: my-subdomain
+  
+  # Share process namespace
+  shareProcessNamespace: true
+  
+  # Overhead (for VM-based runtimes)
+  overhead:
+    memory: "50Mi"
+    cpu: "100m"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Field Explanations</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">imagePullPolicy</h4>
+                    <ul>
+                        <li><strong>Always:</strong> Pull image every time (use for :latest)</li>
+                        <li><strong>IfNotPresent:</strong> Pull only if not cached (default for tagged images)</li>
+                        <li><strong>Never:</strong> Never pull, must exist locally</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">restartPolicy</h4>
+                    <ul>
+                        <li><strong>Always:</strong> Always restart (default, for Deployments)</li>
+                        <li><strong>OnFailure:</strong> Restart only on failure (for Jobs)</li>
+                        <li><strong>Never:</strong> Never restart (for one-time tasks)</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">dnsPolicy</h4>
+                    <ul>
+                        <li><strong>ClusterFirst:</strong> Use cluster DNS (default)</li>
+                        <li><strong>Default:</strong> Use node's DNS</li>
+                        <li><strong>ClusterFirstWithHostNet:</strong> For pods using hostNetwork</li>
+                        <li><strong>None:</strong> Use dnsConfig only</li>
+                    </ul>
+                </div>
+
+                <h2>🔧 Hands-On: Creating Your First Pod</h2>
+
+                <h3 style="color: #667eea;">Example 1: Simple Single-Container Pod</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Step 1: Create the YAML file</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># simple-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.21
+    ports:
+    - containerPort: 80</code></pre>
+
+                    <p><strong>Step 2: Apply the configuration</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl apply -f simple-pod.yaml
+
+# Output:
+# pod/nginx-pod created</code></pre>
+
+                    <p><strong>Step 3: Verify the Pod</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods
+
+# Output:
+# NAME        READY   STATUS    RESTARTS   AGE
+# nginx-pod   1/1     Running   0          10s
+
+# Get detailed information
+kubectl describe pod nginx-pod
+
+# Get Pod IP
+kubectl get pod nginx-pod -o wide
+
+# Output:
+# NAME        READY   STATUS    RESTARTS   AGE   IP           NODE
+# nginx-pod   1/1     Running   0          1m    10.244.1.5   node-1</code></pre>
+
+                    <p><strong>Step 4: Test the Pod</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Access the pod using port-forward
+kubectl port-forward nginx-pod 8080:80
+
+# In another terminal:
+curl localhost:8080
+
+# Or exec into the pod
+kubectl exec -it nginx-pod -- /bin/bash
+
+# Inside the pod:
+root@nginx-pod:/# curl localhost
+root@nginx-pod:/# exit</code></pre>
+
+                    <p><strong>Step 5: View logs</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># View logs
+kubectl logs nginx-pod
+
+# Follow logs (like tail -f)
+kubectl logs -f nginx-pod
+
+# View logs from previous container instance (if crashed)
+kubectl logs nginx-pod --previous</code></pre>
+
+                    <p><strong>Step 6: Clean up</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl delete pod nginx-pod
+
+# Or delete using the file
+kubectl delete -f simple-pod.yaml</code></pre>
+                </div>
+
+
+                <h3 style="color: #667eea;">Example 2: Pod with Environment Variables</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pod-with-env.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-pod
+spec:
+  containers:
+  - name: env-container
+    image: busybox
+    command: ['sh', '-c', 'echo "DB_HOST: $DATABASE_HOST" && echo "POD_NAME: $POD_NAME" && sleep 3600']
+    env:
+    # Static environment variable
+    - name: DATABASE_HOST
+      value: "postgres.default.svc.cluster.local"
+    # Environment variable from Pod metadata
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    # Environment variable from resource limits
+    - name: MEMORY_LIMIT
+      valueFrom:
+        resourceFieldRef:
+          containerName: env-container
+          resource: limits.memory</code></pre>
+
+                    <p><strong>Apply and check:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl apply -f pod-with-env.yaml
+kubectl logs env-pod
+
+# Output:
+# DB_HOST: postgres.default.svc.cluster.local
+# POD_NAME: env-pod
+
+# Check all environment variables
+kubectl exec env-pod -- env</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 3: Pod with Resource Limits</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pod-with-resources.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-pod
+spec:
+  containers:
+  - name: app
+    image: nginx:1.21
+    resources:
+      requests:
+        memory: "64Mi"    # Minimum memory needed
+        cpu: "250m"       # 0.25 CPU cores
+      limits:
+        memory: "128Mi"   # Maximum memory allowed
+        cpu: "500m"       # 0.5 CPU cores</code></pre>
+
+                    <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>💡 Understanding CPU and Memory Units:</strong>
+                        <ul style="margin-top: 10px;">
+                            <li><strong>CPU:</strong> 1 = 1 CPU core, 100m = 0.1 core, 1000m = 1 core</li>
+                            <li><strong>Memory:</strong> Mi = Mebibytes, Gi = Gibibytes (1024-based)</li>
+                            <li><strong>Requests:</strong> Guaranteed resources (used for scheduling)</li>
+                            <li><strong>Limits:</strong> Maximum resources (container killed if exceeded)</li>
+                        </ul>
+                    </div>
+
+                    <p><strong>Check resource usage:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl apply -f pod-with-resources.yaml
+
+# View resource requests/limits
+kubectl describe pod resource-pod | grep -A 5 "Requests:"
+
+# View actual resource usage (requires metrics-server)
+kubectl top pod resource-pod</code></pre>
+                </div>
+
+                <h2>🔗 Multi-Container Pods</h2>
+
+                <p>Multi-container pods are powerful for implementing sidecar, adapter, and ambassador patterns.</p>
+
+                <h3 style="color: #667eea;">Pattern 1: Sidecar Pattern</h3>
+
+                <p>A sidecar container extends and enhances the main container's functionality.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Use Case: Log Shipping</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># sidecar-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sidecar-pod
+spec:
+  # Shared volume for logs
+  volumes:
+  - name: shared-logs
+    emptyDir: {}
+  
+  containers:
+  # Main application container
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'while true; do echo "$(date) - Application log" >> /var/log/app.log; sleep 5; done']
+    volumeMounts:
+    - name: shared-logs
+      mountPath: /var/log
+  
+  # Sidecar container (log shipper)
+  - name: log-shipper
+    image: busybox
+    command: ['sh', '-c', 'tail -f /var/log/app.log']
+    volumeMounts:
+    - name: shared-logs
+      mountPath: /var/log
+      readOnly: true</code></pre>
+
+                    <p><strong>Test the sidecar:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl apply -f sidecar-pod.yaml
+
+# View logs from main container
+kubectl logs sidecar-pod -c app
+
+# View logs from sidecar
+kubectl logs sidecar-pod -c log-shipper
+
+# Both should show the same logs!</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 2: Adapter Pattern</h3>
+
+                <p>An adapter container transforms the main container's output to a standard format.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Use Case: Metrics Adapter</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># adapter-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: adapter-pod
+spec:
+  volumes:
+  - name: shared-data
+    emptyDir: {}
+  
+  containers:
+  # Main app writes metrics in custom format
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'while true; do echo "custom_metric:$RANDOM" > /data/metrics.txt; sleep 10; done']
+    volumeMounts:
+    - name: shared-data
+      mountPath: /data
+  
+  # Adapter converts to Prometheus format
+  - name: adapter
+    image: busybox
+    command: ['sh', '-c', 'while true; do cat /data/metrics.txt | sed "s/custom_metric:/prometheus_metric /"; sleep 10; done']
+    volumeMounts:
+    - name: shared-data
+      mountPath: /data
+      readOnly: true</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 3: Ambassador Pattern</h3>
+
+                <p>An ambassador container proxies network connections for the main container.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Use Case: Database Proxy</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ambassador-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ambassador-pod
+spec:
+  containers:
+  # Main application
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'while true; do echo "Connecting to localhost:3306"; sleep 10; done']
+  
+  # Ambassador proxy (e.g., Cloud SQL Proxy)
+  - name: cloudsql-proxy
+    image: gcr.io/cloudsql-docker/gce-proxy:latest
+    command:
+    - "/cloud_sql_proxy"
+    - "-instances=project:region:instance=tcp:3306"
+    # App connects to localhost:3306
+    # Proxy forwards to Cloud SQL</code></pre>
+
+                    <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>💡 Why Ambassador Pattern?</strong>
+                        <ul style="margin-top: 10px;">
+                            <li>Main app doesn't need to know about external service details</li>
+                            <li>Proxy handles authentication, encryption, connection pooling</li>
+                            <li>Easy to swap proxy implementations</li>
+                            <li>Simplifies application code</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h2>🚀 Init Containers</h2>
+
+                <p>Init containers run before app containers and must complete successfully before the app starts.</p>
+
+                <h3 style="color: #667eea;">When to Use Init Containers</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul>
+                        <li><strong>Wait for dependencies:</strong> Wait for database, cache, or other services</li>
+                        <li><strong>Setup tasks:</strong> Clone git repos, download files, setup permissions</li>
+                        <li><strong>Security:</strong> Run privileged operations before dropping privileges</li>
+                        <li><strong>Configuration:</strong> Generate config files, fetch secrets</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Example: Init Container Waiting for Service</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># init-container-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  # Init containers run in order, one at a time
+  initContainers:
+  # Wait for database service
+  - name: wait-for-db
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup postgres.default.svc.cluster.local; do echo waiting for postgres; sleep 2; done']
+  
+  # Wait for cache service
+  - name: wait-for-cache
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup redis.default.svc.cluster.local; do echo waiting for redis; sleep 2; done']
+  
+  # Download configuration
+  - name: download-config
+    image: busybox:1.28
+    command: ['sh', '-c', 'wget -O /config/app.conf http://config-server/app.conf']
+    volumeMounts:
+    - name: config
+      mountPath: /config
+  
+  # Main application container (starts only after all init containers succeed)
+  containers:
+  - name: app
+    image: myapp:1.0
+    volumeMounts:
+    - name: config
+      mountPath: /etc/config
+  
+  volumes:
+  - name: config
+    emptyDir: {}</code></pre>
+
+                    <p><strong>Watch init containers in action:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl apply -f init-container-pod.yaml
+
+# Watch the pod status
+kubectl get pod init-demo -w
+
+# Output shows init containers running:
+# NAME        READY   STATUS     RESTARTS   AGE
+# init-demo   0/1     Init:0/3   0          5s
+# init-demo   0/1     Init:1/3   0          10s
+# init-demo   0/1     Init:2/3   0          15s
+# init-demo   0/1     PodInitializing   0   20s
+# init-demo   1/1     Running    0          25s
+
+# View init container logs
+kubectl logs init-demo -c wait-for-db
+kubectl logs init-demo -c wait-for-cache
+kubectl logs init-demo -c download-config</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Init Container vs Regular Container</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Feature</th>
+                                <th style="padding: 15px; text-align: left;">Init Container</th>
+                                <th style="padding: 15px; text-align: left;">Regular Container</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Execution</strong></td>
+                                <td style="padding: 15px;">Runs once, sequentially</td>
+                                <td style="padding: 15px;">Runs continuously, in parallel</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Restart</strong></td>
+                                <td style="padding: 15px;">Restarts until success</td>
+                                <td style="padding: 15px;">Restarts per policy</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Probes</strong></td>
+                                <td style="padding: 15px;">No probes supported</td>
+                                <td style="padding: 15px;">Supports all probes</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Resources</strong></td>
+                                <td style="padding: 15px;">Can use different images/tools</td>
+                                <td style="padding: 15px;">Share pod resources</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Purpose</strong></td>
+                                <td style="padding: 15px;">Setup, initialization</td>
+                                <td style="padding: 15px;">Main application logic</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🌐 Pod Networking</h2>
+
+                <p>Understanding Pod networking is crucial for troubleshooting and designing applications.</p>
+
+                <h3 style="color: #667eea;">Pod Network Model</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Kubernetes Network Requirements:</h4>
+                    <ol style="line-height: 2;">
+                        <li>Every Pod gets its own IP address</li>
+                        <li>Pods can communicate with all other Pods without NAT</li>
+                        <li>Agents on a node can communicate with all Pods on that node</li>
+                        <li>Containers within a Pod share the network namespace</li>
+                    </ol>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h4 style="color: #90cdf4;">Pod Network Diagram:</h4>
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────┐
+│                         Node 1                               │
+│                                                              │
+│  ┌──────────────────┐         ┌──────────────────┐         │
+│  │  Pod A           │         │  Pod B           │         │
+│  │  IP: 10.244.1.5  │◄───────►│  IP: 10.244.1.6  │         │
+│  │                  │         │                  │         │
+│  │  Container 1:80  │         │  Container 1:80  │         │
+│  │  Container 2:90  │         │  Container 2:90  │         │
+│  └──────────────────┘         └──────────────────┘         │
+│           │                            │                     │
+│           └────────────┬───────────────┘                     │
+│                        │                                     │
+│                   ┌────▼────┐                               │
+│                   │  CNI    │                               │
+│                   │ Plugin  │                               │
+│                   └────┬────┘                               │
+└────────────────────────┼──────────────────────────────────┘
+                         │
+                    ┌────▼────┐
+                    │ Network │
+                    │ Fabric  │
+                    └────┬────┘
+                         │
+┌────────────────────────┼──────────────────────────────────┐
+│                   ┌────▼────┐                              │
+│                   │  CNI    │                              │
+│                   │ Plugin  │                              │
+│                   └────┬────┘                              │
+│                        │                                    │
+│           ┌────────────┴───────────────┐                   │
+│           │                            │                   │
+│  ┌────────▼────────┐         ┌────────▼────────┐         │
+│  │  Pod C          │         │  Pod D          │         │
+│  │  IP: 10.244.2.5 │◄───────►│  IP: 10.244.2.6 │         │
+│  └─────────────────┘         └─────────────────┘         │
+│                         Node 2                             │
+└────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+
+                <h3 style="color: #667eea;">Testing Pod Networking</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Create two pods to test networking:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create first pod
+kubectl run pod1 --image=nginx --port=80
+
+# Create second pod
+kubectl run pod2 --image=busybox --command -- sleep 3600
+
+# Get pod IPs
+kubectl get pods -o wide
+
+# Output:
+# NAME   READY   STATUS    IP            NODE
+# pod1   1/1     Running   10.244.1.5    node-1
+# pod2   1/1     Running   10.244.1.6    node-1
+
+# Test connectivity from pod2 to pod1
+kubectl exec pod2 -- wget -qO- 10.244.1.5
+
+# Test DNS (if service exists)
+kubectl exec pod2 -- nslookup kubernetes.default
+
+# Test connectivity to external internet
+kubectl exec pod2 -- wget -qO- https://www.google.com</code></pre>
+                </div>
+
+                <h2>🔒 Pod Security</h2>
+
+                <p>Security is critical. Let's explore Pod security contexts and best practices.</p>
+
+                <h3 style="color: #667eea;">Security Context</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># secure-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secure-pod
+spec:
+  # Pod-level security context
+  securityContext:
+    runAsUser: 1000          # Run as non-root user
+    runAsGroup: 3000         # Primary group
+    fsGroup: 2000            # Volume ownership group
+    fsGroupChangePolicy: "OnRootMismatch"
+    seccompProfile:
+      type: RuntimeDefault   # Use default seccomp profile
+  
+  containers:
+  - name: secure-container
+    image: nginx:1.21
+    # Container-level security context (overrides pod-level)
+    securityContext:
+      allowPrivilegeEscalation: false  # Prevent privilege escalation
+      runAsNonRoot: true               # Enforce non-root
+      readOnlyRootFilesystem: true     # Read-only root filesystem
+      capabilities:
+        drop:
+        - ALL                          # Drop all capabilities
+        add:
+        - NET_BIND_SERVICE             # Only add what's needed
+    
+    volumeMounts:
+    - name: cache
+      mountPath: /var/cache/nginx
+    - name: run
+      mountPath: /var/run
+  
+  volumes:
+  - name: cache
+    emptyDir: {}
+  - name: run
+    emptyDir: {}</code></pre>
+
+                    <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>🔒 Security Best Practices:</strong>
+                        <ul style="margin-top: 10px;">
+                            <li>✅ Always run as non-root user</li>
+                            <li>✅ Use read-only root filesystem when possible</li>
+                            <li>✅ Drop all capabilities, add only what's needed</li>
+                            <li>✅ Disable privilege escalation</li>
+                            <li>✅ Use seccomp profiles</li>
+                            <li>✅ Set resource limits</li>
+                            <li>✅ Use Pod Security Standards/Policies</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h2>📊 Pod Resource Management</h2>
+
+                <h3 style="color: #667eea;">Quality of Service (QoS) Classes</h3>
+
+                <p>Kubernetes assigns QoS classes based on resource requests and limits:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">1. Guaranteed (Highest Priority)</h4>
+                    <p>Every container has memory/CPU request = limit</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>resources:
+  requests:
+    memory: "200Mi"
+    cpu: "500m"
+  limits:
+    memory: "200Mi"  # Same as request
+    cpu: "500m"      # Same as request</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">2. Burstable (Medium Priority)</h4>
+                    <p>At least one container has request < limit</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>resources:
+  requests:
+    memory: "100Mi"
+    cpu: "250m"
+  limits:
+    memory: "200Mi"  # Higher than request
+    cpu: "500m"      # Higher than request</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">3. BestEffort (Lowest Priority)</h4>
+                    <p>No requests or limits set</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># No resources section at all</code></pre>
+
+                    <div style="background: #744210; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>⚠️ Eviction Order:</strong>
+                        <p style="margin-top: 10px;">When node runs out of resources, Kubernetes evicts pods in this order:</p>
+                        <ol>
+                            <li>BestEffort pods (evicted first)</li>
+                            <li>Burstable pods exceeding requests</li>
+                            <li>Burstable pods within requests</li>
+                            <li>Guaranteed pods (evicted last)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h2>🎯 Pod Scheduling</h2>
+
+                <h3 style="color: #667eea;">Node Selector (Simple)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># First, label your nodes
+kubectl label nodes node-1 disktype=ssd
+kubectl label nodes node-1 region=us-west
+
+# Pod with node selector
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-ssd
+spec:
+  nodeSelector:
+    disktype: ssd
+    region: us-west
+  containers:
+  - name: nginx
+    image: nginx</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Node Affinity (Advanced)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: affinity-pod
+spec:
+  affinity:
+    nodeAffinity:
+      # MUST be satisfied
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+          - key: disktype
+            operator: In
+            values:
+            - ssd
+            - nvme
+      
+      # PREFER but not required
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 80
+        preference:
+          matchExpressions:
+          - key: region
+            operator: In
+            values:
+            - us-west
+      - weight: 20
+        preference:
+          matchExpressions:
+          - key: zone
+            operator: In
+            values:
+            - us-west-1a
+  
+  containers:
+  - name: app
+    image: nginx</code></pre>
+
+                    <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>💡 Affinity Operators:</strong>
+                        <ul style="margin-top: 10px;">
+                            <li><strong>In:</strong> Label value in list</li>
+                            <li><strong>NotIn:</strong> Label value not in list</li>
+                            <li><strong>Exists:</strong> Label key exists</li>
+                            <li><strong>DoesNotExist:</strong> Label key doesn't exist</li>
+                            <li><strong>Gt:</strong> Greater than (numeric)</li>
+                            <li><strong>Lt:</strong> Less than (numeric)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 style="color: #667eea;">Pod Anti-Affinity (Spread Pods)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: anti-affinity-pod
+  labels:
+    app: myapp
+spec:
+  affinity:
+    podAntiAffinity:
+      # Don't schedule on same node as other myapp pods
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - myapp
+        topologyKey: kubernetes.io/hostname
+  
+  containers:
+  - name: app
+    image: myapp:1.0</code></pre>
+
+                    <p style="margin-top: 15px;"><strong>Use Case:</strong> Ensure high availability by spreading replicas across different nodes/zones.</p>
+                </div>
+
+                <h2>🐛 Troubleshooting Pods</h2>
+
+                <h3 style="color: #667eea;">Common Pod Issues and Solutions</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 1: ImagePullBackOff</h4>
+                    <p><strong>Symptoms:</strong> Pod stuck in ImagePullBackOff or ErrImagePull</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check events
+kubectl describe pod <pod-name>
+
+# Common causes:
+# 1. Image doesn't exist
+# 2. Wrong image name/tag
+# 3. Private registry without credentials
+# 4. Network issues
+
+# Solutions:
+# Verify image exists
+docker pull nginx:1.21
+
+# Create image pull secret for private registry
+kubectl create secret docker-registry regcred \
+  --docker-server=<registry> \
+  --docker-username=<username> \
+  --docker-password=<password>
+
+# Use secret in pod
+spec:
+  imagePullSecrets:
+  - name: regcred</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 2: CrashLoopBackOff</h4>
+                    <p><strong>Symptoms:</strong> Pod keeps restarting</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check logs
+kubectl logs <pod-name>
+kubectl logs <pod-name> --previous  # Previous instance
+
+# Check events
+kubectl describe pod <pod-name>
+
+# Common causes:
+# 1. Application error/crash
+# 2. Missing dependencies
+# 3. Wrong command/args
+# 4. Resource limits too low
+# 5. Failed liveness probe
+
+# Debug by exec (if container stays up long enough)
+kubectl exec -it <pod-name> -- /bin/sh
+
+# Check resource usage
+kubectl top pod <pod-name></code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 3: Pending State</h4>
+                    <p><strong>Symptoms:</strong> Pod stuck in Pending</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check why pending
+kubectl describe pod <pod-name>
+
+# Common causes:
+# 1. Insufficient resources
+# 2. No nodes match nodeSelector/affinity
+# 3. Volume mount issues
+# 4. Pod has tolerations but nodes are tainted
+
+# Check node resources
+kubectl describe nodes
+
+# Check if nodes are ready
+kubectl get nodes
+
+# Check taints
+kubectl describe node <node-name> | grep Taints</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Debugging Commands Cheat Sheet</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Get pod status
+kubectl get pods
+kubectl get pods -o wide
+kubectl get pods --all-namespaces
+
+# Describe pod (most useful for debugging)
+kubectl describe pod <pod-name>
+
+# View logs
+kubectl logs <pod-name>
+kubectl logs <pod-name> -c <container-name>  # Multi-container
+kubectl logs <pod-name> --previous           # Previous instance
+kubectl logs <pod-name> -f                   # Follow logs
+kubectl logs <pod-name> --tail=50            # Last 50 lines
+
+# Execute commands in pod
+kubectl exec <pod-name> -- <command>
+kubectl exec -it <pod-name> -- /bin/bash
+kubectl exec <pod-name> -c <container> -- <command>  # Multi-container
+
+# Port forwarding
+kubectl port-forward <pod-name> 8080:80
+
+# Copy files
+kubectl cp <pod-name>:/path/to/file ./local-file
+kubectl cp ./local-file <pod-name>:/path/to/file
+
+# Get pod YAML
+kubectl get pod <pod-name> -o yaml
+kubectl get pod <pod-name> -o json
+
+# Get specific fields
+kubectl get pod <pod-name> -o jsonpath='{.status.podIP}'
+kubectl get pod <pod-name> -o jsonpath='{.spec.containers[*].name}'
+
+# Watch pod status
+kubectl get pods -w
+
+# Get events
+kubectl get events --sort-by='.lastTimestamp'
+kubectl get events --field-selector involvedObject.name=<pod-name>
+
+# Resource usage (requires metrics-server)
+kubectl top pod <pod-name>
+kubectl top pod --containers</code></pre>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Pod Design Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>One process per container:</strong> Each container should have a single responsibility</li>
+                        <li>✅ <strong>Use specific image tags:</strong> Avoid :latest in production</li>
+                        <li>✅ <strong>Set resource requests and limits:</strong> Helps scheduler and prevents resource starvation</li>
+                        <li>✅ <strong>Implement health checks:</strong> Use liveness and readiness probes</li>
+                        <li>✅ <strong>Use init containers:</strong> For setup tasks and dependencies</li>
+                        <li>✅ <strong>Run as non-root:</strong> Security best practice</li>
+                        <li>✅ <strong>Use read-only root filesystem:</strong> When possible</li>
+                        <li>✅ <strong>Label everything:</strong> Makes management easier</li>
+                        <li>✅ <strong>Use namespaces:</strong> For logical separation</li>
+                        <li>✅ <strong>Implement graceful shutdown:</strong> Handle SIGTERM properly</li>
+                        <li>✅ <strong>Use ConfigMaps/Secrets:</strong> Don't hardcode configuration</li>
+                        <li>✅ <strong>Log to stdout/stderr:</strong> Let Kubernetes handle log collection</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Pods are the smallest deployable units</strong> in Kubernetes</li>
+                        <li>✅ <strong>Pods can contain multiple containers</strong> that share network and storage</li>
+                        <li>✅ <strong>Pod lifecycle</strong> goes through Pending → Running → Succeeded/Failed</li>
+                        <li>✅ <strong>Init containers</strong> run before app containers for setup tasks</li>
+                        <li>✅ <strong>Multi-container patterns</strong> include sidecar, adapter, and ambassador</li>
+                        <li>✅ <strong>Resource management</strong> affects QoS class and eviction priority</li>
+                        <li>✅ <strong>Security contexts</strong> control permissions and capabilities</li>
+                        <li>✅ <strong>Scheduling</strong> can be controlled with selectors, affinity, and taints/tolerations</li>
+                        <li>✅ <strong>Troubleshooting</strong> uses describe, logs, exec, and events</li>
+                        <li>✅ <strong>Best practices</strong> include health checks, resource limits, and security hardening</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand Pods thoroughly, you're ready to learn about <strong>Services</strong> - how to expose your Pods and enable networking between them. Services provide stable endpoints for your dynamic Pods!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Services?</h3>
+                    <a href="05-services.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #5: Services - Connecting Applications →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

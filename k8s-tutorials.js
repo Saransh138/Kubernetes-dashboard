@@ -66,8 +66,10 @@ const k8sTutorials = [
             'YAML structure explained'
         ],
         handsOn: 'Create pods with single and multiple containers, inspect logs and exec into pods',
-        readTime: '18 min',
-        difficulty: 'beginner'
+        readTime: '35 min',
+        difficulty: 'beginner',
+        url: 'tutorials/04-pods.html',
+        status: 'available'
     },
     {
         id: 5,
