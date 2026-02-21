@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deployments - Managing Application Rollouts | Complete Guide | K8s Tutorial #6</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🚀</div>
+                <h1 class="post-title">Deployments — Managing Application Rollouts</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #6 of 20</span>
+                    <span><i class="fas fa-signal"></i> Beginner to Intermediate</span>
+                    <span><i class="far fa-clock"></i> 45 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Why Deployments are the recommended way to manage applications</li>
+                    <li>Deployments vs ReplicaSets vs Pods - the hierarchy explained</li>
+                    <li>Complete Deployment YAML specification with all fields</li>
+                    <li>Rolling updates - zero-downtime deployments</li>
+                    <li>Rollback strategies and history management</li>
+                    <li>Deployment strategies: RollingUpdate, Recreate, Blue-Green, Canary</li>
+                    <li>Scaling applications (manual and automatic)</li>
+                    <li>Update strategies: maxSurge and maxUnavailable</li>
+                    <li>Pausing and resuming deployments</li>
+                    <li>Deployment status and conditions</li>
+                    <li>Progressive delivery patterns</li>
+                    <li>Troubleshooting failed deployments</li>
+                    <li>Best practices for production deployments</li>
+                </ul>
+
+                <h2>🤔 The Problem: Managing Pod Lifecycle</h2>
+
+                <p>In Tutorial #4, we learned about Pods. But managing pods directly has significant limitations...</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Problems with Managing Pods Directly:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>No self-healing:</strong> Pod dies? It's gone forever</li>
+                        <li><strong>No scaling:</strong> Need 10 replicas? Create 10 pods manually</li>
+                        <li><strong>No updates:</strong> New version? Delete old pods, create new ones (downtime!)</li>
+                        <li><strong>No rollback:</strong> Update failed? Manually recreate old version</li>
+                        <li><strong>No declarative management:</strong> Imperative commands only</li>
+                        <li><strong>No history:</strong> Can't track what changed when</li>
+                    </ul>
+                </div>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Example: Updating Application Manually</h4>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Current state: 3 pods running nginx:1.20
+kubectl get pods
+# nginx-1, nginx-2, nginx-3
+
+# Need to update to nginx:1.21
+# Manual process:
+1. Delete pod nginx-1
+   kubectl delete pod nginx-1
+   # App now has 2/3 capacity (33% down!)
+
+2. Create new pod with nginx:1.21
+   kubectl run nginx-1 --image=nginx:1.21
+   # Wait for it to start...
+
+3. Repeat for nginx-2
+   kubectl delete pod nginx-2
+   # App now has 2/3 capacity again!
+   kubectl run nginx-2 --image=nginx:1.21
+
+4. Repeat for nginx-3
+   kubectl delete pod nginx-3
+   kubectl run nginx-3 --image=nginx:1.21
+
+# Problems:
+# - Downtime during each update
+# - Manual, error-prone process
+# - No automatic rollback if nginx:1.21 is broken
+# - Takes 10+ minutes
+# - What if you have 100 pods?</code></pre>
+                </div>
+
+                <h2>🚀 Enter Deployments</h2>
+
+                <p style="font-size: 1.1rem; line-height: 1.8;">A <strong>Deployment</strong> provides declarative updates for Pods and ReplicaSets. You describe the desired state in a Deployment, and the Deployment Controller changes the actual state to the desired state at a controlled rate.</p>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ What Deployments Provide:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Declarative Updates:</strong> Describe what you want, Kubernetes makes it happen</li>
+                        <li><strong>Rolling Updates:</strong> Zero-downtime deployments</li>
+                        <li><strong>Rollback:</strong> Instant rollback to previous versions</li>
+                        <li><strong>Scaling:</strong> Easy horizontal scaling</li>
+                        <li><strong>Self-Healing:</strong> Automatic pod replacement</li>
+                        <li><strong>Version History:</strong> Track all changes</li>
+                        <li><strong>Pause/Resume:</strong> Control update process</li>
+                        <li><strong>Status Tracking:</strong> Monitor deployment progress</li>
+                    </ul>
+                </div>
+
+
+                <h2>📊 The Hierarchy: Deployment → ReplicaSet → Pod</h2>
+
+                <p>Understanding the relationship between these three resources is crucial.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.9rem;"><code>┌─────────────────────────────────────────────────────────────┐
+│                    Deployment Hierarchy                      │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              DEPLOYMENT                             │    │
+│  │  (Manages ReplicaSets, handles updates/rollbacks)  │    │
+│  │                                                     │    │
+│  │  apiVersion: apps/v1                                │    │
+│  │  kind: Deployment                                   │    │
+│  │  metadata:                                          │    │
+│  │    name: nginx-deployment                           │    │
+│  │  spec:                                              │    │
+│  │    replicas: 3                                      │    │
+│  │    template:                                        │    │
+│  │      spec:                                          │    │
+│  │        containers:                                  │    │
+│  │        - image: nginx:1.21                          │    │
+│  └──────────────────┬──────────────────────────────────┘    │
+│                     │                                        │
+│                     │ (Creates and manages)                  │
+│                     │                                        │
+│         ┌───────────┴───────────┐                           │
+│         │                       │                           │
+│         ▼                       ▼                           │
+│  ┌──────────────┐        ┌──────────────┐                  │
+│  │ ReplicaSet 1 │        │ ReplicaSet 2 │                  │
+│  │ (nginx:1.20) │        │ (nginx:1.21) │                  │
+│  │              │        │              │                  │
+│  │ replicas: 0  │        │ replicas: 3  │                  │
+│  │ (old version)│        │ (new version)│                  │
+│  └──────────────┘        └──────┬───────┘                  │
+│                                 │                           │
+│                                 │ (Creates and maintains)   │
+│                                 │                           │
+│                    ┌────────────┼────────────┐             │
+│                    │            │            │             │
+│                    ▼            ▼            ▼             │
+│              ┌─────────┐  ┌─────────┐  ┌─────────┐        │
+│              │  Pod 1  │  │  Pod 2  │  │  Pod 3  │        │
+│              │nginx:   │  │nginx:   │  │nginx:   │        │
+│              │ 1.21    │  │ 1.21    │  │ 1.21    │        │
+│              └─────────┘  └─────────┘  └─────────┘        │
+│                                                              │
+│  Key Points:                                                │
+│  • Deployment manages ReplicaSets                           │
+│  • ReplicaSet manages Pods                                  │
+│  • During update: New ReplicaSet created, old scaled down   │
+│  • Old ReplicaSets kept for rollback                        │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Deployment vs ReplicaSet vs Pod</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Feature</th>
+                                <th style="padding: 15px; text-align: left;">Pod</th>
+                                <th style="padding: 15px; text-align: left;">ReplicaSet</th>
+                                <th style="padding: 15px; text-align: left;">Deployment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Purpose</strong></td>
+                                <td style="padding: 15px;">Run containers</td>
+                                <td style="padding: 15px;">Maintain pod replicas</td>
+                                <td style="padding: 15px;">Manage updates/rollbacks</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Self-Healing</strong></td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Scaling</strong></td>
+                                <td style="padding: 15px;">❌ Manual</td>
+                                <td style="padding: 15px;">✅ Automatic</td>
+                                <td style="padding: 15px;">✅ Automatic</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Rolling Updates</strong></td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Rollback</strong></td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Version History</strong></td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Use Case</strong></td>
+                                <td style="padding: 15px;">One-off tasks</td>
+                                <td style="padding: 15px;">Rarely used directly</td>
+                                <td style="padding: 15px;">Stateless apps (recommended)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Recommendation</strong></td>
+                                <td style="padding: 15px;">Use for Jobs</td>
+                                <td style="padding: 15px;">Let Deployment manage</td>
+                                <td style="padding: 15px;">✅ Use this!</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 Best Practice:</strong> Always use Deployments for stateless applications. Never create ReplicaSets or Pods directly for production workloads.
+                </div>
+
+                <h2>📝 Complete Deployment Specification</h2>
+
+                <p>Let's explore a comprehensive Deployment YAML with all important fields explained.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: default
+  labels:
+    app: nginx
+    environment: production
+  annotations:
+    kubernetes.io/change-cause: "Update to nginx 1.21"
+spec:
+  # ============ REPLICA MANAGEMENT ============
+  replicas: 3  # Number of pod replicas
+  
+  # ============ SELECTOR ============
+  selector:
+    matchLabels:
+      app: nginx
+      # Pods must have these labels to be managed by this Deployment
+  
+  # ============ UPDATE STRATEGY ============
+  strategy:
+    type: RollingUpdate  # or Recreate
+    rollingUpdate:
+      maxSurge: 1        # Max pods above desired during update
+      maxUnavailable: 1  # Max pods unavailable during update
+  
+  # ============ REVISION HISTORY ============
+  revisionHistoryLimit: 10  # Keep last 10 ReplicaSets for rollback
+  
+  # ============ PROGRESS DEADLINE ============
+  progressDeadlineSeconds: 600  # Fail deployment after 10 minutes
+  
+  # ============ MIN READY SECONDS ============
+  minReadySeconds: 5  # Wait 5s after pod ready before considering it available
+  
+  # ============ PAUSED ============
+  paused: false  # Set to true to pause rollout
+  
+  # ============ POD TEMPLATE ============
+  template:
+    metadata:
+      labels:
+        app: nginx
+        version: "1.21"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Field Explanations</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">replicas</h4>
+                    <p>Number of pod replicas to maintain. Can be scaled up/down anytime.</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>replicas: 3  # Maintain 3 pods at all times</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">selector</h4>
+                    <p>Defines how Deployment finds which Pods to manage. Must match template labels.</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>selector:
+  matchLabels:
+    app: nginx  # Must match template.metadata.labels</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">strategy.type</h4>
+                    <p><strong>RollingUpdate (default):</strong> Gradually replace old pods with new ones</p>
+                    <p><strong>Recreate:</strong> Kill all old pods, then create new ones (downtime!)</p>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">maxSurge</h4>
+                    <p>Maximum number of pods that can be created above desired replicas during update.</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>maxSurge: 1  # or "25%" (percentage of replicas)
+# With 3 replicas: Can have max 4 pods during update</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">maxUnavailable</h4>
+                    <p>Maximum number of pods that can be unavailable during update.</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>maxUnavailable: 1  # or "25%"
+# With 3 replicas: Min 2 pods must be available during update</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">revisionHistoryLimit</h4>
+                    <p>Number of old ReplicaSets to keep for rollback. Default: 10</p>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">progressDeadlineSeconds</h4>
+                    <p>Time to wait for deployment to progress before marking it as failed. Default: 600s</p>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">minReadySeconds</h4>
+                    <p>Minimum time a pod should be ready before considering it available. Useful for catching issues early.</p>
+                </div>
+
+
+                <h2>🔄 Rolling Updates - Zero-Downtime Deployments</h2>
+
+                <p>Rolling updates are the killer feature of Deployments. They allow you to update your application without any downtime.</p>
+
+                <h3 style="color: #667eea;">How Rolling Updates Work</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.9rem;"><code>Rolling Update Process:
+
+Initial State: 3 pods running nginx:1.20
+┌─────────────────────────────────────────────────────────────┐
+│  ReplicaSet-1 (nginx:1.20)                                  │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐                     │
+│  │ Pod 1   │  │ Pod 2   │  │ Pod 3   │                     │
+│  │ Ready   │  │ Ready   │  │ Ready   │                     │
+│  └─────────┘  └─────────┘  └─────────┘                     │
+└─────────────────────────────────────────────────────────────┘
+
+Update to nginx:1.21 (maxSurge=1, maxUnavailable=1)
+
+Step 1: Create new ReplicaSet, scale up by 1 (maxSurge)
+┌─────────────────────────────────────────────────────────────┐
+│  ReplicaSet-1 (nginx:1.20) - 3 pods                         │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐                     │
+│  │ Pod 1   │  │ Pod 2   │  │ Pod 3   │                     │
+│  │ Ready   │  │ Ready   │  │ Ready   │                     │
+│  └─────────┘  └─────────┘  └─────────┘                     │
+│                                                              │
+│  ReplicaSet-2 (nginx:1.21) - 1 pod                          │
+│  ┌─────────┐                                                │
+│  │ Pod 4   │  ← Creating                                    │
+│  │ Pending │                                                │
+│  └─────────┘                                                │
+└─────────────────────────────────────────────────────────────┘
+Total: 4 pods (3 desired + 1 surge)
+
+Step 2: New pod ready, terminate 1 old pod (maxUnavailable)
+┌─────────────────────────────────────────────────────────────┐
+│  ReplicaSet-1 (nginx:1.20) - 2 pods                         │
+│  ┌─────────┐  ┌─────────┐                                   │
+│  │ Pod 2   │  │ Pod 3   │                                   │
+│  │ Ready   │  │ Ready   │                                   │
+│  └─────────┘  └─────────┘                                   │
+│                                                              │
+│  ReplicaSet-2 (nginx:1.21) - 1 pod                          │
+│  ┌─────────┐                                                │
+│  │ Pod 4   │  ← Ready!                                      │
+│  │ Ready   │                                                │
+│  └─────────┘                                                │
+└─────────────────────────────────────────────────────────────┘
+Total: 3 pods (maintaining desired count)
+
+Step 3: Create another new pod
+┌─────────────────────────────────────────────────────────────┐
+│  ReplicaSet-1 (nginx:1.20) - 2 pods                         │
+│  ┌─────────┐  ┌─────────┐                                   │
+│  │ Pod 2   │  │ Pod 3   │                                   │
+│  │ Ready   │  │ Ready   │                                   │
+│  └─────────┘  └─────────┘                                   │
+│                                                              │
+│  ReplicaSet-2 (nginx:1.21) - 2 pods                         │
+│  ┌─────────┐  ┌─────────┐                                   │
+│  │ Pod 4   │  │ Pod 5   │  ← Creating                       │
+│  │ Ready   │  │ Pending │                                   │
+│  └─────────┘  └─────────┘                                   │
+└─────────────────────────────────────────────────────────────┘
+Total: 4 pods (surge again)
+
+Step 4: Continue until all old pods replaced
+┌─────────────────────────────────────────────────────────────┐
+│  ReplicaSet-1 (nginx:1.20) - 0 pods (scaled to 0)           │
+│                                                              │
+│  ReplicaSet-2 (nginx:1.21) - 3 pods                         │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐                     │
+│  │ Pod 4   │  │ Pod 5   │  │ Pod 6   │                     │
+│  │ Ready   │  │ Ready   │  │ Ready   │                     │
+│  └─────────┘  └─────────┘  └─────────┘                     │
+└─────────────────────────────────────────────────────────────┘
+Update Complete! Zero downtime achieved.</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Understanding maxSurge and maxUnavailable</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">maxSurge</h4>
+                    <p>Maximum number of pods that can exist above the desired replica count during update.</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>replicas: 10
+maxSurge: 2  # or "20%"
+
+# During update: Can have up to 12 pods (10 + 2)
+# Faster updates, but uses more resources</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">maxUnavailable</h4>
+                    <p>Maximum number of pods that can be unavailable during update.</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>replicas: 10
+maxUnavailable: 2  # or "20%"
+
+# During update: Must have at least 8 pods available (10 - 2)
+# Saves resources, but slower updates</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Common Configurations</h4>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Configuration</th>
+                                <th style="padding: 15px; text-align: left;">maxSurge</th>
+                                <th style="padding: 15px; text-align: left;">maxUnavailable</th>
+                                <th style="padding: 15px; text-align: left;">Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Fast Update</strong></td>
+                                <td style="padding: 15px;">25%</td>
+                                <td style="padding: 15px;">25%</td>
+                                <td style="padding: 15px;">Quick rollout, more resources</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Conservative</strong></td>
+                                <td style="padding: 15px;">1</td>
+                                <td style="padding: 15px;">0</td>
+                                <td style="padding: 15px;">Zero downtime, slow rollout</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Resource Constrained</strong></td>
+                                <td style="padding: 15px;">0</td>
+                                <td style="padding: 15px;">1</td>
+                                <td style="padding: 15px;">Limited resources, some downtime OK</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Balanced (Default)</strong></td>
+                                <td style="padding: 15px;">25%</td>
+                                <td style="padding: 15px;">25%</td>
+                                <td style="padding: 15px;">Good balance of speed and resources</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Hands-On: Performing a Rolling Update</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Step 1: Create initial deployment</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># nginx-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.20
+        ports:
+        - containerPort: 80
+
+# Apply it
+kubectl apply -f nginx-deployment.yaml
+
+# Check status
+kubectl get deployments
+kubectl get rs
+kubectl get pods</code></pre>
+
+                    <p><strong>Step 2: Update the image (Method 1: kubectl set image)</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Update image using kubectl
+kubectl set image deployment/nginx-deployment nginx=nginx:1.21
+
+# Watch the rollout
+kubectl rollout status deployment/nginx-deployment
+
+# Output:
+# Waiting for deployment "nginx-deployment" rollout to finish: 1 out of 3 new replicas have been updated...
+# Waiting for deployment "nginx-deployment" rollout to finish: 1 out of 3 new replicas have been updated...
+# Waiting for deployment "nginx-deployment" rollout to finish: 2 out of 3 new replicas have been updated...
+# Waiting for deployment "nginx-deployment" rollout to finish: 2 old replicas are pending termination...
+# deployment "nginx-deployment" successfully rolled out</code></pre>
+
+                    <p><strong>Step 3: Update via YAML (Method 2: Recommended)</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Edit the YAML file
+# Change: image: nginx:1.20
+# To:     image: nginx:1.21
+
+# Apply the change
+kubectl apply -f nginx-deployment.yaml
+
+# Kubernetes automatically detects the change and performs rolling update</code></pre>
+
+                    <p><strong>Step 4: Monitor the rollout</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Watch rollout status
+kubectl rollout status deployment/nginx-deployment
+
+# Watch pods being replaced
+kubectl get pods -w
+
+# Check ReplicaSets
+kubectl get rs
+
+# Output shows old and new ReplicaSets:
+# NAME                          DESIRED   CURRENT   READY   AGE
+# nginx-deployment-66b6c48dd5   3         3         3       2m    ← New (nginx:1.21)
+# nginx-deployment-559d658b74   0         0         0       5m    ← Old (nginx:1.20)
+
+# View rollout history
+kubectl rollout history deployment/nginx-deployment</code></pre>
+                </div>
+
+                <h2>⏮️ Rollback - Undo Deployments</h2>
+
+                <p>Made a mistake? Deployed a broken version? Rollback is instant and easy.</p>
+
+                <h3 style="color: #667eea;">Rollback Basics</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>Kubernetes keeps a history of ReplicaSets (controlled by <code>revisionHistoryLimit</code>). You can rollback to any previous revision.</p>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>View rollout history</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl rollout history deployment/nginx-deployment
+
+# Output:
+# REVISION  CHANGE-CAUSE
+# 1         <none>
+# 2         kubectl set image deployment/nginx-deployment nginx=nginx:1.21
+# 3         kubectl set image deployment/nginx-deployment nginx=nginx:1.22
+
+# View specific revision details
+kubectl rollout history deployment/nginx-deployment --revision=2</code></pre>
+
+                    <p><strong>Rollback to previous version</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Rollback to previous revision (undo last change)
+kubectl rollout undo deployment/nginx-deployment
+
+# Rollback to specific revision
+kubectl rollout undo deployment/nginx-deployment --to-revision=2
+
+# Watch the rollback
+kubectl rollout status deployment/nginx-deployment</code></pre>
+
+                    <p><strong>Add change-cause annotation (best practice)</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Add annotation when updating
+kubectl annotate deployment/nginx-deployment \
+  kubernetes.io/change-cause="Update to nginx 1.22 for security patch"
+
+# Or add to YAML
+metadata:
+  annotations:
+    kubernetes.io/change-cause: "Update to nginx 1.22 for security patch"
+
+# Now history shows meaningful messages
+kubectl rollout history deployment/nginx-deployment
+
+# Output:
+# REVISION  CHANGE-CAUSE
+# 1         Initial deployment
+# 2         Update to nginx 1.21
+# 3         Update to nginx 1.22 for security patch</code></pre>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 Rollback Speed:</strong> Rollbacks are instant because the old ReplicaSet still exists (scaled to 0). Kubernetes just scales it back up and scales down the current one.
+                </div>
+
+                <h2>🎯 Deployment Strategies</h2>
+
+                <p>Different deployment strategies for different use cases.</p>
+
+                <h3 style="color: #667eea;">1. RollingUpdate (Default)</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>How it works:</strong> Gradually replace old pods with new ones</p>
+                    <p><strong>Pros:</strong></p>
+                    <ul>
+                        <li>✅ Zero downtime</li>
+                        <li>✅ Gradual rollout (can catch issues early)</li>
+                        <li>✅ Easy rollback</li>
+                        <li>✅ Both versions run temporarily (good for testing)</li>
+                    </ul>
+                    <p><strong>Cons:</strong></p>
+                    <ul>
+                        <li>❌ Two versions running simultaneously (compatibility issues?)</li>
+                        <li>❌ Slower than Recreate</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">2. Recreate</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>How it works:</strong> Kill all old pods, then create new ones</p>
+                    <p><strong>Pros:</strong></p>
+                    <ul>
+                        <li>✅ Simple and fast</li>
+                        <li>✅ Only one version running at a time</li>
+                        <li>✅ Good for stateful apps that can't run multiple versions</li>
+                    </ul>
+                    <p><strong>Cons:</strong></p>
+                    <ul>
+                        <li>❌ Downtime during update</li>
+                        <li>❌ All-or-nothing (can't catch issues gradually)</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>spec:
+  strategy:
+    type: Recreate</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">3. Blue-Green Deployment</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>How it works:</strong> Run two identical environments (Blue=current, Green=new). Switch traffic instantly.</p>
+                    <p><strong>Implementation in Kubernetes:</strong></p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Step 1: Blue deployment (current production)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: blue
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:1.0
+
+---
+# Service pointing to blue
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  selector:
+    app: myapp
+    version: blue  # Traffic goes to blue
+  ports:
+  - port: 80
+
+---
+# Step 2: Create green deployment (new version)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      version: green
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: green
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:2.0
+
+# Step 3: Test green deployment
+# Access green pods directly for testing
+
+# Step 4: Switch traffic (update service selector)
+kubectl patch service myapp-service -p '{"spec":{"selector":{"version":"green"}}}'
+
+# Instant cutover! All traffic now goes to green
+
+# Step 5: If issues, instant rollback
+kubectl patch service myapp-service -p '{"spec":{"selector":{"version":"blue"}}}'
+
+# Step 6: After validation, delete blue deployment
+kubectl delete deployment myapp-blue</code></pre>
+
+                    <p><strong>Pros:</strong></p>
+                    <ul>
+                        <li>✅ Instant cutover</li>
+                        <li>✅ Instant rollback</li>
+                        <li>✅ Full testing before cutover</li>
+                        <li>✅ Zero downtime</li>
+                    </ul>
+                    <p><strong>Cons:</strong></p>
+                    <ul>
+                        <li>❌ Requires 2x resources</li>
+                        <li>❌ Database migrations can be tricky</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">4. Canary Deployment</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>How it works:</strong> Roll out to a small subset of users first, then gradually increase.</p>
+                    <p><strong>Implementation in Kubernetes:</strong></p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Step 1: Stable deployment (90% of traffic)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-stable
+spec:
+  replicas: 9  # 90% of traffic
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: stable
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:1.0
+
+---
+# Step 2: Canary deployment (10% of traffic)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-canary
+spec:
+  replicas: 1  # 10% of traffic
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: canary
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:2.0
+
+---
+# Service distributes traffic to both
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  selector:
+    app: myapp  # Matches both stable and canary
+  ports:
+  - port: 80
+
+# Traffic distribution: ~90% stable, ~10% canary
+
+# Step 3: Monitor canary metrics
+# If good: Gradually increase canary replicas
+kubectl scale deployment myapp-canary --replicas=3  # 25%
+kubectl scale deployment myapp-stable --replicas=6  # 75%
+
+# Continue until 100% canary
+kubectl scale deployment myapp-canary --replicas=10
+kubectl scale deployment myapp-stable --replicas=0
+
+# Step 4: Delete old deployment
+kubectl delete deployment myapp-stable</code></pre>
+
+                    <p><strong>Pros:</strong></p>
+                    <ul>
+                        <li>✅ Gradual rollout reduces risk</li>
+                        <li>✅ Real user testing</li>
+                        <li>✅ Can catch issues with small user impact</li>
+                        <li>✅ Easy to increase/decrease canary percentage</li>
+                    </ul>
+                    <p><strong>Cons:</strong></p>
+                    <ul>
+                        <li>❌ More complex to manage</li>
+                        <li>❌ Requires good monitoring</li>
+                        <li>❌ Traffic distribution is approximate (not exact percentages)</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 Advanced Canary:</strong> For precise traffic control, use service mesh (Istio, Linkerd) or ingress controllers (NGINX, Traefik) that support weighted routing.
+                </div>
+
+                <h2>📈 Scaling Deployments</h2>
+
+                <p>Scaling is one of the primary benefits of Deployments. Scale up for high traffic, scale down to save resources.</p>
+
+                <h3 style="color: #667eea;">Manual Scaling</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Method 1: kubectl scale</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Scale to 5 replicas
+kubectl scale deployment/nginx-deployment --replicas=5
+
+# Verify
+kubectl get deployment nginx-deployment
+
+# Output:
+# NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+# nginx-deployment   5/5     5            5           10m</code></pre>
+
+                    <p><strong>Method 2: kubectl patch</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl patch deployment nginx-deployment -p '{"spec":{"replicas":5}}'</code></pre>
+
+                    <p><strong>Method 3: Edit YAML and apply</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Edit deployment YAML
+# Change: replicas: 3
+# To:     replicas: 5
+
+kubectl apply -f nginx-deployment.yaml</code></pre>
+
+                    <p><strong>Method 4: kubectl edit (interactive)</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Opens editor to modify deployment
+kubectl edit deployment nginx-deployment
+
+# Change replicas, save and exit
+# Kubernetes applies changes immediately</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Autoscaling with HPA (Horizontal Pod Autoscaler)</h3>
+
+                <p>Automatically scale based on CPU, memory, or custom metrics.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Prerequisites</h4>
+                    <ul>
+                        <li>Metrics Server must be installed in cluster</li>
+                        <li>Pods must have resource requests defined</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check if metrics-server is installed
+kubectl get deployment metrics-server -n kube-system
+
+# If not installed:
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml</code></pre>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Create HPA using kubectl</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create HPA that scales between 2-10 replicas based on CPU
+kubectl autoscale deployment nginx-deployment \
+  --min=2 \
+  --max=10 \
+  --cpu-percent=80
+
+# Check HPA status
+kubectl get hpa
+
+# Output:
+# NAME               REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+# nginx-deployment   Deployment/nginx-deployment   45%/80%   2         10        3          1m
+
+# Describe HPA for details
+kubectl describe hpa nginx-deployment</code></pre>
+
+                    <p><strong>Create HPA using YAML</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-deployment-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Scale up/down behavior
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      policies:
+      - type: Percent
+        value: 50  # Scale down max 50% of current pods
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Scale up immediately
+      policies:
+      - type: Percent
+        value: 100  # Can double pods
+        periodSeconds: 60
+      - type: Pods
+        value: 4  # Or add max 4 pods
+        periodSeconds: 60
+      selectPolicy: Max  # Use the policy that scales up most
+
+kubectl apply -f hpa.yaml</code></pre>
+
+                    <p><strong>Test autoscaling</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Generate load
+kubectl run -it --rm load-generator --image=busybox -- /bin/sh
+
+# Inside the pod:
+while true; do wget -q -O- http://nginx-deployment; done
+
+# In another terminal, watch HPA
+kubectl get hpa -w
+
+# Watch pods scale up
+kubectl get pods -w
+
+# Stop load generator (Ctrl+C)
+# Watch pods scale down after stabilization window</code></pre>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 HPA Best Practices:</strong>
+                    <ul style="margin-top: 10px;">
+                        <li>Set appropriate min/max replicas</li>
+                        <li>Use stabilization windows to prevent flapping</li>
+                        <li>Monitor HPA events: <code>kubectl describe hpa</code></li>
+                        <li>Consider using custom metrics for better scaling decisions</li>
+                        <li>Don't manually scale deployments managed by HPA</li>
+                    </ul>
+                </div>
+
+                <h2>⏸️ Pausing and Resuming Deployments</h2>
+
+                <p>Pause deployments to make multiple changes, then resume to apply all at once.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Why pause deployments?</strong></p>
+                    <ul>
+                        <li>Make multiple changes without triggering multiple rollouts</li>
+                        <li>Prevent automatic rollouts during maintenance</li>
+                        <li>Batch changes for efficiency</li>
+                    </ul>
+
+                    <p><strong>Pause a deployment</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Pause the deployment
+kubectl rollout pause deployment/nginx-deployment
+
+# Make multiple changes
+kubectl set image deployment/nginx-deployment nginx=nginx:1.22
+kubectl set resources deployment/nginx-deployment -c=nginx --limits=cpu=200m,memory=512Mi
+kubectl set env deployment/nginx-deployment ENV=production
+
+# No rollout happens yet!
+
+# Resume to apply all changes at once
+kubectl rollout resume deployment/nginx-deployment
+
+# Now a single rollout happens with all changes</code></pre>
+
+                    <p><strong>Check if deployment is paused</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get deployment nginx-deployment -o yaml | grep paused
+
+# Or
+kubectl describe deployment nginx-deployment | grep Paused</code></pre>
+                </div>
+
+                <h2>📊 Deployment Status and Conditions</h2>
+
+                <p>Understanding deployment status helps you monitor and troubleshoot deployments.</p>
+
+                <h3 style="color: #667eea;">Deployment Status Fields</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get deployment nginx-deployment -o yaml
+
+status:
+  observedGeneration: 3           # Last generation observed by controller
+  replicas: 3                     # Total replicas (old + new)
+  updatedReplicas: 3              # Replicas updated to latest version
+  readyReplicas: 3                # Replicas ready to serve traffic
+  availableReplicas: 3            # Replicas available (ready for minReadySeconds)
+  unavailableReplicas: 0          # Replicas not available
+  conditions:
+  - type: Available
+    status: "True"
+    reason: MinimumReplicasAvailable
+    message: Deployment has minimum availability
+  - type: Progressing
+    status: "True"
+    reason: NewReplicaSetAvailable
+    message: ReplicaSet "nginx-deployment-66b6c48dd5" has successfully progressed</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Deployment Conditions</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Available</h4>
+                    <p>Indicates whether the deployment has minimum availability.</p>
+                    <ul>
+                        <li><strong>True:</strong> Minimum replicas are available</li>
+                        <li><strong>False:</strong> Not enough replicas available</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Progressing</h4>
+                    <p>Indicates whether the deployment is making progress.</p>
+                    <ul>
+                        <li><strong>True + NewReplicaSetAvailable:</strong> Rollout successful</li>
+                        <li><strong>True + ReplicaSetUpdated:</strong> Rollout in progress</li>
+                        <li><strong>False + ProgressDeadlineExceeded:</strong> Rollout failed</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">ReplicaFailure</h4>
+                    <p>Indicates whether the deployment has failed to create pods.</p>
+                    <ul>
+                        <li><strong>True:</strong> ReplicaSet failed to create pods</li>
+                        <li>Common reasons: insufficient resources, image pull errors</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Checking Deployment Status</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Quick status
+kubectl get deployment nginx-deployment
+
+# Output:
+# NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+# nginx-deployment   3/3     3            3           10m
+
+# Detailed status
+kubectl describe deployment nginx-deployment
+
+# Check conditions
+kubectl get deployment nginx-deployment -o jsonpath='{.status.conditions[*].type}'
+# Output: Available Progressing
+
+# Check if deployment is healthy
+kubectl get deployment nginx-deployment -o jsonpath='{.status.conditions[?(@.type=="Available")].status}'
+# Output: True
+
+# Watch deployment status
+kubectl get deployment nginx-deployment -w</code></pre>
+                </div>
+
+                <h2>🚨 Troubleshooting Failed Deployments</h2>
+
+                <h3 style="color: #667eea;">Common Issues and Solutions</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 1: Deployment Stuck in Progress</h4>
+                    <p><strong>Symptoms:</strong> Deployment never completes, some pods not ready</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check deployment status
+kubectl rollout status deployment/nginx-deployment
+
+# Check pods
+kubectl get pods -l app=nginx
+
+# Describe problematic pods
+kubectl describe pod <pod-name>
+
+# Check logs
+kubectl logs <pod-name>
+
+# Common causes:
+# 1. Image pull errors
+# 2. Insufficient resources
+# 3. Failed readiness probes
+# 4. Configuration errors
+
+# Solution: Fix the issue and deployment will auto-progress
+# Or rollback:
+kubectl rollout undo deployment/nginx-deployment</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 2: ProgressDeadlineExceeded</h4>
+                    <p><strong>Symptoms:</strong> Deployment fails after progressDeadlineSeconds</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check conditions
+kubectl get deployment nginx-deployment -o yaml | grep -A 5 conditions
+
+# Output shows:
+# - type: Progressing
+#   status: "False"
+#   reason: ProgressDeadlineExceeded
+#   message: ReplicaSet "nginx-deployment-xxx" has timed out progressing
+
+# Causes:
+# - Pods taking too long to start
+# - Readiness probes failing
+# - Insufficient cluster resources
+
+# Solutions:
+# 1. Increase progressDeadlineSeconds
+spec:
+  progressDeadlineSeconds: 1200  # 20 minutes
+
+# 2. Fix underlying issue (resources, probes, etc.)
+# 3. Rollback
+kubectl rollout undo deployment/nginx-deployment</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 3: Old Pods Not Terminating</h4>
+                    <p><strong>Symptoms:</strong> Old ReplicaSet not scaling down</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check ReplicaSets
+kubectl get rs
+
+# Output shows old RS still has pods:
+# NAME                          DESIRED   CURRENT   READY   AGE
+# nginx-deployment-66b6c48dd5   3         3         3       2m    ← New
+# nginx-deployment-559d658b74   1         1         1       5m    ← Old (should be 0)
+
+# Causes:
+# - maxUnavailable set to 0 and new pods not ready
+# - PodDisruptionBudget preventing termination
+# - Pods stuck in Terminating state
+
+# Check PDB
+kubectl get pdb
+
+# Check pod status
+kubectl get pods -l app=nginx
+
+# Force delete stuck pods (last resort)
+kubectl delete pod <pod-name> --grace-period=0 --force</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 4: Selector Doesn't Match Template Labels</h4>
+                    <p><strong>Symptoms:</strong> Error: "selector does not match template labels"</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># This will fail:
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: web  # ❌ Doesn't match selector!
+
+# Fix: Ensure labels match
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx  # ✅ Matches selector
+
+# Note: You cannot change selector after deployment is created
+# Must delete and recreate deployment</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Debugging Commands</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check deployment status
+kubectl get deployment <name>
+kubectl describe deployment <name>
+kubectl rollout status deployment/<name>
+
+# Check ReplicaSets
+kubectl get rs
+kubectl describe rs <replicaset-name>
+
+# Check pods
+kubectl get pods -l app=<label>
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl logs <pod-name> --previous
+
+# Check events
+kubectl get events --sort-by='.lastTimestamp'
+kubectl get events --field-selector involvedObject.name=<deployment-name>
+
+# Check rollout history
+kubectl rollout history deployment/<name>
+kubectl rollout history deployment/<name> --revision=<number>
+
+# Pause/Resume
+kubectl rollout pause deployment/<name>
+kubectl rollout resume deployment/<name>
+
+# Rollback
+kubectl rollout undo deployment/<name>
+kubectl rollout undo deployment/<name> --to-revision=<number>
+
+# Scale
+kubectl scale deployment/<name> --replicas=<number>
+
+# Update image
+kubectl set image deployment/<name> <container>=<image>
+
+# Get YAML
+kubectl get deployment <name> -o yaml
+
+# Edit deployment
+kubectl edit deployment <name>
+
+# Delete deployment
+kubectl delete deployment <name></code></pre>
+                </div>
+
+                <h2>🎓 Real-World Example: Complete Web Application</h2>
+
+                <p>Let's deploy a complete multi-tier application with frontend, backend, and database.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>1. Database Deployment (StatefulSet would be better, but using Deployment for demo)</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># postgres-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: myapp
+        - name: POSTGRES_USER
+          value: admin
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}  # Use PVC in production!
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+  clusterIP: None  # Headless service</code></pre>
+
+                    <p><strong>2. Backend API Deployment</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># backend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: backend
+        version: v1
+    spec:
+      initContainers:
+      - name: wait-for-db
+        image: busybox:1.28
+        command: ['sh', '-c', 'until nslookup postgres; do echo waiting for postgres; sleep 2; done']
+      
+      containers:
+      - name: backend
+        image: mybackend:1.0
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://admin:password@postgres:5432/myapp"
+        - name: PORT
+          value: "8080"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP</code></pre>
+
+                    <p><strong>3. Frontend Deployment</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># frontend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0  # Zero downtime
+  template:
+    metadata:
+      labels:
+        app: frontend
+        version: v1
+    spec:
+      containers:
+      - name: frontend
+        image: myfrontend:1.0
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: BACKEND_URL
+          value: "http://backend"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+  type: LoadBalancer  # Or use Ingress</code></pre>
+
+                    <p><strong>4. Deploy Everything</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create secret for database
+kubectl create secret generic postgres-secret \
+  --from-literal=password=mysecretpassword
+
+# Deploy in order
+kubectl apply -f postgres-deployment.yaml
+kubectl apply -f backend-deployment.yaml
+kubectl apply -f frontend-deployment.yaml
+
+# Check status
+kubectl get deployments
+kubectl get pods
+kubectl get services
+
+# Access the application
+kubectl get service frontend
+# Use EXTERNAL-IP to access the app</code></pre>
+
+                    <p><strong>5. Update Backend</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Update backend image
+kubectl set image deployment/backend backend=mybackend:2.0 \
+  --record
+
+# Watch rollout
+kubectl rollout status deployment/backend
+
+# If issues, rollback
+kubectl rollout undo deployment/backend</code></pre>
+                </div>
+
+                <h2>✅ Best Practices for Production Deployments</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Deployment Configuration</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Always use Deployments:</strong> Never create Pods or ReplicaSets directly</li>
+                        <li>✅ <strong>Set resource requests and limits:</strong> Helps scheduler and prevents resource starvation</li>
+                        <li>✅ <strong>Implement health checks:</strong> Use both liveness and readiness probes</li>
+                        <li>✅ <strong>Use specific image tags:</strong> Never use :latest in production</li>
+                        <li>✅ <strong>Set appropriate replica count:</strong> At least 2 for high availability</li>
+                        <li>✅ <strong>Configure rolling update strategy:</strong> Set maxSurge and maxUnavailable appropriately</li>
+                        <li>✅ <strong>Set minReadySeconds:</strong> Catch issues before marking pods as ready</li>
+                        <li>✅ <strong>Use revisionHistoryLimit:</strong> Keep enough history for rollbacks (default 10 is good)</li>
+                        <li>✅ <strong>Add change-cause annotations:</strong> Track why changes were made</li>
+                        <li>✅ <strong>Use labels extensively:</strong> For organization and selection</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 30px;">Update Strategy</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use RollingUpdate for zero downtime:</strong> Default strategy</li>
+                        <li>✅ <strong>Test in staging first:</strong> Never deploy directly to production</li>
+                        <li>✅ <strong>Monitor during rollout:</strong> Watch metrics and logs</li>
+                        <li>✅ <strong>Have rollback plan:</strong> Know how to quickly rollback</li>
+                        <li>✅ <strong>Use canary deployments:</strong> For high-risk changes</li>
+                        <li>✅ <strong>Automate deployments:</strong> Use CI/CD pipelines</li>
+                        <li>✅ <strong>Version your manifests:</strong> Use Git for version control</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 30px;">Scaling</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use HPA for automatic scaling:</strong> Based on metrics</li>
+                        <li>✅ <strong>Set appropriate min/max replicas:</strong> Balance cost and availability</li>
+                        <li>✅ <strong>Use PodDisruptionBudgets:</strong> Ensure minimum availability during disruptions</li>
+                        <li>✅ <strong>Consider VPA:</strong> For vertical scaling (adjust resources)</li>
+                        <li>✅ <strong>Monitor resource usage:</strong> Adjust requests/limits based on actual usage</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 30px;">Security</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Run as non-root:</strong> Set securityContext</li>
+                        <li>✅ <strong>Use read-only root filesystem:</strong> When possible</li>
+                        <li>✅ <strong>Drop unnecessary capabilities:</strong> Principle of least privilege</li>
+                        <li>✅ <strong>Use secrets for sensitive data:</strong> Never hardcode passwords</li>
+                        <li>✅ <strong>Scan images for vulnerabilities:</strong> Use tools like Trivy</li>
+                        <li>✅ <strong>Use Pod Security Standards:</strong> Enforce security policies</li>
+                        <li>✅ <strong>Use network policies:</strong> Control pod-to-pod communication</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 30px;">Monitoring and Observability</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Implement logging:</strong> Log to stdout/stderr</li>
+                        <li>✅ <strong>Add metrics endpoints:</strong> For Prometheus scraping</li>
+                        <li>✅ <strong>Use distributed tracing:</strong> For microservices</li>
+                        <li>✅ <strong>Set up alerts:</strong> For deployment failures</li>
+                        <li>✅ <strong>Monitor deployment events:</strong> Track rollout progress</li>
+                        <li>✅ <strong>Use dashboards:</strong> Visualize deployment health</li>
+                    </ol>
+                </div>
+
+                <h2>📋 Deployment Checklist</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4;">Before Deploying</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Image tested and scanned for vulnerabilities</li>
+                        <li>☐ Resource requests and limits defined</li>
+                        <li>☐ Health probes configured (liveness and readiness)</li>
+                        <li>☐ Environment variables and secrets configured</li>
+                        <li>☐ Labels and annotations added</li>
+                        <li>☐ Update strategy configured (maxSurge, maxUnavailable)</li>
+                        <li>☐ Replica count appropriate for load</li>
+                        <li>☐ Security context configured</li>
+                        <li>☐ Service account configured (if needed)</li>
+                        <li>☐ Tested in staging environment</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">During Deployment</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Monitor rollout status: <code>kubectl rollout status</code></li>
+                        <li>☐ Watch pod creation: <code>kubectl get pods -w</code></li>
+                        <li>☐ Check logs for errors: <code>kubectl logs</code></li>
+                        <li>☐ Monitor application metrics</li>
+                        <li>☐ Check health endpoints</li>
+                        <li>☐ Verify traffic routing</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">After Deployment</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Verify all pods are running and ready</li>
+                        <li>☐ Test application functionality</li>
+                        <li>☐ Check error rates and latency</li>
+                        <li>☐ Verify old ReplicaSet scaled to 0</li>
+                        <li>☐ Document the deployment (change-cause annotation)</li>
+                        <li>☐ Monitor for 15-30 minutes</li>
+                        <li>☐ Keep rollback plan ready</li>
+                    </ul>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Deployments are the recommended way</strong> to manage stateless applications in Kubernetes</li>
+                        <li>✅ <strong>Rolling updates enable zero-downtime deployments</strong> by gradually replacing pods</li>
+                        <li>✅ <strong>Rollbacks are instant</strong> because old ReplicaSets are kept (scaled to 0)</li>
+                        <li>✅ <strong>maxSurge and maxUnavailable</strong> control the speed and resource usage of updates</li>
+                        <li>✅ <strong>Multiple deployment strategies exist:</strong> RollingUpdate, Recreate, Blue-Green, Canary</li>
+                        <li>✅ <strong>HPA enables automatic scaling</strong> based on CPU, memory, or custom metrics</li>
+                        <li>✅ <strong>Pause deployments</strong> to batch multiple changes into a single rollout</li>
+                        <li>✅ <strong>Monitor deployment conditions</strong> to understand deployment health</li>
+                        <li>✅ <strong>Always use specific image tags</strong> and implement health checks</li>
+                        <li>✅ <strong>Test in staging first</strong> and have a rollback plan ready</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Now that you understand Deployments, you're ready to explore more advanced topics:</p>
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li><strong>Tutorial #7: StatefulSets</strong> - For stateful applications (databases, etc.)</li>
+                        <li><strong>Tutorial #8: DaemonSets</strong> - Run pods on every node</li>
+                        <li><strong>Tutorial #9: Jobs and CronJobs</strong> - Batch processing and scheduled tasks</li>
+                        <li><strong>Tutorial #10: ConfigMaps and Secrets</strong> - Configuration management</li>
+                        <li><strong>Tutorial #11: Persistent Volumes</strong> - Storage management</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0; text-align: center;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎓 Practice Makes Perfect</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">The best way to learn Deployments is to practice. Try:</p>
+                    <ul style="text-align: left; line-height: 2; font-size: 1.05rem;">
+                        <li>Deploy a simple application and perform rolling updates</li>
+                        <li>Experiment with different maxSurge and maxUnavailable values</li>
+                        <li>Practice rollbacks</li>
+                        <li>Set up HPA and test autoscaling</li>
+                        <li>Try Blue-Green and Canary deployments</li>
+                        <li>Break things and learn to troubleshoot</li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- Navigation -->
+            <div style="display: flex; justify-content: space-between; margin-top: 50px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
+                <a href="05-services.html" style="color: #667eea; text-decoration: none; font-size: 1.1rem;">
+                    ← Previous: Services
+                </a>
+                <a href="../k8s-tutorials.html" style="color: #667eea; text-decoration: none; font-size: 1.1rem;">
+                    Back to Tutorials
+                </a>
+                <a href="07-statefulsets.html" style="color: #667eea; text-decoration: none; font-size: 1.1rem;">
+                    Next: StatefulSets →
+                </a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer style="background: var(--dark-light); padding: 40px 0; margin-top: 80px;">
+        <div class="container" style="text-align: center;">
+            <p style="color: rgba(255,255,255,0.6); margin: 0;">
+                © 2024 DevSecOpsSolution.in | Kubernetes Tutorial Series
+            </p>
+            <p style="color: rgba(255,255,255,0.4); margin: 10px 0 0 0; font-size: 0.9rem;">
+                Master Kubernetes, one tutorial at a time
+            </p>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+    <script src="../blog-post.js"></script>
+</body>
+</html>

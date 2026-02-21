@@ -100,8 +100,10 @@ const k8sTutorials = [
             'Scaling applications'
         ],
         handsOn: 'Deploy nginx, perform rolling updates, scale up/down, rollback',
-        readTime: '22 min',
-        difficulty: 'beginner'
+        readTime: '45 min',
+        difficulty: 'beginner',
+        url: 'tutorials/06-deployments.html',
+        status: 'available'
     },
     {
         id: 7,
