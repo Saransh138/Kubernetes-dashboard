@@ -56,7 +56,7 @@
                 <div class="post-meta">
                     <span><i class="fas fa-bookmark"></i> Tutorial #1 of 20</span>
                     <span><i class="fas fa-signal"></i> Beginner</span>
-                    <span><i class="far fa-clock"></i> 15 min read</span>
+                    <span><i class="far fa-clock"></i> 35 min read</span>
                     <span><i class="fas fa-code"></i> Hands-On Included</span>
                 </div>
             </div>
@@ -64,135 +64,873 @@
             <div class="post-content">
                 <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
                 <ul style="line-height: 2;">
-                    <li>What problems Kubernetes solves</li>
-                    <li>Container vs VM comparison</li>
-                    <li>Why container orchestration is needed</li>
-                    <li>Kubernetes vs Docker Swarm vs other orchestrators</li>
-                    <li>Real-world use cases</li>
+                    <li>The history and origins of Kubernetes (from Google's Borg)</li>
+                    <li>What problems Kubernetes solves in detail</li>
+                    <li>Complete understanding of containers vs VMs</li>
+                    <li>Container technology deep dive (namespaces, cgroups, runtimes)</li>
+                    <li>Why container orchestration is essential</li>
+                    <li>Kubernetes architecture overview</li>
+                    <li>Core Kubernetes concepts introduction</li>
+                    <li>Kubernetes features comprehensive list</li>
+                    <li>Kubernetes vs other orchestrators (detailed comparison)</li>
+                    <li>Real-world use cases across industries</li>
+                    <li>The Kubernetes ecosystem (CNCF landscape)</li>
+                    <li>When to use (and when not to use) Kubernetes</li>
+                    <li>Common misconceptions debunked</li>
+                    <li>Kubernetes challenges and how to overcome them</li>
+                    <li>Getting started path and certifications</li>
                 </ul>
+            </div>
+
+            <h2>📚 Introduction: The Journey to Kubernetes</h2>
+
+            <p>Before we dive into what Kubernetes is, let's understand the journey that led to its creation. This context will help you appreciate why Kubernetes has become the de facto standard for container orchestration.</p>
+
+            <h3 style="color: #667eea;">The Origins: Google's Borg System</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <p>Kubernetes didn't appear out of nowhere. It's based on over 15 years of Google's experience running production workloads at massive scale using internal systems called <strong>Borg</strong> and <strong>Omega</strong>.</p>
+                
+                <h4 style="color: #90cdf4;">Google's Container Journey:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>2003-2004:</strong> Google develops Borg to manage billions of containers</li>
+                    <li><strong>2006:</strong> Google introduces cgroups to Linux kernel (foundation for containers)</li>
+                    <li><strong>2013:</strong> Google runs 2+ billion containers per week</li>
+                    <li><strong>June 7, 2014:</strong> Google open-sources Kubernetes</li>
+                    <li><strong>July 21, 2015:</strong> Kubernetes v1.0 released, donated to CNCF</li>
+                    <li><strong>2017:</strong> Kubernetes becomes the most popular container orchestrator</li>
+                    <li><strong>March 6, 2018:</strong> Kubernetes graduates from CNCF (first project to graduate)</li>
+                    <li><strong>2024:</strong> 96% of organizations use or evaluate Kubernetes</li>
+                </ul>
+            </div>
+
+            <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                <h4 style="color: #90cdf4;">Fun Facts About Kubernetes:</h4>
+                <ul style="line-height: 2;">
+                    <li>🎯 <strong>Name Origin:</strong> "Kubernetes" (κυβερνήτης) is Greek for "helmsman" or "pilot"</li>
+                    <li>🎯 <strong>K8s Abbreviation:</strong> "K" + 8 letters + "s" = K8s (numeronym, like i18n for internationalization)</li>
+                    <li>🎯 <strong>Logo:</strong> The ship's wheel has 7 spokes (original codename: Project Seven)</li>
+                    <li>🎯 <strong>Contributors:</strong> 3,000+ contributors from 100+ companies</li>
+                    <li>🎯 <strong>GitHub Stars:</strong> 100,000+ stars (one of the most starred projects ever)</li>
+                    <li>🎯 <strong>Releases:</strong> New version every 3 months (rapid innovation)</li>
+                    <li>🎯 <strong>Code:</strong> Written primarily in Go (Golang)</li>
+                    <li>🎯 <strong>First Commit:</strong> By Joe Beda on June 6, 2014</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">Industry Adoption Statistics</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="text-align: center; padding: 20px; background: #667eea; border-radius: 8px;">
+                        <h2 style="color: white; margin: 0; font-size: 3rem;">96%</h2>
+                        <p style="color: white; margin: 10px 0 0 0;">Organizations using or evaluating K8s</p>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: #48bb78; border-radius: 8px;">
+                        <h2 style="color: white; margin: 0; font-size: 3rem;">5.6M</h2>
+                        <p style="color: white; margin: 10px 0 0 0;">Developers using Kubernetes</p>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: #ed8936; border-radius: 8px;">
+                        <h2 style="color: white; margin: 0; font-size: 3rem;">$1.8B</h2>
+                        <p style="color: white; margin: 10px 0 0 0;">K8s market size (2024)</p>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: #9f7aea; border-radius: 8px;">
+                        <h2 style="color: white; margin: 0; font-size: 3rem;">31%</h2>
+                        <p style="color: white; margin: 10px 0 0 0;">Production workloads on K8s</p>
+                    </div>
+                </div>
             </div>
 
             <h2>🤔 The Problem: Managing Containers at Scale</h2>
             
             <p>Imagine you're running a modern web application. You've containerized everything using Docker - your frontend, backend APIs, databases, caching layers, and message queues. Life is good... until it's not.</p>
 
+            <h3 style="color: #667eea;">Real-World Scenario: E-Commerce Platform</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <p><strong>Your Setup:</strong></p>
+                <ul>
+                    <li>10 microservices (frontend, auth, catalog, cart, checkout, payment, inventory, shipping, notifications, analytics)</li>
+                    <li>3 databases (PostgreSQL, MongoDB, Redis)</li>
+                    <li>Message queue (RabbitMQ)</li>
+                    <li>5 servers to run everything</li>
+                </ul>
+
+                <p style="margin-top: 20px;"><strong>Monday Morning - Normal Traffic:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Everything running smoothly
+Server 1: frontend (2 instances), auth (1 instance)
+Server 2: catalog (2 instances), cart (1 instance)
+Server 3: checkout (1 instance), payment (1 instance)
+Server 4: inventory (1 instance), shipping (1 instance)
+Server 5: databases and message queue
+
+Total: 10 container instances across 5 servers</code></pre>
+
+                <p style="margin-top: 20px;"><strong>Friday 12 PM - Black Friday Sale Starts:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Traffic increases 50x!
+# You need:
+# - 20 frontend instances (was 2)
+# - 10 catalog instances (was 2)
+# - 8 cart instances (was 1)
+# - 6 checkout instances (was 1)
+# - 4 payment instances (was 1)
+
+# Manual scaling nightmare:
+# 1. SSH into each server
+# 2. Check available resources
+# 3. Manually start containers
+# 4. Update load balancer configuration
+# 5. Hope nothing breaks
+# 6. Repeat for each service
+# 7. Takes 30+ minutes (customers already leaving!)</code></pre>
+
+                <p style="margin-top: 20px;"><strong>Friday 12:15 PM - Payment Service Crashes:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># One payment container crashes due to memory leak
+# You don't know until customers complain
+# You have to:
+# 1. Check monitoring (if you have it)
+# 2. Find which server it was on
+# 3. SSH into that server
+# 4. Manually restart the container
+# 5. 5 minutes of downtime = $50,000 in lost sales</code></pre>
+
+                <p style="margin-top: 20px;"><strong>Friday 3 PM - Need to Deploy Urgent Bug Fix:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Critical bug in checkout service
+# You need to update 6 checkout instances across 3 servers
+# Options:
+# A. Stop all, update, restart (downtime!)
+# B. Rolling update manually (complex, error-prone)
+# C. Blue-green deployment (need double resources)
+# 
+# Any mistake = complete outage during peak sales</code></pre>
+            </div>
+
             <div style="background: #742a2a; color: #fed7d7; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h4 style="color: #fca5a5; margin-top: 0;">❌ Problems Without Orchestration</h4>
-                <ul>
-                    <li><strong>Manual Deployment:</strong> SSH into each server, pull images, start containers</li>
-                    <li><strong>No Auto-Recovery:</strong> Container crashes? You need to manually restart it</li>
-                    <li><strong>Scaling Nightmare:</strong> Traffic spike? Manually start more containers</li>
-                    <li><strong>Load Balancing:</strong> How do requests find the right container?</li>
-                    <li><strong>Updates:</strong> Zero-downtime deployments? Good luck!</li>
-                    <li><strong>Resource Management:</strong> Which server has capacity?</li>
+                <ul style="line-height: 2;">
+                    <li><strong>Manual Deployment:</strong> SSH into each server, pull images, start containers - error-prone and slow</li>
+                    <li><strong>No Auto-Recovery:</strong> Container crashes? You need to manually detect and restart it</li>
+                    <li><strong>Scaling Nightmare:</strong> Traffic spike? Manually start more containers on each server</li>
+                    <li><strong>Load Balancing:</strong> How do requests find the right container? Manual configuration needed</li>
+                    <li><strong>Updates:</strong> Zero-downtime deployments? Requires complex manual orchestration</li>
+                    <li><strong>Resource Management:</strong> Which server has capacity? Manual tracking required</li>
+                    <li><strong>Service Discovery:</strong> Containers get new IPs - how do services find each other?</li>
+                    <li><strong>Configuration Management:</strong> Different configs for each environment - manual sync</li>
+                    <li><strong>Health Monitoring:</strong> Is the container running? Is it healthy? Manual checks</li>
+                    <li><strong>Rollback:</strong> Deployment failed? Manual rollback process</li>
                 </ul>
+            </div>
+
+            <h3 style="color: #667eea;">The Cost of Manual Management</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 15px; text-align: left;">Task</th>
+                            <th style="padding: 15px; text-align: left;">Manual Time</th>
+                            <th style="padding: 15px; text-align: left;">With K8s</th>
+                            <th style="padding: 15px; text-align: left;">Savings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;">Deploy new version</td>
+                            <td style="padding: 15px;">30-60 minutes</td>
+                            <td style="padding: 15px;">2-5 minutes</td>
+                            <td style="padding: 15px;">90% faster</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;">Scale up/down</td>
+                            <td style="padding: 15px;">15-30 minutes</td>
+                            <td style="padding: 15px;">30 seconds</td>
+                            <td style="padding: 15px;">95% faster</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;">Recover from crash</td>
+                            <td style="padding: 15px;">5-15 minutes</td>
+                            <td style="padding: 15px;">Automatic (seconds)</td>
+                            <td style="padding: 15px;">99% faster</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;">Rollback deployment</td>
+                            <td style="padding: 15px;">20-40 minutes</td>
+                            <td style="padding: 15px;">1 minute</td>
+                            <td style="padding: 15px;">95% faster</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 15px;"><strong>Total per day</strong></td>
+                            <td style="padding: 15px;"><strong>2-4 hours</strong></td>
+                            <td style="padding: 15px;"><strong>10-20 minutes</strong></td>
+                            <td style="padding: 15px;"><strong>90% time saved</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <h2>🚀 Enter Kubernetes: The Container Orchestrator</h2>
 
             <p><strong>Kubernetes (K8s)</strong> is an open-source container orchestration platform that automates the deployment, scaling, and management of containerized applications.</p>
 
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                <h3 style="color: #90cdf4; margin-top: 0;">🎯 Complete Definition</h3>
+                <p style="font-size: 1.1rem; line-height: 1.8;">Kubernetes is a <strong>portable, extensible, open-source platform</strong> for managing containerized workloads and services, that facilitates both <strong>declarative configuration</strong> and <strong>automation</strong>. It has a large, rapidly growing ecosystem. Kubernetes services, support, and tools are widely available.</p>
+            </div>
+
+            <h3 style="color: #667eea;">What Makes Kubernetes Special?</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">1. Declarative Configuration</h4>
+                <p>You tell Kubernetes <strong>what you want</strong> (desired state), not <strong>how to do it</strong> (imperative commands).</p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Imperative (traditional way)
+$ ssh server1
+$ docker run -d --name web1 nginx:1.21
+$ ssh server2
+$ docker run -d --name web2 nginx:1.21
+# ... repeat for each server
+
+# Declarative (Kubernetes way)
+$ kubectl apply -f deployment.yaml
+# Kubernetes figures out how to achieve the desired state</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">2. Desired State Management</h4>
+                <p>Kubernetes continuously monitors the actual state and works to match your desired state.</p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># You declare: "I want 3 replicas of my app"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3  # Desired state
+  template:
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:1.0
+
+# Kubernetes ensures:
+# - If 1 pod crashes → starts a new one
+# - If you scale to 5 → starts 2 more
+# - If you scale to 1 → stops 2
+# - Continuously reconciles actual vs desired</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">3. Control Loop (Reconciliation)</h4>
+                <p>The heart of Kubernetes is the control loop that constantly works to reconcile state.</p>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.9rem;"><code>┌─────────────────────────────────────────────────────────┐
+│              Kubernetes Control Loop                     │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  1. Observe: What is the current state?         │  │
+│  │     - How many pods are running?                 │  │
+│  │     - Are they healthy?                          │  │
+│  │     - What resources are available?              │  │
+│  └──────────────────┬───────────────────────────────┘  │
+│                     │                                   │
+│                     ▼                                   │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  2. Diff: Compare current vs desired state      │  │
+│  │     - Desired: 3 replicas                        │  │
+│  │     - Current: 2 replicas                        │  │
+│  │     - Difference: Need 1 more                    │  │
+│  └──────────────────┬───────────────────────────────┘  │
+│                     │                                   │
+│                     ▼                                   │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  3. Act: Take action to match desired state     │  │
+│  │     - Schedule new pod                           │  │
+│  │     - Start container                            │  │
+│  │     - Update load balancer                       │  │
+│  └──────────────────┬───────────────────────────────┘  │
+│                     │                                   │
+│                     └───────────┐                       │
+│                                 │                       │
+│                     ┌───────────▼─────────────┐        │
+│                     │  Repeat continuously    │        │
+│                     │  (every few seconds)    │        │
+│                     └─────────────────────────┘        │
+└─────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+            </div>
+
             <div style="background: #1c4532; color: #9ae6b4; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h4 style="color: #9ae6b4; margin-top: 0;">✅ What Kubernetes Does</h4>
-                <ul>
-                    <li><strong>Automated Deployment:</strong> Declare desired state, K8s makes it happen</li>
-                    <li><strong>Self-Healing:</strong> Container dies? K8s automatically restarts it</li>
-                    <li><strong>Auto-Scaling:</strong> Automatically scale based on CPU/memory/custom metrics</li>
-                    <li><strong>Service Discovery:</strong> Built-in DNS and load balancing</li>
-                    <li><strong>Rolling Updates:</strong> Zero-downtime deployments with automatic rollback</li>
-                    <li><strong>Resource Optimization:</strong> Intelligent scheduling across your cluster</li>
+                <h4 style="color: #9ae6b4; margin-top: 0;">✅ What Kubernetes Does For You</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Automated Deployment:</strong> Declare desired state, K8s makes it happen across your cluster</li>
+                    <li><strong>Self-Healing:</strong> Container dies? K8s automatically restarts it on a healthy node</li>
+                    <li><strong>Auto-Scaling:</strong> Automatically scale based on CPU/memory/custom metrics (HPA, VPA)</li>
+                    <li><strong>Service Discovery & Load Balancing:</strong> Built-in DNS and automatic load balancing</li>
+                    <li><strong>Rolling Updates:</strong> Zero-downtime deployments with automatic rollback on failure</li>
+                    <li><strong>Resource Optimization:</strong> Intelligent scheduling based on resource requirements</li>
+                    <li><strong>Storage Orchestration:</strong> Automatically mount storage systems (local, cloud, network)</li>
+                    <li><strong>Secret & Configuration Management:</strong> Securely manage sensitive data</li>
+                    <li><strong>Batch Execution:</strong> Run batch and CI workloads, replacing failed containers</li>
+                    <li><strong>Horizontal Scaling:</strong> Scale your application up/down with a simple command</li>
+                    <li><strong>IPv4/IPv6 Dual-Stack:</strong> Support for both IP protocols</li>
+                    <li><strong>Designed for Extensibility:</strong> Add features without modifying core code</li>
                 </ul>
             </div>
 
-            <h2>📦 Containers vs Virtual Machines</h2>
+            <h3 style="color: #667eea;">The Same Scenario with Kubernetes</h3>
 
-            <p>Before diving deeper into Kubernetes, let's understand what we're orchestrating.</p>
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <p><strong>Monday Morning - Normal Traffic:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 2  # Start with 2 instances
+  template:
+    spec:
+      containers:
+      - name: frontend
+        image: myapp/frontend:1.0
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+
+# Apply once
+$ kubectl apply -f deployment.yaml
+# Kubernetes handles everything: scheduling, networking, monitoring</code></pre>
+
+                <p style="margin-top: 20px;"><strong>Friday 12 PM - Black Friday Sale Starts:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Option 1: Manual scaling (instant)
+$ kubectl scale deployment frontend --replicas=20
+# Done in 30 seconds!
+
+# Option 2: Automatic scaling (set it and forget it)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  minReplicas: 2
+  maxReplicas: 50
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+# Kubernetes automatically scales from 2 to 50 based on CPU usage!</code></pre>
+
+                <p style="margin-top: 20px;"><strong>Friday 12:15 PM - Payment Service Crashes:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Kubernetes detects the crash automatically
+# Restarts the container within seconds
+# No manual intervention needed!
+
+# You can see it in the events:
+$ kubectl get events
+LAST SEEN   TYPE      REASON      MESSAGE
+30s         Warning   Unhealthy   Liveness probe failed
+25s         Normal    Killing     Container payment failed liveness probe
+20s         Normal    Pulling     Pulling image "myapp/payment:1.0"
+15s         Normal    Pulled      Successfully pulled image
+10s         Normal    Created     Created container payment
+5s          Normal    Started     Started container payment
+
+# Total downtime: ~15 seconds (vs 5 minutes manual)</code></pre>
+
+                <p style="margin-top: 20px;"><strong>Friday 3 PM - Deploy Urgent Bug Fix:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Update the image version
+$ kubectl set image deployment/checkout checkout=myapp/checkout:1.1
+
+# Kubernetes performs rolling update automatically:
+# 1. Starts new pod with v1.1
+# 2. Waits for it to be healthy
+# 3. Stops one old pod with v1.0
+# 4. Repeats until all pods are updated
+# 5. Zero downtime!
+
+# If something goes wrong, rollback instantly:
+$ kubectl rollout undo deployment/checkout
+
+# Done in 2 minutes with zero downtime!</code></pre>
+            </div>
+
+            <h2>📦 Containers vs Virtual Machines: Deep Dive</h2>
+
+            <p>Before diving deeper into Kubernetes, let's understand what we're orchestrating. Containers are the foundation of Kubernetes, so understanding them thoroughly is crucial.</p>
+
+            <h3 style="color: #667eea;">What Are Containers?</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <p style="font-size: 1.1rem; line-height: 1.8;">A <strong>container</strong> is a lightweight, standalone, executable package that includes everything needed to run a piece of software: code, runtime, system tools, libraries, and settings. Containers isolate software from its environment and ensure it works uniformly despite differences in infrastructure.</p>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Key Container Technologies:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Namespaces:</strong> Isolate process trees, network, users, mounts, and IPC</li>
+                    <li><strong>Cgroups (Control Groups):</strong> Limit and isolate resource usage (CPU, memory, disk I/O)</li>
+                    <li><strong>Union File Systems:</strong> Layer file systems for efficient storage</li>
+                    <li><strong>Container Runtime:</strong> Software that runs containers (Docker, containerd, CRI-O)</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">Visual Comparison: VMs vs Containers</h3>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
                 <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px;">
                     <h3 style="color: #90cdf4; margin-top: 0;">🖥️ Virtual Machines</h3>
-                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; font-size: 0.85rem;"><code>┌─────────────────────┐
-│   Application A     │
-├─────────────────────┤
-│   Guest OS (Linux)  │
-├─────────────────────┤
-│   Hypervisor        │
-├─────────────────────┤
-│   Host OS           │
-├─────────────────────┤
-│   Physical Server   │
-└─────────────────────┘</code></pre>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; font-size: 0.85rem;"><code>┌─────────────────────────────┐
+│   App A   │   App B   │ App C│
+├───────────┴───────────┴──────┤
+│   Bins/Libs │ Bins/Libs │ ... │
+├───────────┬───────────┬──────┤
+│ Guest OS  │ Guest OS  │Guest │
+│  (Linux)  │ (Windows) │ OS   │
+├───────────┴───────────┴──────┤
+│       Hypervisor             │
+│    (VMware, KVM, Hyper-V)    │
+├──────────────────────────────┤
+│       Host OS (Linux)        │
+├──────────────────────────────┤
+│     Physical Hardware        │
+│  (CPU, Memory, Disk, Network)│
+└──────────────────────────────┘
+
+Size: 10-100 GB per VM
+Boot: 30-60 seconds
+Memory: 512 MB - 8 GB per VM</code></pre>
                     <p><strong>Pros:</strong></p>
-                    <ul style="font-size: 0.9rem;">
-                        <li>Complete isolation</li>
-                        <li>Run different OS</li>
+                    <ul style="font-size: 0.9rem; line-height: 1.8;">
+                        <li>Complete isolation (separate kernel)</li>
+                        <li>Run different operating systems</li>
+                        <li>Strong security boundaries</li>
+                        <li>Mature technology</li>
                     </ul>
                     <p><strong>Cons:</strong></p>
-                    <ul style="font-size: 0.9rem;">
-                        <li>Heavy (GBs)</li>
+                    <ul style="font-size: 0.9rem; line-height: 1.8;">
+                        <li>Heavy (GBs per VM)</li>
                         <li>Slow startup (minutes)</li>
                         <li>Resource intensive</li>
+                        <li>Lower density (fewer VMs per host)</li>
                     </ul>
                 </div>
 
                 <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px;">
                     <h3 style="color: #90cdf4; margin-top: 0;">📦 Containers</h3>
-                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; font-size: 0.85rem;"><code>┌─────────────────────┐
-│   Application A     │
-├─────────────────────┤
-│   Container Runtime │
-├─────────────────────┤
-│   Host OS (Linux)   │
-├─────────────────────┤
-│   Physical Server   │
-└─────────────────────┘</code></pre>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; font-size: 0.85rem;"><code>┌─────────────────────────────┐
+│   App A   │   App B   │ App C│
+├───────────┼───────────┼──────┤
+│ Bins/Libs │ Bins/Libs │Bins/ │
+│           │           │Libs  │
+├───────────┴───────────┴──────┤
+│    Container Runtime         │
+│  (Docker, containerd, CRI-O) │
+├──────────────────────────────┤
+│       Host OS (Linux)        │
+│    (Shared Kernel)           │
+├──────────────────────────────┤
+│     Physical Hardware        │
+│  (CPU, Memory, Disk, Network)│
+└──────────────────────────────┘
+
+Size: 10-500 MB per container
+Boot: 1-5 seconds
+Memory: 10 MB - 1 GB per container</code></pre>
                     <p><strong>Pros:</strong></p>
-                    <ul style="font-size: 0.9rem;">
+                    <ul style="font-size: 0.9rem; line-height: 1.8;">
                         <li>Lightweight (MBs)</li>
                         <li>Fast startup (seconds)</li>
                         <li>Efficient resource use</li>
+                        <li>High density (100s per host)</li>
+                        <li>Portable across environments</li>
                     </ul>
                     <p><strong>Cons:</strong></p>
-                    <ul style="font-size: 0.9rem;">
+                    <ul style="font-size: 0.9rem; line-height: 1.8;">
                         <li>Share host kernel</li>
                         <li>Less isolation than VMs</li>
+                        <li>Must run same OS family</li>
                     </ul>
                 </div>
+            </div>
+
+            <h3 style="color: #667eea;">Detailed Comparison Table</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 15px; text-align: left;">Aspect</th>
+                            <th style="padding: 15px; text-align: left;">Virtual Machines</th>
+                            <th style="padding: 15px; text-align: left;">Containers</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Size</strong></td>
+                            <td style="padding: 15px;">10-100 GB (includes full OS)</td>
+                            <td style="padding: 15px;">10-500 MB (only app + dependencies)</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Startup Time</strong></td>
+                            <td style="padding: 15px;">30-60 seconds (boot full OS)</td>
+                            <td style="padding: 15px;">1-5 seconds (start process)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Performance</strong></td>
+                            <td style="padding: 15px;">Near-native (small overhead)</td>
+                            <td style="padding: 15px;">Native (no virtualization overhead)</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Isolation</strong></td>
+                            <td style="padding: 15px;">Complete (separate kernel)</td>
+                            <td style="padding: 15px;">Process-level (shared kernel)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Density</strong></td>
+                            <td style="padding: 15px;">10-20 VMs per host</td>
+                            <td style="padding: 15px;">100-1000 containers per host</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>OS Support</strong></td>
+                            <td style="padding: 15px;">Any OS (Linux, Windows, BSD)</td>
+                            <td style="padding: 15px;">Same OS family as host</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Portability</strong></td>
+                            <td style="padding: 15px;">Moderate (VM images are large)</td>
+                            <td style="padding: 15px;">High (container images are small)</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Resource Usage</strong></td>
+                            <td style="padding: 15px;">High (full OS overhead)</td>
+                            <td style="padding: 15px;">Low (minimal overhead)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Security</strong></td>
+                            <td style="padding: 15px;">Strong (kernel isolation)</td>
+                            <td style="padding: 15px;">Good (namespace isolation)</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02);">
+                            <td style="padding: 15px;"><strong>Best For</strong></td>
+                            <td style="padding: 15px;">Legacy apps, different OS, strong isolation</td>
+                            <td style="padding: 15px;">Microservices, cloud-native, CI/CD</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="color: #667eea;">How Containers Work: Under the Hood</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">1. Linux Namespaces (Isolation)</h4>
+                <p>Namespaces provide isolation for different system resources:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>PID Namespace:</strong> Process isolation (each container sees its own process tree)</li>
+                    <li><strong>Network Namespace:</strong> Network isolation (own IP, routing tables, ports)</li>
+                    <li><strong>Mount Namespace:</strong> Filesystem isolation (own root filesystem)</li>
+                    <li><strong>UTS Namespace:</strong> Hostname isolation (own hostname)</li>
+                    <li><strong>IPC Namespace:</strong> Inter-process communication isolation</li>
+                    <li><strong>User Namespace:</strong> User ID isolation (root in container ≠ root on host)</li>
+                </ul>
+
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code># Example: View namespaces for a process
+$ ls -la /proc/$$/ns
+lrwxrwxrwx 1 root root 0 cgroup -> 'cgroup:[4026531835]'
+lrwxrwxrwx 1 root root 0 ipc -> 'ipc:[4026531839]'
+lrwxrwxrwx 1 root root 0 mnt -> 'mnt:[4026531840]'
+lrwxrwxrwx 1 root root 0 net -> 'net:[4026531992]'
+lrwxrwxrwx 1 root root 0 pid -> 'pid:[4026531836]'
+lrwxrwxrwx 1 root root 0 user -> 'user:[4026531837]'
+lrwxrwxrwx 1 root root 0 uts -> 'uts:[4026531838]'</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">2. Cgroups (Resource Limits)</h4>
+                <p>Control Groups limit and monitor resource usage:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>CPU:</strong> Limit CPU usage (e.g., 50% of one core)</li>
+                    <li><strong>Memory:</strong> Limit RAM usage (e.g., max 512 MB)</li>
+                    <li><strong>Disk I/O:</strong> Limit read/write operations</li>
+                    <li><strong>Network:</strong> Limit bandwidth</li>
+                </ul>
+
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code># Example: Docker uses cgroups
+$ docker run -d --name limited \
+  --cpus="0.5" \          # Limit to 50% of one CPU
+  --memory="512m" \       # Limit to 512 MB RAM
+  --memory-swap="1g" \    # Limit swap to 1 GB
+  nginx
+
+# View cgroup settings
+$ cat /sys/fs/cgroup/cpu/docker/<container-id>/cpu.cfs_quota_us
+$ cat /sys/fs/cgroup/memory/docker/<container-id>/memory.limit_in_bytes</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">3. Union File Systems (Layered Storage)</h4>
+                <p>Containers use layered file systems for efficiency:</p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code># Container image layers (read-only)
+┌─────────────────────────────────┐
+│  Layer 4: Your App (10 MB)     │  ← Your application code
+├─────────────────────────────────┤
+│  Layer 3: Dependencies (50 MB) │  ← npm/pip packages
+├─────────────────────────────────┤
+│  Layer 2: Runtime (100 MB)     │  ← Node.js/Python
+├─────────────────────────────────┤
+│  Layer 1: Base OS (80 MB)      │  ← Ubuntu/Alpine
+└─────────────────────────────────┘
+         ↓ (Union mount)
+┌─────────────────────────────────┐
+│  Container Writable Layer       │  ← Changes made at runtime
+└─────────────────────────────────┘
+
+# Multiple containers share base layers!
+Container A, B, C all use same base layers → saves disk space</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">Container Runtimes Explained</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <p>A container runtime is the software that actually runs containers. Kubernetes supports multiple runtimes through the Container Runtime Interface (CRI).</p>
+
+                <h4 style="color: #90cdf4;">Popular Container Runtimes:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>containerd:</strong> Industry-standard runtime (used by Docker, Kubernetes)</li>
+                    <li><strong>CRI-O:</strong> Lightweight runtime designed specifically for Kubernetes</li>
+                    <li><strong>Docker:</strong> Complete platform (includes runtime, CLI, registry)</li>
+                    <li><strong>rkt (deprecated):</strong> CoreOS container runtime</li>
+                </ul>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <h4 style="color: #90cdf4;">Container Runtime Layers:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>┌──────────────────────────────────────┐
+│         Kubernetes                    │  ← Orchestration
+├──────────────────────────────────────┤
+│         CRI (Container Runtime        │  ← Standard interface
+│         Interface)                    │
+├──────────────────────────────────────┤
+│    containerd / CRI-O / Docker       │  ← High-level runtime
+├──────────────────────────────────────┤
+│         runc / kata-runtime          │  ← Low-level runtime
+├──────────────────────────────────────┤
+│    Linux Kernel (namespaces,        │  ← OS-level features
+│    cgroups, capabilities)            │
+└──────────────────────────────────────┘</code></pre>
+                </div>
+            </div>
+
+            <h3 style="color: #667eea;">When to Use VMs vs Containers</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">Use Virtual Machines When:</h4>
+                <ul style="line-height: 2;">
+                    <li>✅ Need to run different operating systems (Linux + Windows)</li>
+                    <li>✅ Require strong isolation for security/compliance</li>
+                    <li>✅ Running legacy applications that can't be containerized</li>
+                    <li>✅ Need full OS control (kernel modules, system services)</li>
+                    <li>✅ Multi-tenancy with untrusted workloads</li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Use Containers When:</h4>
+                <ul style="line-height: 2;">
+                    <li>✅ Building microservices architectures</li>
+                    <li>✅ Need fast startup and scaling</li>
+                    <li>✅ Running cloud-native applications</li>
+                    <li>✅ CI/CD pipelines and testing</li>
+                    <li>✅ Maximizing resource utilization</li>
+                    <li>✅ Portable deployments across environments</li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Hybrid Approach (Best of Both):</h4>
+                <p>Many organizations run containers inside VMs:</p>
+                <ul style="line-height: 2;">
+                    <li>VMs provide strong isolation and security boundaries</li>
+                    <li>Containers provide density and fast deployment</li>
+                    <li>Example: Kubernetes nodes are VMs running many containers</li>
+                </ul>
             </div>
 
             <h2>🎭 Why Container Orchestration?</h2>
 
             <p>Running a few containers manually is manageable. But what happens when you have:</p>
 
-            <ul>
+            <ul style="line-height: 2; font-size: 1.05rem;">
                 <li>100+ microservices</li>
                 <li>1000+ container instances</li>
-                <li>Multiple data centers</li>
+                <li>Multiple data centers or cloud regions</li>
                 <li>24/7 availability requirements</li>
+                <li>Frequent deployments (10+ per day)</li>
+                <li>Auto-scaling based on demand</li>
             </ul>
 
             <p>You need orchestration!</p>
 
+            <h3 style="color: #667eea;">What is Container Orchestration?</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <p style="font-size: 1.1rem; line-height: 1.8;"><strong>Container orchestration</strong> is the automated arrangement, coordination, and management of software containers. It handles the entire lifecycle of containers - from deployment to scaling to networking to availability.</p>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Think of it like a conductor of an orchestra:</h4>
+                <ul style="line-height: 2;">
+                    <li>🎻 <strong>Musicians = Containers:</strong> Each plays their part</li>
+                    <li>🎼 <strong>Sheet Music = Configuration:</strong> Defines what should happen</li>
+                    <li>🎭 <strong>Conductor = Orchestrator:</strong> Coordinates everything</li>
+                    <li>🎵 <strong>Symphony = Application:</strong> The final result</li>
+                </ul>
+            </div>
+
             <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
-                <h3 style="color: #90cdf4; margin-top: 0;">🎯 Orchestration Capabilities</h3>
+                <h3 style="color: #90cdf4; margin-top: 0;">🎯 Core Orchestration Capabilities</h3>
                 
-                <h4 style="color: #90cdf4;">1. Scheduling</h4>
-                <p>Decides which server (node) should run each container based on resource requirements and constraints.</p>
+                <h4 style="color: #90cdf4;">1. Scheduling & Placement</h4>
+                <p>Decides which server (node) should run each container based on:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Resource Requirements:</strong> CPU, memory, disk, GPU</li>
+                    <li><strong>Constraints:</strong> Node labels, taints, tolerations</li>
+                    <li><strong>Affinity Rules:</strong> Run near or away from other containers</li>
+                    <li><strong>Resource Availability:</strong> Which nodes have capacity</li>
+                </ul>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;"><code># Example: Kubernetes scheduling decision
+Container needs: 500m CPU, 1GB RAM
+Node 1: 200m CPU available ❌ Not enough
+Node 2: 800m CPU available ✅ Can fit
+Node 3: 1000m CPU available ✅ Can fit (best choice)
+→ Schedule on Node 3</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">2. Scaling (Horizontal & Vertical)</h4>
+                <p>Automatically increases or decreases resources based on demand:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Horizontal Pod Autoscaler (HPA):</strong> Add/remove container instances</li>
+                    <li><strong>Vertical Pod Autoscaler (VPA):</strong> Adjust CPU/memory limits</li>
+                    <li><strong>Cluster Autoscaler:</strong> Add/remove nodes</li>
+                </ul>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;"><code># Horizontal scaling example
+Normal load: 3 replicas (CPU: 30%)
+High load: CPU reaches 70% → Scale to 6 replicas
+Very high load: CPU still 70% → Scale to 12 replicas
+Load decreases: CPU drops to 30% → Scale down to 3 replicas
+
+# All automatic, no manual intervention!</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">3. Self-Healing & High Availability</h4>
+                <p>Monitors container health and automatically replaces failed instances:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Liveness Probes:</strong> Is the container alive?</li>
+                    <li><strong>Readiness Probes:</strong> Is it ready to serve traffic?</li>
+                    <li><strong>Startup Probes:</strong> Has it started successfully?</li>
+                    <li><strong>Automatic Restart:</strong> Failed containers are restarted</li>
+                    <li><strong>Rescheduling:</strong> If node fails, containers move to healthy nodes</li>
+                </ul>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;"><code># Self-healing in action
+12:00:00 - Container running normally
+12:00:30 - Liveness probe fails (app crashed)
+12:00:35 - Kubernetes detects failure
+12:00:36 - Kubernetes kills container
+12:00:37 - Kubernetes starts new container
+12:00:42 - New container passes health checks
+12:00:43 - Traffic resumes
+Total downtime: ~13 seconds (vs minutes manually)</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">4. Load Balancing & Service Discovery</h4>
+                <p>Distributes traffic across multiple container instances:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Internal Load Balancing:</strong> Between services in cluster</li>
+                    <li><strong>External Load Balancing:</strong> From internet to services</li>
+                    <li><strong>DNS-based Discovery:</strong> Services find each other by name</li>
+                    <li><strong>Health-aware Routing:</strong> Only send traffic to healthy containers</li>
+                </ul>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;"><code># Service discovery example
+# Frontend needs to call backend
+# Instead of hardcoding IPs:
+http://10.244.1.5:8080  ❌ IP changes when container restarts
+
+# Use service name:
+http://backend-service:8080  ✅ Always works
+# Kubernetes DNS resolves to healthy backend pods</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">5. Rolling Updates & Rollbacks</h4>
+                <p>Deploy new versions without downtime:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Rolling Update:</strong> Gradually replace old with new</li>
+                    <li><strong>Blue-Green:</strong> Switch traffic from old to new</li>
+                    <li><strong>Canary:</strong> Test new version with small % of traffic</li>
+                    <li><strong>Automatic Rollback:</strong> Revert if new version fails</li>
+                </ul>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;"><code># Rolling update process
+Step 1: 3 pods running v1.0
+Step 2: Start 1 pod with v1.1, wait for health check
+Step 3: Stop 1 pod with v1.0 (now: 2 v1.0, 1 v1.1)
+Step 4: Start 1 pod with v1.1, wait for health check
+Step 5: Stop 1 pod with v1.0 (now: 1 v1.0, 2 v1.1)
+Step 6: Start 1 pod with v1.1, wait for health check
+Step 7: Stop last pod with v1.0 (now: 3 v1.1)
+Result: Zero downtime deployment!</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">6. Configuration & Secret Management</h4>
+                <p>Centralized management of application configuration:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>ConfigMaps:</strong> Non-sensitive configuration data</li>
+                    <li><strong>Secrets:</strong> Sensitive data (passwords, tokens, keys)</li>
+                    <li><strong>Environment Variables:</strong> Inject config into containers</li>
+                    <li><strong>Volume Mounts:</strong> Mount config as files</li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">7. Storage Orchestration</h4>
+                <p>Automatically mount storage systems:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Local Storage:</strong> Node-local disks</li>
+                    <li><strong>Network Storage:</strong> NFS, iSCSI, Ceph</li>
+                    <li><strong>Cloud Storage:</strong> AWS EBS, Azure Disk, GCP PD</li>
+                    <li><strong>Dynamic Provisioning:</strong> Auto-create volumes on demand</li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">8. Resource Management</h4>
+                <p>Efficient utilization of cluster resources:</p>
+                <ul style="line-height: 2;">
+                    <li><strong>Resource Requests:</strong> Guaranteed resources</li>
+                    <li><strong>Resource Limits:</strong> Maximum resources</li>
+                    <li><strong>Quality of Service:</strong> Priority classes</li>
+                    <li><strong>Resource Quotas:</strong> Limits per namespace/team</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">Orchestration vs Configuration Management</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <p>People often confuse orchestration with configuration management tools. Here's the difference:</p>
                 
-                <h4 style="color: #90cdf4;">2. Scaling</h4>
-                <p>Automatically increases or decreases the number of container instances based on demand.</p>
-                
-                <h4 style="color: #90cdf4;">3. Self-Healing</h4>
-                <p>Monitors container health and automatically replaces failed instances.</p>
-                
-                <h4 style="color: #90cdf4;">4. Load Balancing</h4>
-                <p>Distributes traffic across multiple container instances.</p>
-                
-                <h4 style="color: #90cdf4;">5. Service Discovery</h4>
-                <p>Containers can find and communicate with each other automatically.</p>
-                
-                <h4 style="color: #90cdf4;">6. Configuration Management</h4>
-                <p>Centralized management of application configuration and secrets.</p>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 15px; text-align: left;">Aspect</th>
+                            <th style="padding: 15px; text-align: left;">Configuration Management<br/>(Ansible, Chef, Puppet)</th>
+                            <th style="padding: 15px; text-align: left;">Container Orchestration<br/>(Kubernetes)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Purpose</strong></td>
+                            <td style="padding: 15px;">Configure servers and install software</td>
+                            <td style="padding: 15px;">Manage container lifecycle</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Scope</strong></td>
+                            <td style="padding: 15px;">Server-level (OS, packages, files)</td>
+                            <td style="padding: 15px;">Application-level (containers, services)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>Execution</strong></td>
+                            <td style="padding: 15px;">Push-based or pull-based</td>
+                            <td style="padding: 15px;">Continuous reconciliation</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;"><strong>State</strong></td>
+                            <td style="padding: 15px;">Desired state at execution time</td>
+                            <td style="padding: 15px;">Continuously maintained desired state</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 15px;"><strong>Use Together?</strong></td>
+                            <td style="padding: 15px;" colspan="2">Yes! Use Ansible to provision K8s nodes, K8s to manage containers</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <h2>⚔️ Kubernetes vs Other Orchestrators</h2>
