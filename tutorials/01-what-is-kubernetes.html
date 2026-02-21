@@ -984,36 +984,301 @@ Result: Zero downtime deployment!</code></pre>
                 </tbody>
             </table>
 
-            <h2>🌍 Real-World Use Cases</h2>
+            <h2>🌍 Real-World Use Cases: Kubernetes in Action</h2>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 30px 0;">
-                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <h3 style="color: #667eea;">🛒 E-Commerce Platform</h3>
-                    <p><strong>Challenge:</strong> Handle Black Friday traffic spikes</p>
-                    <p><strong>Solution:</strong> Auto-scale from 10 to 1000 pods based on traffic</p>
-                    <p><strong>Result:</strong> Zero downtime, 99.99% availability</p>
-                </div>
+            <p>Kubernetes is used by companies of all sizes across every industry. Let's explore detailed use cases to understand how Kubernetes solves real business problems.</p>
 
-                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <h3 style="color: #667eea;">🎬 Netflix</h3>
-                    <p><strong>Challenge:</strong> Manage 1000+ microservices globally</p>
-                    <p><strong>Solution:</strong> K8s for container orchestration across regions</p>
-                    <p><strong>Result:</strong> Rapid deployments, improved reliability</p>
-                </div>
+            <h3 style="color: #667eea;">1. E-Commerce: Handling Traffic Spikes</h3>
 
-                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <h3 style="color: #667eea;">🏦 Financial Services</h3>
-                    <p><strong>Challenge:</strong> Secure, compliant infrastructure</p>
-                    <p><strong>Solution:</strong> K8s with RBAC, network policies, secrets management</p>
-                    <p><strong>Result:</strong> PCI-DSS compliant, secure multi-tenancy</p>
-                </div>
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">Company: Major Online Retailer</h4>
+                <p><strong>Challenge:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>Normal traffic: 10,000 requests/second</li>
+                    <li>Black Friday: 500,000 requests/second (50x increase)</li>
+                    <li>Traffic spike happens in minutes</li>
+                    <li>Downtime costs $100,000/minute</li>
+                </ul>
 
-                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <h3 style="color: #667eea;">🤖 Machine Learning</h3>
-                    <p><strong>Challenge:</strong> Run GPU-intensive training jobs</p>
-                    <p><strong>Solution:</strong> K8s Jobs with GPU scheduling</p>
-                    <p><strong>Result:</strong> Efficient resource utilization, faster training</p>
-                </div>
+                <p><strong>Solution with Kubernetes:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Horizontal Pod Autoscaler configuration
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  minReplicas: 10      # Normal traffic
+  maxReplicas: 1000    # Black Friday traffic
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+# Kubernetes automatically scales from 10 to 1000 pods in minutes!</code></pre>
+
+                <p><strong>Results:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>✅ Zero downtime during Black Friday</li>
+                    <li>✅ 99.99% availability maintained</li>
+                    <li>✅ Automatic scale-down after peak (cost savings)</li>
+                    <li>✅ $50M in sales during peak hours</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">2. Streaming: Global Content Delivery</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">Company: Video Streaming Platform (Netflix-style)</h4>
+                <p><strong>Challenge:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>1000+ microservices</li>
+                    <li>Deployed across 20+ regions globally</li>
+                    <li>Need to deploy 50+ times per day</li>
+                    <li>Zero-downtime requirement</li>
+                    <li>Different versions in different regions</li>
+                </ul>
+
+                <p><strong>Architecture:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>┌─────────────────────────────────────────────────────────┐
+│                   Global Architecture                    │
+│                                                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
+│  │  US-East     │  │  EU-West     │  │  Asia-Pacific│ │
+│  │  K8s Cluster │  │  K8s Cluster │  │  K8s Cluster │ │
+│  │              │  │              │  │              │ │
+│  │  • API       │  │  • API       │  │  • API       │ │
+│  │  • Streaming │  │  • Streaming │  │  • Streaming │ │
+│  │  • Encoding  │  │  • Encoding  │  │  • Encoding  │ │
+│  │  • CDN       │  │  • CDN       │  │  • CDN       │ │
+│  └──────────────┘  └──────────────┘  └──────────────┘ │
+│         │                  │                  │         │
+│         └──────────────────┴──────────────────┘         │
+│                            │                            │
+│                   ┌────────▼────────┐                   │
+│                   │  Central GitOps │                   │
+│                   │  (ArgoCD/Flux)  │                   │
+│                   └─────────────────┘                   │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+                <p><strong>Results:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>✅ Deploy new features 50+ times/day</li>
+                    <li>✅ Canary deployments (test with 1% of users first)</li>
+                    <li>✅ Automatic rollback on errors</li>
+                    <li>✅ 99.95% uptime globally</li>
+                    <li>✅ Reduced deployment time from hours to minutes</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">3. Financial Services: Security & Compliance</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">Company: Global Bank</h4>
+                <p><strong>Challenge:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>PCI-DSS compliance required</li>
+                    <li>Multi-tenant architecture (different business units)</li>
+                    <li>Strict security requirements</li>
+                    <li>Audit logging for all operations</li>
+                    <li>Data residency requirements (data must stay in specific regions)</li>
+                </ul>
+
+                <p><strong>Kubernetes Security Features Used:</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>RBAC:</strong> Role-based access control for teams</li>
+                    <li><strong>Network Policies:</strong> Isolate services (payment service can't talk to marketing)</li>
+                    <li><strong>Pod Security Policies:</strong> Enforce security standards</li>
+                    <li><strong>Secrets Management:</strong> Encrypted storage for credentials</li>
+                    <li><strong>Audit Logging:</strong> Track all API calls</li>
+                    <li><strong>Image Scanning:</strong> Scan containers for vulnerabilities</li>
+                </ul>
+
+                <p><strong>Results:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>✅ PCI-DSS compliant infrastructure</li>
+                    <li>✅ Passed security audits</li>
+                    <li>✅ Reduced security incidents by 80%</li>
+                    <li>✅ Faster time to market for new features</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">4. Machine Learning: GPU Workloads</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">Company: AI Research Lab</h4>
+                <p><strong>Challenge:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>Train large ML models (takes days/weeks)</li>
+                    <li>Expensive GPU resources ($10,000+/month per GPU)</li>
+                    <li>Need to maximize GPU utilization</li>
+                    <li>Multiple teams sharing resources</li>
+                    <li>Experiment tracking and reproducibility</li>
+                </ul>
+
+                <p><strong>Solution:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ML Training Job with GPU
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-model-v1
+spec:
+  template:
+    spec:
+      containers:
+      - name: trainer
+        image: ml-trainer:1.0
+        resources:
+          limits:
+            nvidia.com/gpu: 4  # Request 4 GPUs
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
+        - name: model-output
+          mountPath: /output
+      restartPolicy: OnFailure
+      nodeSelector:
+        gpu-type: nvidia-a100  # Use specific GPU type</code></pre>
+
+                <p><strong>Results:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>✅ GPU utilization increased from 40% to 85%</li>
+                    <li>✅ Cost savings: $50,000/month</li>
+                    <li>✅ Faster experimentation (run 10 experiments in parallel)</li>
+                    <li>✅ Automatic cleanup of completed jobs</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">5. Gaming: Real-Time Multiplayer</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">Company: Online Gaming Platform</h4>
+                <p><strong>Challenge:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>Spin up game servers on-demand</li>
+                    <li>Low latency requirements (<50ms)</li>
+                    <li>Scale from 100 to 10,000 game servers in minutes</li>
+                    <li>Each game server is stateful (player session)</li>
+                    <li>Graceful shutdown (don't disconnect players mid-game)</li>
+                </ul>
+
+                <p><strong>Results:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>✅ Spin up new game server in 5 seconds</li>
+                    <li>✅ Auto-scale based on player demand</li>
+                    <li>✅ Graceful shutdown (wait for game to finish)</li>
+                    <li>✅ 99.9% uptime</li>
+                    <li>✅ Cost savings: only pay for active servers</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #667eea;">6. IoT: Edge Computing</h3>
+
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                <h4 style="color: #90cdf4;">Company: Smart Manufacturing</h4>
+                <p><strong>Challenge:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>1000+ factories worldwide</li>
+                    <li>Each factory has edge devices (sensors, cameras)</li>
+                    <li>Process data locally (can't send everything to cloud)</li>
+                    <li>Deploy updates to all factories</li>
+                    <li>Unreliable internet connectivity</li>
+                </ul>
+
+                <p><strong>Solution: K3s (Lightweight Kubernetes for Edge)</strong></p>
+                <ul style="line-height: 2;">
+                    <li>Deploy K3s on edge devices in each factory</li>
+                    <li>Process data locally (real-time anomaly detection)</li>
+                    <li>Send only aggregated data to cloud</li>
+                    <li>GitOps for centralized deployment</li>
+                </ul>
+
+                <p><strong>Results:</strong></p>
+                <ul style="line-height: 2;">
+                    <li>✅ 90% reduction in cloud data transfer costs</li>
+                    <li>✅ Real-time processing (detect issues in milliseconds)</li>
+                    <li>✅ Works offline (continues processing during internet outages)</li>
+                    <li>✅ Easy updates across all factories</li>
+                </ul>
+            </div>
+
+            <h2>🏗️ Kubernetes Architecture Overview</h2>
+
+            <p>Before we dive deeper in Tutorial #2, here's a high-level overview of how Kubernetes is structured.</p>
+
+            <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.9rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    KUBERNETES CLUSTER                            │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │              CONTROL PLANE (Master)                        │ │
+│  │                                                            │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │ │
+│  │  │  API Server  │  │  Scheduler   │  │  Controller  │   │ │
+│  │  │              │  │              │  │   Manager    │   │ │
+│  │  │  (kubectl    │  │  (Assigns    │  │  (Maintains  │   │ │
+│  │  │   talks to)  │  │   pods to    │  │   desired    │   │ │
+│  │  │              │  │   nodes)     │  │   state)     │   │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘   │ │
+│  │         │                                                 │ │
+│  │         ▼                                                 │ │
+│  │  ┌──────────────┐                                        │ │
+│  │  │     etcd     │  (Distributed key-value store)         │ │
+│  │  │  (Database)  │  (Stores all cluster data)             │ │
+│  │  └──────────────┘                                        │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                            │                                     │
+│                            │ (API calls)                         │
+│                            │                                     │
+│  ┌─────────────────────────┼──────────────────────────────────┐ │
+│  │                         ▼                                  │ │
+│  │                   WORKER NODES                            │ │
+│  │                                                            │ │
+│  │  ┌──────────────────┐  ┌──────────────────┐             │ │
+│  │  │   Node 1         │  │   Node 2         │   ...       │ │
+│  │  │                  │  │                  │             │ │
+│  │  │  ┌────────────┐  │  │  ┌────────────┐  │             │ │
+│  │  │  │  kubelet   │  │  │  │  kubelet   │  │             │ │
+│  │  │  │ (Node agent)│  │  │  │ (Node agent)│  │             │ │
+│  │  │  └────────────┘  │  │  └────────────┘  │             │ │
+│  │  │  ┌────────────┐  │  │  ┌────────────┐  │             │ │
+│  │  │  │ kube-proxy │  │  │  │ kube-proxy │  │             │ │
+│  │  │  │ (Networking)│  │  │  │ (Networking)│  │             │ │
+│  │  │  └────────────┘  │  │  └────────────┘  │             │ │
+│  │  │                  │  │                  │             │ │
+│  │  │  ┌───────────┐   │  │  ┌───────────┐   │             │ │
+│  │  │  │  Pod 1    │   │  │  │  Pod 3    │   │             │ │
+│  │  │  │ [nginx]   │   │  │  │ [redis]   │   │             │ │
+│  │  │  └───────────┘   │  │  └───────────┘   │             │ │
+│  │  │  ┌───────────┐   │  │  ┌───────────┐   │             │ │
+│  │  │  │  Pod 2    │   │  │  │  Pod 4    │   │             │ │
+│  │  │  │ [postgres]│   │  │  │ [app]     │   │             │ │
+│  │  │  └───────────┘   │  │  └───────────┘   │             │ │
+│  │  └──────────────────┘  └──────────────────┘             │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Key Components:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Control Plane:</strong> The brain of Kubernetes (makes decisions)</li>
+                    <li><strong>Worker Nodes:</strong> Where your applications actually run</li>
+                    <li><strong>Pods:</strong> Smallest deployable units (one or more containers)</li>
+                    <li><strong>kubectl:</strong> Command-line tool to interact with cluster</li>
+                </ul>
+
+                <p style="margin-top: 20px;"><em>We'll dive deep into each component in Tutorial #2!</em></p>
             </div>
 
             <h2>💻 Hands-On: The Pain Without Orchestration</h2>
