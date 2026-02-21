@@ -66,26 +66,9 @@
   - Pod scheduling and affinity
   - Comprehensive troubleshooting guide
 
-### Tutorial #5: Services - Connecting Your Applications
+### Tutorial #5: Deployments - Managing Application Rollouts
 - **Status:** ✅ Complete
-- **File:** `tutorials/05-services.html`
-- **Lines:** 1,383
-- **Read Time:** 40 min
-- **Committed:** Yes ✅
-- **Features:**
-  - The pod IP problem and why services are needed
-  - All service types with complete examples (ClusterIP, NodePort, LoadBalancer, ExternalName, Headless)
-  - Service discovery mechanisms (DNS and environment variables)
-  - Endpoints and EndpointSlices
-  - Multi-tier application example (Frontend → Backend → Database)
-  - Multi-port services and session affinity
-  - Services without selectors (external services)
-  - Comprehensive troubleshooting guide
-  - Best practices for naming/performance/security
-
-### Tutorial #6: Deployments - Managing Application Rollouts
-- **Status:** ✅ Complete
-- **File:** `tutorials/06-deployments.html`
+- **File:** `tutorials/05-deployments.html`
 - **Lines:** 1,722
 - **Read Time:** 45 min
 - **Committed:** Yes ✅
@@ -104,6 +87,23 @@
   - Troubleshooting failed deployments
   - Real-world multi-tier application example
   - Production best practices and checklist
+
+### Tutorial #6: Services - Connecting Your Applications
+- **Status:** ✅ Complete
+- **File:** `tutorials/06-services.html`
+- **Lines:** 1,383
+- **Read Time:** 40 min
+- **Committed:** Yes ✅
+- **Features:**
+  - The pod IP problem and why services are needed
+  - All service types with complete examples (ClusterIP, NodePort, LoadBalancer, ExternalName, Headless)
+  - Service discovery mechanisms (DNS and environment variables)
+  - Endpoints and EndpointSlices
+  - Multi-tier application example (Frontend → Backend → Database)
+  - Multi-port services and session affinity
+  - Services without selectors (external services)
+  - Comprehensive troubleshooting guide
+  - Best practices for naming/performance/security
 
 ## 📝 Next Tutorial
 
@@ -131,8 +131,8 @@ Creating tutorials in order:
 2. ✅ Tutorial #2 - Kubernetes Architecture (1,899 lines)
 3. ✅ Tutorial #3 - Setting Up Cluster (~1,200 lines)
 4. ✅ Tutorial #4 - Pods (1,529 lines)
-5. ✅ Tutorial #5 - Services (1,383 lines)
-6. ✅ Tutorial #6 - Deployments (1,722 lines)
+5. ✅ Tutorial #5 - Deployments (1,722 lines)
+6. ✅ Tutorial #6 - Services (1,383 lines)
 7. ⏳ Tutorial #7 - ConfigMaps and Secrets
 8. ⏳ Tutorial #8 - Persistent Storage
 ... (continuing through #21)
