@@ -74,23 +74,6 @@ const k8sTutorials = [
     {
         id: 5,
         level: 'beginner',
-        title: 'Services — Connecting Your Applications',
-        excerpt: 'Learn how Kubernetes Services enable networking and service discovery.',
-        topics: [
-            'Why do we need Services?',
-            'Service types: ClusterIP, NodePort, LoadBalancer',
-            'Service discovery and DNS',
-            'Endpoints and how Services find Pods'
-        ],
-        handsOn: 'Create different service types and test connectivity',
-        readTime: '40 min',
-        difficulty: 'beginner',
-        url: 'tutorials/05-services.html',
-        status: 'available'
-    },
-    {
-        id: 6,
-        level: 'beginner',
         title: 'Deployments — Managing Application Rollouts',
         excerpt: 'Master Kubernetes Deployments for managing application lifecycle and updates.',
         topics: [
@@ -102,7 +85,24 @@ const k8sTutorials = [
         handsOn: 'Deploy nginx, perform rolling updates, scale up/down, rollback',
         readTime: '45 min',
         difficulty: 'beginner',
-        url: 'tutorials/06-deployments.html',
+        url: 'tutorials/05-deployments.html',
+        status: 'available'
+    },
+    {
+        id: 6,
+        level: 'beginner',
+        title: 'Services — Connecting Your Applications',
+        excerpt: 'Learn how Kubernetes Services enable networking and service discovery.',
+        topics: [
+            'Why do we need Services?',
+            'Service types: ClusterIP, NodePort, LoadBalancer',
+            'Service discovery and DNS',
+            'Endpoints and how Services find Pods'
+        ],
+        handsOn: 'Create different service types and test connectivity',
+        readTime: '40 min',
+        difficulty: 'beginner',
+        url: 'tutorials/06-services.html',
         status: 'available'
     },
     {
