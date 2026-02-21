@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Architecture Explained - Master and Worker Nodes | K8s Tutorial #2</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">DevSecOpsSolution<span class="highlight">.in</span></a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../k8s-tutorials.html">← Back to Tutorials</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <article class="blog-post-content">
+        <div class="container" style="max-width: 900px;">
+            <div class="post-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 60px 40px; border-radius: 15px; color: white; margin-bottom: 40px;">
+                <div style="display: inline-block; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; margin-bottom: 20px;">
+                    <span style="font-weight: 600;">Tutorial #2 of 20</span>
+                </div>
+                <h1 style="color: white; font-size: 2.5rem; margin-bottom: 20px;">Kubernetes Architecture Explained — Master and Worker Nodes</h1>
+                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-top: 20px;">
+                    <span><i class="fas fa-signal"></i> Beginner</span>
+                    <span><i class="far fa-clock"></i> 20 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+
+            <div style="background: #f7fafc; padding: 30px; border-radius: 10px; margin-bottom: 40px;">
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Control Plane components (API Server, etcd, Scheduler, Controller Manager)</li>
+                    <li>Worker Node components (kubelet, kube-proxy, Container Runtime)</li>
+                    <li>How components communicate with each other</li>
+                    <li>Visual diagrams and real-world analogies</li>
+                    <li>Hands-on cluster exploration</li>
+                </ul>
+            </div>
+
+            <h2>🏗️ The Big Picture</h2>
+
+            <p>Think of Kubernetes as a <strong>city</strong>:</p>
+            <ul>
+                <li><strong>Control Plane</strong> = City Hall (makes decisions, keeps records)</li>
+                <li><strong>Worker Nodes</strong> = Buildings (where actual work happens)</li>
+                <li><strong>Pods</strong> = Apartments (where applications live)</li>
+            </ul>
+
+            <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                <h3 style="color: #90cdf4; margin-top: 0;">🎨 Kubernetes Cluster Architecture</h3>
+                <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem; line-height: 1.4;"><code>┌─────────────────────────────────────────────────────────────────────┐
+│                         CONTROL PLANE                                │
+│                      (Master Node / Brain)                           │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
+│  │  API Server  │  │   Scheduler  │  │  Controller  │             │
+│  │              │  │              │  │   Manager    │             │
+│  │  (Gateway)   │  │  (Assigns    │  │  (Maintains  │             │
+│  │              │  │   Pods to    │  │   Desired    │             │
+│  │              │  │   Nodes)     │  │   State)     │             │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘             │
+│         │                 │                  │                      │
+│         └─────────────────┼──────────────────┘                      │
+│                           │                                         │
+│                    ┌──────▼───────┐                                 │
+│                    │     etcd      │                                │
+│                    │  (Database)   │                                │
+│                    │  Stores all   │                                │
+│                    │  cluster data │                                │
+│                    └───────────────┘                                │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │
+                           │ (Network)
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+        ▼                  ▼                  ▼
+┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+│ WORKER NODE 1 │  │ WORKER NODE 2 │  │ WORKER NODE 3 │
+│               │  │               │  │               │
+│ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │
+│ │  kubelet  │ │  │ │  kubelet  │ │  │ │  kubelet  │ │
+│ │ (Agent)   │ │  │ │ (Agent)   │ │  │ │ (Agent)   │ │
+│ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │
+│               │  │               │  │               │
+│ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │
+│ │kube-proxy │ │  │ │kube-proxy │ │  │ │kube-proxy │ │
+│ │(Network)  │ │  │ │(Network)  │ │  │ │(Network)  │ │
+│ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │
+│               │  │               │  │               │
+│ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │
+│ │Container  │ │  │ │Container  │ │  │ │Container  │ │
+│ │ Runtime   │ │  │ │ Runtime   │ │  │ │ Runtime   │ │
+│ │ (Docker)  │ │  │ │(containerd│ │  │ │ (CRI-O)   │ │
+│ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │
+│               │  │               │  │               │
+│  ┌─────────┐  │  │  ┌─────────┐  │  │  ┌─────────┐  │
+│  │ Pod 1   │  │  │  │ Pod 3   │  │  │  │ Pod 5   │  │
+│  │ Pod 2   │  │  │  │ Pod 4   │  │  │  │ Pod 6   │  │
+│  └─────────┘  │  │  └─────────┘  │  │  └─────────┘  │
+└───────────────┘  └───────────────┘  └───────────────┘</code></pre>
+            </div>
+
+            <h2>🎛️ Control Plane Components</h2>
+
+            <p>The Control Plane is the <strong>brain</strong> of Kubernetes. It makes global decisions about the cluster and detects/responds to cluster events.</p>
+
+            <h3 style="color: #667eea;">1. API Server (kube-apiserver)</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> The front door to Kubernetes. All communication goes through it.</p>
+                
+                <p><strong>Analogy:</strong> Like a receptionist at a hotel - everyone talks to them first!</p>
+                
+                <p><strong>What it does:</strong></p>
+                <ul>
+                    <li>Exposes the Kubernetes API (REST interface)</li>
+                    <li>Validates and processes API requests</li>
+                    <li>Updates etcd with cluster state</li>
+                    <li>Authenticates and authorizes requests</li>
+                </ul>
+
+                <p><strong>Example interaction:</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># When you run this command:
+kubectl get pods
+
+# What happens:
+1. kubectl sends HTTP request to API Server
+2. API Server authenticates you
+3. API Server checks if you're authorized
+4. API Server queries etcd for pod data
+5. API Server returns the result to you</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">2. etcd</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> The cluster's database - stores all cluster data.</p>
+                
+                <p><strong>Analogy:</strong> Like a library that keeps records of everything in the city.</p>
+                
+                <p><strong>What it stores:</strong></p>
+                <ul>
+                    <li>Cluster configuration</li>
+                    <li>Current state of all resources (pods, services, etc.)</li>
+                    <li>Secrets and ConfigMaps</li>
+                    <li>Node information</li>
+                </ul>
+
+                <p><strong>Key characteristics:</strong></p>
+                <ul>
+                    <li>Distributed key-value store</li>
+                    <li>Highly available (runs in HA mode)</li>
+                    <li>Consistent (uses Raft consensus algorithm)</li>
+                    <li>Only API Server talks to etcd directly</li>
+                </ul>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>⚠️ Critical:</strong> If etcd goes down, your cluster is in read-only mode. Always backup etcd!
+                </div>
+            </div>
+
+            <h3 style="color: #667eea;">3. Scheduler (kube-scheduler)</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> Assigns pods to nodes based on resource requirements and constraints.</p>
+                
+                <p><strong>Analogy:</strong> Like a hotel manager assigning guests to rooms based on their needs.</p>
+                
+                <p><strong>Scheduling process:</strong></p>
+                <ol>
+                    <li><strong>Filtering:</strong> Find nodes that can run the pod
+                        <ul>
+                            <li>Has enough CPU/memory?</li>
+                            <li>Matches node selector?</li>
+                            <li>Tolerates node taints?</li>
+                        </ul>
+                    </li>
+                    <li><strong>Scoring:</strong> Rank suitable nodes
+                        <ul>
+                            <li>Spread pods across nodes</li>
+                            <li>Prefer nodes with fewer pods</li>
+                            <li>Consider affinity rules</li>
+                        </ul>
+                    </li>
+                    <li><strong>Binding:</strong> Assign pod to best node</li>
+                </ol>
+
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example: Pod needs 2 CPU and 4GB RAM
+
+Scheduler checks:
+Node 1: 1 CPU available  ❌ Not enough CPU
+Node 2: 4 CPU, 8GB RAM   ✅ Can fit
+Node 3: 8 CPU, 16GB RAM  ✅ Can fit (best choice - more resources)
+
+Result: Pod scheduled to Node 3</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">4. Controller Manager (kube-controller-manager)</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> Runs controllers that maintain desired state.</p>
+                
+                <p><strong>Analogy:</strong> Like building maintenance staff who constantly check and fix things.</p>
+                
+                <p><strong>Key controllers:</strong></p>
+                
+                <h4 style="color: #667eea;">Node Controller</h4>
+                <ul>
+                    <li>Monitors node health</li>
+                    <li>Marks nodes as NotReady if they stop responding</li>
+                    <li>Evicts pods from failed nodes</li>
+                </ul>
+
+                <h4 style="color: #667eea;">Replication Controller</h4>
+                <ul>
+                    <li>Ensures correct number of pod replicas</li>
+                    <li>Creates new pods if some die</li>
+                    <li>Deletes extra pods if too many</li>
+                </ul>
+
+                <h4 style="color: #667eea;">Endpoints Controller</h4>
+                <ul>
+                    <li>Populates Endpoints objects (joins Services & Pods)</li>
+                </ul>
+
+                <h4 style="color: #667eea;">Service Account Controller</h4>
+                <ul>
+                    <li>Creates default ServiceAccounts for namespaces</li>
+                </ul>
+
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example: Replication Controller in action
+
+Desired State: 3 replicas of nginx
+Current State: 2 replicas running (1 crashed)
+
+Controller detects: 2 < 3
+Action: Creates 1 new pod
+Result: 3 replicas running ✅</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">5. Cloud Controller Manager (Optional)</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> Integrates with cloud provider APIs (AWS, Azure, GCP).</p>
+                
+                <p><strong>What it manages:</strong></p>
+                <ul>
+                    <li>Load balancers (creates cloud LBs for LoadBalancer services)</li>
+                    <li>Nodes (checks if deleted nodes exist in cloud)</li>
+                    <li>Routes (sets up network routes in cloud)</li>
+                    <li>Volumes (creates/attaches cloud storage)</li>
+                </ul>
+            </div>
+
+            <h2>⚙️ Worker Node Components</h2>
+
+            <p>Worker Nodes are where your applications actually run. Each node has three main components:</p>
+
+            <h3 style="color: #667eea;">1. kubelet</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> The agent running on each node. It's the node's manager.</p>
+                
+                <p><strong>Analogy:</strong> Like a building superintendent who manages their building.</p>
+                
+                <p><strong>Responsibilities:</strong></p>
+                <ul>
+                    <li>Registers node with API Server</li>
+                    <li>Watches API Server for pods assigned to its node</li>
+                    <li>Starts/stops containers via container runtime</li>
+                    <li>Monitors pod and container health</li>
+                    <li>Reports node and pod status to API Server</li>
+                    <li>Runs liveness/readiness probes</li>
+                </ul>
+
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># kubelet workflow:
+
+1. API Server: "Run this pod on your node"
+2. kubelet: "Got it! Let me start the containers"
+3. kubelet → Container Runtime: "Start nginx container"
+4. Container Runtime: "Container started"
+5. kubelet → API Server: "Pod is running"
+6. kubelet: *continuously monitors pod health*
+7. kubelet → API Server: "Pod still healthy" (every 10s)</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">2. kube-proxy</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> Network proxy that maintains network rules on nodes.</p>
+                
+                <p><strong>Analogy:</strong> Like a traffic cop directing traffic to the right destinations.</p>
+                
+                <p><strong>What it does:</strong></p>
+                <ul>
+                    <li>Implements Kubernetes Service concept</li>
+                    <li>Maintains network rules (iptables/IPVS)</li>
+                    <li>Enables communication to pods via Services</li>
+                    <li>Load balances traffic across pod replicas</li>
+                </ul>
+
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example: Service with 3 pod replicas
+
+Service IP: 10.96.0.10:80
+Pod IPs: 
+  - 10.244.1.5:8080
+  - 10.244.2.3:8080
+  - 10.244.3.7:8080
+
+kube-proxy creates iptables rules:
+"Traffic to 10.96.0.10:80 → load balance to pod IPs"
+
+Result: Requests distributed across all 3 pods</code></pre>
+            </div>
+
+            <h3 style="color: #667eea;">3. Container Runtime</h3>
+            
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p><strong>Role:</strong> Software responsible for running containers.</p>
+                
+                <p><strong>Analogy:</strong> Like the engine that actually runs your car.</p>
+                
+                <p><strong>Popular runtimes:</strong></p>
+                <ul>
+                    <li><strong>containerd:</strong> Industry standard, lightweight</li>
+                    <li><strong>CRI-O:</strong> Lightweight, designed for Kubernetes</li>
+                    <li><strong>Docker:</strong> (deprecated in K8s 1.24+, but still works via containerd)</li>
+                </ul>
+
+                <p><strong>What it does:</strong></p>
+                <ul>
+                    <li>Pulls container images from registries</li>
+                    <li>Starts and stops containers</li>
+                    <li>Manages container lifecycle</li>
+                    <li>Provides container isolation</li>
+                </ul>
+            </div>
+
+            <h2>🔄 How Components Communicate</h2>
+
+            <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                <h3 style="color: #90cdf4; margin-top: 0;">📝 Example: Creating a Deployment</h3>
+                
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.6;"><code>1. User runs: kubectl create deployment nginx --image=nginx --replicas=3
+
+2. kubectl → API Server: "Create deployment with 3 nginx replicas"
+
+3. API Server:
+   - Authenticates user ✅
+   - Validates request ✅
+   - Stores deployment in etcd
+   - Returns success to kubectl
+
+4. Deployment Controller (watching API Server):
+   - Detects new deployment
+   - Creates ReplicaSet with 3 replicas
+   - Stores ReplicaSet in etcd (via API Server)
+
+5. ReplicaSet Controller:
+   - Detects new ReplicaSet
+   - Creates 3 pod objects
+   - Stores pods in etcd (via API Server)
+
+6. Scheduler (watching for unscheduled pods):
+   - Finds 3 pods without nodes
+   - Evaluates all nodes
+   - Assigns pods to nodes (e.g., Node1, Node2, Node3)
+   - Updates pod specs in etcd
+
+7. kubelet on Node1 (watching API Server):
+   - Sees pod assigned to its node
+   - Tells container runtime: "Start nginx container"
+   - Container runtime pulls image and starts container
+   - kubelet reports pod status to API Server
+
+8. kubelet on Node2 and Node3: (same as step 7)
+
+9. kube-proxy on all nodes:
+   - Detects new pods
+   - Updates iptables rules for service discovery
+
+10. Result: 3 nginx pods running across 3 nodes! 🎉</code></pre>
+            </div>
+
+            <h2>💻 Hands-On: Explore Your Cluster</h2>
+
+            <p>Let's explore a real Kubernetes cluster and see these components in action!</p>
+
+            <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                <h3 style="color: #90cdf4; margin-top: 0;">Step 1: Check Cluster Info</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl cluster-info
+
+# Output:
+# Kubernetes control plane is running at https://127.0.0.1:6443
+# CoreDNS is running at https://127.0.0.1:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy</code></pre>
+
+                <h3 style="color: #90cdf4;">Step 2: View Nodes</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get nodes
+
+# Output:
+# NAME           STATUS   ROLES           AGE   VERSION
+# minikube       Ready    control-plane   5d    v1.28.0
+
+# Get detailed node info
+kubectl describe node minikube</code></pre>
+
+                <h3 style="color: #90cdf4;">Step 3: View Control Plane Components</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods -n kube-system
+
+# Output shows control plane components:
+# NAME                               READY   STATUS    RESTARTS   AGE
+# etcd-minikube                      1/1     Running   0          5d
+# kube-apiserver-minikube            1/1     Running   0          5d
+# kube-controller-manager-minikube   1/1     Running   0          5d
+# kube-scheduler-minikube            1/1     Running   0          5d
+# kube-proxy-xxxxx                   1/1     Running   0          5d</code></pre>
+
+                <h3 style="color: #90cdf4;">Step 4: Check Component Status</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get componentstatuses
+
+# Output:
+# NAME                 STATUS    MESSAGE   ERROR
+# scheduler            Healthy   ok
+# controller-manager   Healthy   ok
+# etcd-0               Healthy   ok</code></pre>
+
+                <h3 style="color: #90cdf4;">Step 5: View API Server Logs</h3>
+                <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl logs -n kube-system kube-apiserver-minikube | tail -20
+
+# You'll see API requests being processed!</code></pre>
+            </div>
+
+            <h2>🎯 Key Takeaways</h2>
+
+            <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                <ul style="line-height: 2; font-size: 1.05rem;">
+                    <li>✅ <strong>Control Plane</strong> = Brain (makes decisions)</li>
+                    <li>✅ <strong>Worker Nodes</strong> = Muscle (runs workloads)</li>
+                    <li>✅ <strong>API Server</strong> = Central hub for all communication</li>
+                    <li>✅ <strong>etcd</strong> = Database storing cluster state</li>
+                    <li>✅ <strong>Scheduler</strong> = Assigns pods to nodes</li>
+                    <li>✅ <strong>Controllers</strong> = Maintain desired state</li>
+                    <li>✅ <strong>kubelet</strong> = Node agent managing pods</li>
+                    <li>✅ <strong>kube-proxy</strong> = Network proxy for services</li>
+                </ul>
+            </div>
+
+            <h2>🚀 What's Next?</h2>
+
+            <p>Now that you understand Kubernetes architecture, it's time to get hands-on! In the next tutorial, we'll set up your first Kubernetes cluster and deploy your first application.</p>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                <h3 style="color: white; margin-top: 0;">Ready to build your cluster?</h3>
+                <a href="03-setting-up-cluster.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                    Tutorial #3: Setting Up Your First Cluster →
+                </a>
+            </div>
+
+            <hr style="margin: 40px 0;">
+            
+            <div style="text-align: center; color: #718096;">
+                <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+            </div>
+        </div>
+    </article>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
