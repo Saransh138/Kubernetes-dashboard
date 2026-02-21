@@ -83,8 +83,10 @@ const k8sTutorials = [
             'Endpoints and how Services find Pods'
         ],
         handsOn: 'Create different service types and test connectivity',
-        readTime: '20 min',
-        difficulty: 'beginner'
+        readTime: '40 min',
+        difficulty: 'beginner',
+        url: 'tutorials/05-services.html',
+        status: 'available'
     },
     {
         id: 6,
