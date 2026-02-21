@@ -72,7 +72,7 @@
             <h2>💻 Local Kubernetes Options</h2>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 30px 0;">
-                <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h3 style="color: #667eea;">🚀 minikube</h3>
                     <p><strong>Best for:</strong> Learning and development</p>
                     <p><strong>Pros:</strong></p>
@@ -90,7 +90,7 @@
                     </ul>
                 </div>
 
-                <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h3 style="color: #667eea;">🐳 Docker Desktop</h3>
                     <p><strong>Best for:</strong> Quick start on Mac/Windows</p>
                     <p><strong>Pros:</strong></p>
@@ -108,7 +108,7 @@
                     </ul>
                 </div>
 
-                <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h3 style="color: #667eea;">🎪 kind</h3>
                     <p><strong>Best for:</strong> CI/CD and testing</p>
                     <p><strong>Pros:</strong></p>
@@ -139,7 +139,7 @@
 
             <h2>☁️ Cloud Kubernetes Options</h2>
 
-            <table style="width: 100%; border-collapse: collapse; margin: 30px 0; background: white;">
+            <table style="width: 100%; border-collapse: collapse; margin: 30px 0; background: var(--dark-light);">
                 <thead>
                     <tr style="background: #667eea; color: white;">
                         <th style="padding: 15px; text-align: left;">Feature</th>
@@ -155,7 +155,7 @@
                         <td style="padding: 15px;">Easy</td>
                         <td style="padding: 15px;">Easy</td>
                     </tr>
-                    <tr style="background: #f7fafc; border-bottom: 1px solid #e2e8f0;">
+                    <tr style="background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 15px;"><strong>Control Plane Cost</strong></td>
                         <td style="padding: 15px;">$0.10/hour</td>
                         <td style="padding: 15px;">Free</td>
@@ -167,7 +167,7 @@
                         <td style="padding: 15px;">Automatic</td>
                         <td style="padding: 15px;">Automatic</td>
                     </tr>
-                    <tr style="background: #f7fafc; border-bottom: 1px solid #e2e8f0;">
+                    <tr style="background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 15px;"><strong>Integration</strong></td>
                         <td style="padding: 15px;">AWS services</td>
                         <td style="padding: 15px;">GCP services</td>
@@ -307,7 +307,7 @@ kubectl describe node minikube</code></pre>
 
             <h2>🎮 Essential kubectl Commands</h2>
 
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Cluster Information</h3>
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Get cluster info
 kubectl cluster-info
@@ -322,7 +322,7 @@ kubectl config view
 kubectl config current-context</code></pre>
             </div>
 
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Resource Management</h3>
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Get resources
 kubectl get nodes
@@ -343,7 +343,7 @@ kubectl describe node minikube
 kubectl describe pod <pod-name></code></pre>
             </div>
 
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Creating Resources</h3>
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create from file
 kubectl apply -f deployment.yaml
@@ -358,7 +358,7 @@ kubectl create deployment nginx --image=nginx
 kubectl delete deployment nginx</code></pre>
             </div>
 
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Debugging</h3>
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># View logs
 kubectl logs <pod-name>
@@ -449,7 +449,7 @@ kubectl get all</code></pre>
 
             <h2>🔧 Useful minikube Commands</h2>
 
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Cluster Management</h3>
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Start cluster
 minikube start
@@ -470,7 +470,7 @@ minikube unpause
 minikube status</code></pre>
             </div>
 
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Addons</h3>
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># List available addons
 minikube addons list
@@ -487,7 +487,7 @@ minikube addons disable dashboard
 minikube dashboard</code></pre>
             </div>
 
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Advanced Options</h3>
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Start with specific resources
 minikube start --cpus=4 --memory=8192
@@ -593,7 +593,7 @@ kubectl get ns                      # namespaces</code></pre>
             <p>Once you're comfortable with minikube, you can explore cloud-managed Kubernetes:</p>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0;">
-                <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: var(--dark-light); padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h4 style="color: #667eea;">AWS EKS</h4>
                     <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 5px; font-size: 0.85rem;"><code>eksctl create cluster \
   --name my-cluster \
@@ -603,7 +603,7 @@ kubectl get ns                      # namespaces</code></pre>
   --nodes 3</code></pre>
                 </div>
 
-                <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: var(--dark-light); padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h4 style="color: #667eea;">Google GKE</h4>
                     <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 5px; font-size: 0.85rem;"><code>gcloud container clusters \
   create my-cluster \
@@ -612,7 +612,7 @@ kubectl get ns                      # namespaces</code></pre>
   --machine-type n1-standard-2</code></pre>
                 </div>
 
-                <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: var(--dark-light); padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h4 style="color: #667eea;">Azure AKS</h4>
                     <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 5px; font-size: 0.85rem;"><code>az aks create \
   --resource-group myRG \
@@ -638,7 +638,7 @@ kubectl get ns                      # namespaces</code></pre>
 
             <h2>📚 Practice Exercises</h2>
 
-            <div style="background: #f7fafc; padding: 25px; border-radius: 10px; margin: 30px 0;">
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 10px; margin: 30px 0;">
                 <h3 style="color: #667eea; margin-top: 0;">Try These:</h3>
                 <ol style="line-height: 2;">
                     <li>Start minikube with 4 CPUs and 8GB RAM</li>
@@ -660,7 +660,7 @@ kubectl get ns                      # namespaces</code></pre>
 
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
                 <h3 style="color: white; margin-top: 0;">Ready to learn about Pods?</h3>
-                <a href="04-pods.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                <a href="04-pods.html" style="display: inline-block; background: var(--dark-light); color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
                     Tutorial #4: Pods - The Building Blocks →
                 </a>
             </div>

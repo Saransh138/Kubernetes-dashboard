@@ -130,7 +130,7 @@
 
             <h3 style="color: #667eea;">1. API Server (kube-apiserver)</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> The front door to Kubernetes. All communication goes through it.</p>
                 
                 <p><strong>Analogy:</strong> Like a receptionist at a hotel - everyone talks to them first!</p>
@@ -157,7 +157,7 @@ kubectl get pods
 
             <h3 style="color: #667eea;">2. etcd</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> The cluster's database - stores all cluster data.</p>
                 
                 <p><strong>Analogy:</strong> Like a library that keeps records of everything in the city.</p>
@@ -185,7 +185,7 @@ kubectl get pods
 
             <h3 style="color: #667eea;">3. Scheduler (kube-scheduler)</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> Assigns pods to nodes based on resource requirements and constraints.</p>
                 
                 <p><strong>Analogy:</strong> Like a hotel manager assigning guests to rooms based on their needs.</p>
@@ -221,7 +221,7 @@ Result: Pod scheduled to Node 3</code></pre>
 
             <h3 style="color: #667eea;">4. Controller Manager (kube-controller-manager)</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> Runs controllers that maintain desired state.</p>
                 
                 <p><strong>Analogy:</strong> Like building maintenance staff who constantly check and fix things.</p>
@@ -264,7 +264,7 @@ Result: 3 replicas running ✅</code></pre>
 
             <h3 style="color: #667eea;">5. Cloud Controller Manager (Optional)</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> Integrates with cloud provider APIs (AWS, Azure, GCP).</p>
                 
                 <p><strong>What it manages:</strong></p>
@@ -282,7 +282,7 @@ Result: 3 replicas running ✅</code></pre>
 
             <h3 style="color: #667eea;">1. kubelet</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> The agent running on each node. It's the node's manager.</p>
                 
                 <p><strong>Analogy:</strong> Like a building superintendent who manages their building.</p>
@@ -310,7 +310,7 @@ Result: 3 replicas running ✅</code></pre>
 
             <h3 style="color: #667eea;">2. kube-proxy</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> Network proxy that maintains network rules on nodes.</p>
                 
                 <p><strong>Analogy:</strong> Like a traffic cop directing traffic to the right destinations.</p>
@@ -339,7 +339,7 @@ Result: Requests distributed across all 3 pods</code></pre>
 
             <h3 style="color: #667eea;">3. Container Runtime</h3>
             
-            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
                 <p><strong>Role:</strong> Software responsible for running containers.</p>
                 
                 <p><strong>Analogy:</strong> Like the engine that actually runs your car.</p>
@@ -475,7 +475,7 @@ kubectl describe node minikube</code></pre>
 
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
                 <h3 style="color: white; margin-top: 0;">Ready to build your cluster?</h3>
-                <a href="03-setting-up-cluster.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                <a href="03-setting-up-cluster.html" style="display: inline-block; background: var(--dark-light); color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
                     Tutorial #3: Setting Up Your First Cluster →
                 </a>
             </div>
