@@ -56,7 +56,7 @@
                 <div class="post-meta">
                     <span><i class="fas fa-bookmark"></i> Tutorial #2 of 20</span>
                     <span><i class="fas fa-signal"></i> Beginner</span>
-                    <span><i class="far fa-clock"></i> 20 min read</span>
+                    <span><i class="far fa-clock"></i> 35 min read</span>
                     <span><i class="fas fa-code"></i> Hands-On Included</span>
                 </div>
             </div>
@@ -64,11 +64,19 @@
             <div class="post-content">
                 <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
                 <ul style="line-height: 2;">
-                    <li>Control Plane components (API Server, etcd, Scheduler, Controller Manager)</li>
-                    <li>Worker Node components (kubelet, kube-proxy, Container Runtime)</li>
-                    <li>How components communicate with each other</li>
-                    <li>Visual diagrams and real-world analogies</li>
-                    <li>Hands-on cluster exploration</li>
+                    <li>Complete Kubernetes architecture from 10,000-foot view to deep dive</li>
+                    <li>Control Plane components in detail (API Server, etcd, Scheduler, Controller Manager)</li>
+                    <li>Worker Node components deep dive (kubelet, kube-proxy, Container Runtime)</li>
+                    <li>How components communicate (complete request flow)</li>
+                    <li>API Server request lifecycle and authentication/authorization</li>
+                    <li>etcd internals and why it's critical</li>
+                    <li>Scheduler algorithm and decision-making process</li>
+                    <li>All controller types and their responsibilities</li>
+                    <li>kubelet internals and pod lifecycle management</li>
+                    <li>Network flow and kube-proxy modes (iptables vs IPVS)</li>
+                    <li>High availability architecture patterns</li>
+                    <li>Troubleshooting each component</li>
+                    <li>Hands-on cluster exploration with real commands</li>
                 </ul>
             </div>
 
@@ -140,59 +148,341 @@
 
             <p>The Control Plane is the <strong>brain</strong> of Kubernetes. It makes global decisions about the cluster and detects/responds to cluster events.</p>
 
-            <h3 style="color: #667eea;">1. API Server (kube-apiserver)</h3>
+            <h3 style="color: #667eea;">1. API Server (kube-apiserver) - The Heart of Kubernetes</h3>
             
             <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
-                <p><strong>Role:</strong> The front door to Kubernetes. All communication goes through it.</p>
+                <p style="font-size: 1.1rem; line-height: 1.8;"><strong>Role:</strong> The API Server is the central management entity and the ONLY component that directly interacts with etcd. It's the front door to Kubernetes - all communication goes through it.</p>
                 
-                <p><strong>Analogy:</strong> Like a receptionist at a hotel - everyone talks to them first!</p>
+                <p><strong>Analogy:</strong> Like a receptionist at a hotel - everyone talks to them first, and they coordinate with all other departments!</p>
                 
-                <p><strong>What it does:</strong></p>
-                <ul>
-                    <li>Exposes the Kubernetes API (REST interface)</li>
-                    <li>Validates and processes API requests</li>
-                    <li>Updates etcd with cluster state</li>
-                    <li>Authenticates and authorizes requests</li>
+                <h4 style="color: #90cdf4; margin-top: 20px;">Core Responsibilities:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Exposes the Kubernetes API:</strong> RESTful HTTP API (typically on port 6443)</li>
+                    <li><strong>Authentication:</strong> Verifies who you are (certificates, tokens, basic auth)</li>
+                    <li><strong>Authorization:</strong> Checks what you're allowed to do (RBAC, ABAC, Webhook)</li>
+                    <li><strong>Admission Control:</strong> Validates and mutates requests before persisting</li>
+                    <li><strong>Validation:</strong> Ensures requests are properly formatted</li>
+                    <li><strong>etcd Interface:</strong> Only component that talks to etcd directly</li>
+                    <li><strong>Watch Mechanism:</strong> Allows components to watch for changes</li>
                 </ul>
 
-                <p><strong>Example interaction:</strong></p>
-                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># When you run this command:
-kubectl get pods
+                <h4 style="color: #90cdf4; margin-top: 20px;">API Server Request Lifecycle:</h4>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.6;"><code>┌─────────────────────────────────────────────────────────────┐
+│         API Server Request Processing Pipeline              │
+│                                                              │
+│  1. HTTP Request arrives                                    │
+│     ↓                                                        │
+│  2. Authentication (Who are you?)                           │
+│     • X.509 Client Certificates                             │
+│     • Bearer Tokens (ServiceAccount tokens)                 │
+│     • Basic Auth (username/password)                        │
+│     • OpenID Connect (OIDC)                                 │
+│     ↓                                                        │
+│  3. Authorization (What can you do?)                        │
+│     • RBAC (Role-Based Access Control) ← Most common       │
+│     • ABAC (Attribute-Based Access Control)                 │
+│     • Webhook (External authorization)                      │
+│     • Node (Special authorization for kubelets)             │
+│     ↓                                                        │
+│  4. Admission Control (Should we allow this?)               │
+│     Mutating Admission:                                     │
+│     • Add default values                                    │
+│     • Inject sidecars                                       │
+│     • Modify resource requests                              │
+│     ↓                                                        │
+│     Validating Admission:                                   │
+│     • Enforce policies                                      │
+│     • Check quotas                                          │
+│     • Validate configurations                               │
+│     ↓                                                        │
+│  5. Validation (Is the request valid?)                      │
+│     • Schema validation                                     │
+│     • Field validation                                      │
+│     ↓                                                        │
+│  6. Persist to etcd                                         │
+│     • Write to etcd                                         │
+│     • Get confirmation                                      │
+│     ↓                                                        │
+│  7. Return Response                                         │
+│     • Success (200, 201)                                    │
+│     • Error (400, 401, 403, 404, 500)                      │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
 
-# What happens:
-1. kubectl sends HTTP request to API Server
-2. API Server authenticates you
-3. API Server checks if you're authorized
-4. API Server queries etcd for pod data
-5. API Server returns the result to you</code></pre>
-            </div>
+                <h4 style="color: #90cdf4; margin-top: 20px;">Example: Creating a Pod</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># When you run:
+kubectl create -f pod.yaml
 
-            <h3 style="color: #667eea;">2. etcd</h3>
-            
-            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
-                <p><strong>Role:</strong> The cluster's database - stores all cluster data.</p>
-                
-                <p><strong>Analogy:</strong> Like a library that keeps records of everything in the city.</p>
-                
-                <p><strong>What it stores:</strong></p>
-                <ul>
-                    <li>Cluster configuration</li>
-                    <li>Current state of all resources (pods, services, etc.)</li>
-                    <li>Secrets and ConfigMaps</li>
-                    <li>Node information</li>
+# Detailed flow:
+1. kubectl reads pod.yaml and sends HTTP POST to API Server
+   POST /api/v1/namespaces/default/pods
+   
+2. API Server: Authentication
+   - Checks your kubeconfig certificate
+   - Validates it's signed by cluster CA
+   - Extracts your username/groups
+   ✅ Authenticated as "user@example.com"
+
+3. API Server: Authorization (RBAC)
+   - Checks: Can "user@example.com" CREATE pods in "default" namespace?
+   - Looks up RoleBindings and ClusterRoleBindings
+   - Finds: User has "edit" role in default namespace
+   ✅ Authorized
+
+4. API Server: Mutating Admission
+   - PodPreset: Injects environment variables
+   - ServiceAccount: Adds default service account if not specified
+   - ResourceQuota: Checks namespace quotas
+   ✅ Pod mutated
+
+5. API Server: Validating Admission
+   - PodSecurityPolicy: Checks security constraints
+   - ResourceQuota: Validates resource limits
+   - Custom Webhooks: External validation
+   ✅ Pod validated
+
+6. API Server: Schema Validation
+   - Validates YAML structure
+   - Checks required fields
+   - Validates field types
+   ✅ Valid
+
+7. API Server: Persist to etcd
+   - Writes pod object to etcd
+   - etcd confirms write
+   ✅ Persisted
+
+8. API Server: Return Response
+   - Returns pod object with metadata
+   - Includes: UID, creation timestamp, resource version
+   ✅ Success (201 Created)
+
+9. Watchers Notified
+   - Scheduler watching for unscheduled pods
+   - Controllers watching for pod events
+   - kubectl watching for pod status
+   ✅ All notified via watch streams</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">API Server Features:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>RESTful API:</strong> Standard HTTP verbs (GET, POST, PUT, DELETE, PATCH)</li>
+                    <li><strong>Watch API:</strong> Long-polling for real-time updates</li>
+                    <li><strong>Versioning:</strong> Multiple API versions (v1, v1beta1, v1alpha1)</li>
+                    <li><strong>API Groups:</strong> Organized by functionality (apps, batch, networking)</li>
+                    <li><strong>Custom Resources:</strong> Extend API with CRDs</li>
+                    <li><strong>Aggregation Layer:</strong> Extend API with custom API servers</li>
                 </ul>
 
-                <p><strong>Key characteristics:</strong></p>
-                <ul>
-                    <li>Distributed key-value store</li>
-                    <li>Highly available (runs in HA mode)</li>
-                    <li>Consistent (uses Raft consensus algorithm)</li>
-                    <li>Only API Server talks to etcd directly</li>
-                </ul>
+                <h4 style="color: #90cdf4; margin-top: 20px;">API Server Ports:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>6443  - Secure API port (HTTPS) - Main API endpoint
+8080  - Insecure API port (HTTP) - Deprecated, disabled by default
+10250 - kubelet API port
+10251 - kube-scheduler health check
+10252 - kube-controller-manager health check</code></pre>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 Pro Tip:</strong> The API Server is stateless! You can run multiple instances behind a load balancer for high availability. All state is stored in etcd.
+                </div>
 
                 <div style="background: #742a2a; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                    <strong>⚠️ Critical:</strong> If etcd goes down, your cluster is in read-only mode. Always backup etcd!
+                    <strong>⚠️ Security Note:</strong> The API Server is the attack surface of your cluster. Always:
+                    <ul style="margin-top: 10px;">
+                        <li>Use TLS for all connections</li>
+                        <li>Enable RBAC</li>
+                        <li>Audit logging</li>
+                        <li>Restrict network access</li>
+                        <li>Keep it updated</li>
+                    </ul>
                 </div>
+            </div>
+
+            <h3 style="color: #667eea;">2. etcd - The Cluster's Brain (Database)</h3>
+            
+            <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="font-size: 1.1rem; line-height: 1.8;"><strong>Role:</strong> etcd is a distributed, reliable key-value store that stores all cluster data. It's the single source of truth for your entire Kubernetes cluster.</p>
+                
+                <p><strong>Analogy:</strong> Like a library that keeps records of everything in the city - if the library burns down, the city loses all its records!</p>
+                
+                <h4 style="color: #90cdf4; margin-top: 20px;">What etcd Stores:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Cluster Configuration:</strong> API server config, feature gates</li>
+                    <li><strong>Resource Definitions:</strong> All Kubernetes objects (pods, services, deployments, etc.)</li>
+                    <li><strong>Current State:</strong> What's actually running in the cluster</li>
+                    <li><strong>Desired State:</strong> What should be running</li>
+                    <li><strong>Secrets:</strong> Encrypted sensitive data</li>
+                    <li><strong>ConfigMaps:</strong> Application configuration</li>
+                    <li><strong>Node Information:</strong> Node status, capacity, conditions</li>
+                    <li><strong>Network Policies:</strong> Security rules</li>
+                    <li><strong>RBAC Policies:</strong> Access control rules</li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">etcd Architecture:</h4>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>┌─────────────────────────────────────────────────────────┐
+│              etcd Cluster (High Availability)            │
+│                                                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
+│  │  etcd Node 1 │  │  etcd Node 2 │  │  etcd Node 3 │ │
+│  │   (Leader)   │  │  (Follower)  │  │  (Follower)  │ │
+│  │              │  │              │  │              │ │
+│  │  Port: 2379  │  │  Port: 2379  │  │  Port: 2379  │ │
+│  │  (Client)    │  │  (Client)    │  │  (Client)    │ │
+│  │              │  │              │  │              │ │
+│  │  Port: 2380  │  │  Port: 2380  │  │  Port: 2380  │ │
+│  │  (Peer)      │  │  (Peer)      │  │  (Peer)      │ │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘ │
+│         │                 │                  │         │
+│         └─────────────────┼──────────────────┘         │
+│                           │                            │
+│                  Raft Consensus Protocol               │
+│              (Leader Election & Replication)           │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           │ (Only API Server talks to etcd)
+                           │
+                    ┌──────▼───────┐
+                    │  API Server  │
+                    └──────────────┘</code></pre>
+                </div>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Key Characteristics:</h4>
+                
+                <p><strong>1. Distributed & Consistent (Raft Consensus)</strong></p>
+                <ul style="line-height: 2;">
+                    <li>Uses Raft algorithm for consensus</li>
+                    <li>Leader election: One leader, rest are followers</li>
+                    <li>All writes go through leader</li>
+                    <li>Leader replicates to followers</li>
+                    <li>Requires quorum (majority) for writes</li>
+                </ul>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Quorum calculation:
+3 nodes: Need 2 for quorum (can tolerate 1 failure)
+5 nodes: Need 3 for quorum (can tolerate 2 failures)
+7 nodes: Need 4 for quorum (can tolerate 3 failures)
+
+# Recommended: Always use odd numbers (3, 5, 7)
+# Why? 4 nodes = same fault tolerance as 3 nodes (both need 3 for quorum)</code></pre>
+
+                <p><strong>2. Strongly Consistent</strong></p>
+                <ul style="line-height: 2;">
+                    <li>Linearizable reads and writes</li>
+                    <li>All clients see the same data at the same time</li>
+                    <li>No eventual consistency - always consistent</li>
+                </ul>
+
+                <p><strong>3. Watch Mechanism</strong></p>
+                <ul style="line-height: 2;">
+                    <li>Clients can watch for changes to keys</li>
+                    <li>Get notified immediately when data changes</li>
+                    <li>This is how Kubernetes components stay in sync</li>
+                </ul>
+
+                <p><strong>4. Key-Value Store</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example etcd keys (hierarchical structure):
+/registry/pods/default/nginx-pod
+/registry/services/default/nginx-service
+/registry/deployments/default/nginx-deployment
+/registry/secrets/default/db-password
+/registry/configmaps/default/app-config
+/registry/nodes/node-1
+/registry/namespaces/default
+
+# Each key stores JSON representation of the object</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">etcd Performance Characteristics:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Read Performance:</strong> ~10,000 reads/sec per node</li>
+                    <li><strong>Write Performance:</strong> ~1,000 writes/sec (limited by consensus)</li>
+                    <li><strong>Latency:</strong> <10ms for writes in same datacenter</li>
+                    <li><strong>Size Limit:</strong> Default 2GB (can be increased to 8GB)</li>
+                    <li><strong>Key Size:</strong> Max 1.5 MB per key</li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">etcd Operations:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check etcd health
+ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  endpoint health
+
+# List all keys
+ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  get / --prefix --keys-only
+
+# Get specific key
+ETCDCTL_API=3 etcdctl get /registry/pods/default/nginx-pod
+
+# Backup etcd (CRITICAL!)
+ETCDCTL_API=3 etcdctl snapshot save backup.db
+
+# Restore etcd from backup
+ETCDCTL_API=3 etcdctl snapshot restore backup.db</code></pre>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>⚠️ CRITICAL - etcd is the Most Important Component:</strong>
+                    <ul style="margin-top: 10px; line-height: 2;">
+                        <li><strong>If etcd goes down:</strong> Cluster is in read-only mode (can't create/update/delete)</li>
+                        <li><strong>If etcd data is lost:</strong> Entire cluster state is lost (catastrophic!)</li>
+                        <li><strong>If etcd is corrupted:</strong> Cluster may become unstable</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>✅ etcd Best Practices:</strong>
+                    <ul style="margin-top: 10px; line-height: 2;">
+                        <li><strong>Backup regularly:</strong> Automated daily backups minimum</li>
+                        <li><strong>Use SSD storage:</strong> etcd is I/O intensive</li>
+                        <li><strong>Separate etcd nodes:</strong> Don't run on same nodes as workloads</li>
+                        <li><strong>Monitor performance:</strong> Watch latency and disk I/O</li>
+                        <li><strong>Use 3 or 5 nodes:</strong> For high availability</li>
+                        <li><strong>Low latency network:</strong> <10ms between etcd nodes</li>
+                        <li><strong>Encrypt at rest:</strong> Enable encryption for secrets</li>
+                        <li><strong>Limit API Server connections:</strong> Prevent etcd overload</li>
+                    </ul>
+                </div>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">etcd vs Other Databases:</h4>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 15px; text-align: left;">Feature</th>
+                            <th style="padding: 15px; text-align: left;">etcd</th>
+                            <th style="padding: 15px; text-align: left;">Redis</th>
+                            <th style="padding: 15px; text-align: left;">Consul</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;">Consistency</td>
+                            <td style="padding: 15px;">Strong (Raft)</td>
+                            <td style="padding: 15px;">Eventual</td>
+                            <td style="padding: 15px;">Strong (Raft)</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;">Watch API</td>
+                            <td style="padding: 15px;">Yes</td>
+                            <td style="padding: 15px;">Pub/Sub</td>
+                            <td style="padding: 15px;">Yes</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td style="padding: 15px;">Use Case</td>
+                            <td style="padding: 15px;">Config/Coordination</td>
+                            <td style="padding: 15px;">Cache/Queue</td>
+                            <td style="padding: 15px;">Service Discovery</td>
+                        </tr>
+                        <tr style="background: rgba(255,255,255,0.02);">
+                            <td style="padding: 15px;">K8s Default</td>
+                            <td style="padding: 15px;">✅ Yes</td>
+                            <td style="padding: 15px;">❌ No</td>
+                            <td style="padding: 15px;">❌ No</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <h3 style="color: #667eea;">3. Scheduler (kube-scheduler)</h3>
