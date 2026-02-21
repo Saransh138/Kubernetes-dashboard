@@ -485,83 +485,599 @@ ETCDCTL_API=3 etcdctl snapshot restore backup.db</code></pre>
                 </table>
             </div>
 
-            <h3 style="color: #667eea;">3. Scheduler (kube-scheduler)</h3>
+            <h3 style="color: #667eea;">3. Scheduler (kube-scheduler) - The Matchmaker</h3>
             
             <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
-                <p><strong>Role:</strong> Assigns pods to nodes based on resource requirements and constraints.</p>
+                <p style="font-size: 1.1rem; line-height: 1.8;"><strong>Role:</strong> The Scheduler watches for newly created pods that have no node assigned and selects the best node for them to run on based on resource requirements, constraints, and policies.</p>
                 
-                <p><strong>Analogy:</strong> Like a hotel manager assigning guests to rooms based on their needs.</p>
+                <p><strong>Analogy:</strong> Like a hotel manager assigning guests to rooms based on their needs, preferences, and room availability.</p>
                 
-                <p><strong>Scheduling process:</strong></p>
-                <ol>
-                    <li><strong>Filtering:</strong> Find nodes that can run the pod
-                        <ul>
-                            <li>Has enough CPU/memory?</li>
-                            <li>Matches node selector?</li>
-                            <li>Tolerates node taints?</li>
-                        </ul>
-                    </li>
-                    <li><strong>Scoring:</strong> Rank suitable nodes
-                        <ul>
-                            <li>Spread pods across nodes</li>
-                            <li>Prefer nodes with fewer pods</li>
-                            <li>Consider affinity rules</li>
-                        </ul>
-                    </li>
-                    <li><strong>Binding:</strong> Assign pod to best node</li>
-                </ol>
+                <h4 style="color: #90cdf4; margin-top: 20px;">Scheduling Algorithm - Two-Phase Process:</h4>
+                
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.6;"><code>┌─────────────────────────────────────────────────────────────┐
+│              Scheduler Decision Process                      │
+│                                                              │
+│  1. Watch API Server for unscheduled pods                   │
+│     ↓                                                        │
+│  2. FILTERING PHASE (Predicates)                            │
+│     Find all nodes that CAN run the pod                     │
+│     ↓                                                        │
+│     Filters Applied:                                        │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ • PodFitsResources                          │        │
+│     │   - Enough CPU?                             │        │
+│     │   - Enough Memory?                          │        │
+│     │   - Enough Ephemeral Storage?               │        │
+│     │                                             │        │
+│     │ • PodFitsHost                               │        │
+│     │   - Matches nodeName if specified?          │        │
+│     │                                             │        │
+│     │ • PodFitsHostPorts                          │        │
+│     │   - Required ports available?               │        │
+│     │                                             │        │
+│     │ • PodMatchNodeSelector                      │        │
+│     │   - Matches node labels?                    │        │
+│     │                                             │        │
+│     │ • CheckNodeTaints                           │        │
+│     │   - Pod tolerates node taints?              │        │
+│     │                                             │        │
+│     │ • CheckVolumeBinding                        │        │
+│     │   - Can volumes be bound?                   │        │
+│     │                                             │        │
+│     │ • CheckNodeAffinity                         │        │
+│     │   - Matches affinity rules?                 │        │
+│     │                                             │        │
+│     │ • CheckPodAffinity/AntiAffinity             │        │
+│     │   - Satisfies pod affinity rules?           │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│     Result: List of feasible nodes                          │
+│     ↓                                                        │
+│  3. SCORING PHASE (Priorities)                              │
+│     Rank feasible nodes (0-100 score)                       │
+│     ↓                                                        │
+│     Scoring Functions:                                      │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ • LeastRequestedPriority                    │        │
+│     │   - Prefer nodes with more available        │        │
+│     │     resources (better utilization)          │        │
+│     │                                             │        │
+│     │ • BalancedResourceAllocation                │        │
+│     │   - Balance CPU and memory usage            │        │
+│     │                                             │        │
+│     │ • SelectorSpreadPriority                    │        │
+│     │   - Spread pods across nodes                │        │
+│     │                                             │        │
+│     │ • NodeAffinityPriority                      │        │
+│     │   - Prefer nodes matching affinity          │        │
+│     │                                             │        │
+│     │ • TaintTolerationPriority                   │        │
+│     │   - Prefer nodes with fewer taints          │        │
+│     │                                             │        │
+│     │ • InterPodAffinityPriority                  │        │
+│     │   - Prefer nodes satisfying pod affinity    │        │
+│     │                                             │        │
+│     │ • ImageLocalityPriority                     │        │
+│     │   - Prefer nodes with image already cached  │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│     Result: Nodes ranked by score                           │
+│     ↓                                                        │
+│  4. BINDING PHASE                                            │
+│     Assign pod to highest-scoring node                      │
+│     ↓                                                        │
+│     • Update pod.spec.nodeName in API Server                │
+│     • API Server persists to etcd                           │
+│     • kubelet on selected node picks up the pod             │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
 
-                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example: Pod needs 2 CPU and 4GB RAM
+                <h4 style="color: #90cdf4; margin-top: 20px;">Detailed Scheduling Example:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Pod Requirements:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app
+spec:
+  containers:
+  - name: app
+    image: myapp:1.0
+    resources:
+      requests:
+        cpu: 2
+        memory: 4Gi
+  nodeSelector:
+    disktype: ssd
 
-Scheduler checks:
-Node 1: 1 CPU available  ❌ Not enough CPU
-Node 2: 4 CPU, 8GB RAM   ✅ Can fit
-Node 3: 8 CPU, 16GB RAM  ✅ Can fit (best choice - more resources)
+# Cluster State:
+Node 1: 
+  - CPU: 4 cores (1 core used, 3 available)
+  - Memory: 8Gi (2Gi used, 6Gi available)
+  - Labels: disktype=hdd
+  - Status: Ready
 
-Result: Pod scheduled to Node 3</code></pre>
+Node 2:
+  - CPU: 8 cores (4 cores used, 4 available)
+  - Memory: 16Gi (8Gi used, 8Gi available)
+  - Labels: disktype=ssd
+  - Status: Ready
+
+Node 3:
+  - CPU: 16 cores (2 cores used, 14 available)
+  - Memory: 32Gi (4Gi used, 28Gi available)
+  - Labels: disktype=ssd
+  - Status: Ready
+
+# Scheduler Decision Process:
+
+FILTERING PHASE:
+-----------------
+Node 1:
+  ✅ PodFitsResources: 3 CPU available >= 2 CPU needed
+  ✅ PodFitsResources: 6Gi available >= 4Gi needed
+  ❌ PodMatchNodeSelector: disktype=hdd != disktype=ssd
+  Result: FILTERED OUT
+
+Node 2:
+  ✅ PodFitsResources: 4 CPU available >= 2 CPU needed
+  ✅ PodFitsResources: 8Gi available >= 4Gi needed
+  ✅ PodMatchNodeSelector: disktype=ssd matches
+  Result: FEASIBLE
+
+Node 3:
+  ✅ PodFitsResources: 14 CPU available >= 2 CPU needed
+  ✅ PodFitsResources: 28Gi available >= 4Gi needed
+  ✅ PodMatchNodeSelector: disktype=ssd matches
+  Result: FEASIBLE
+
+Feasible Nodes: [Node 2, Node 3]
+
+SCORING PHASE:
+--------------
+Node 2:
+  LeastRequestedPriority:
+    CPU: (4 - 2) / 4 = 50% available → Score: 50
+    Memory: (8 - 4) / 8 = 50% available → Score: 50
+    Average: 50
+  
+  BalancedResourceAllocation:
+    CPU usage after: (4 + 2) / 8 = 75%
+    Memory usage after: (8 + 4) / 16 = 75%
+    Difference: 0% → Score: 100 (perfectly balanced)
+  
+  Total Score: (50 + 100) / 2 = 75
+
+Node 3:
+  LeastRequestedPriority:
+    CPU: (14 - 2) / 16 = 75% available → Score: 75
+    Memory: (28 - 4) / 32 = 75% available → Score: 75
+    Average: 75
+  
+  BalancedResourceAllocation:
+    CPU usage after: (2 + 2) / 16 = 25%
+    Memory usage after: (4 + 4) / 32 = 25%
+    Difference: 0% → Score: 100 (perfectly balanced)
+  
+  Total Score: (75 + 100) / 2 = 87.5
+
+BINDING PHASE:
+--------------
+Winner: Node 3 (Score: 87.5)
+Action: Bind pod "my-app" to Node 3
+Result: pod.spec.nodeName = "node-3"</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Scheduling Constraints:</h4>
+                
+                <p><strong>1. Node Selectors (Simple)</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>spec:
+  nodeSelector:
+    disktype: ssd
+    region: us-west
+# Pod will ONLY run on nodes with BOTH labels</code></pre>
+
+                <p><strong>2. Node Affinity (Advanced)</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disktype
+            operator: In
+            values: [ssd, nvme]
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 80
+        preference:
+          matchExpressions:
+          - key: region
+            operator: In
+            values: [us-west]</code></pre>
+
+                <p><strong>3. Taints and Tolerations</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Taint on node (repels pods)
+kubectl taint nodes node1 key=value:NoSchedule
+
+# Toleration on pod (allows scheduling despite taint)
+spec:
+  tolerations:
+  - key: "key"
+    operator: "Equal"
+    value: "value"
+    effect: "NoSchedule"</code></pre>
+
+                <p><strong>4. Pod Affinity/Anti-Affinity</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Run near cache pods (affinity)
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values: [cache]
+        topologyKey: kubernetes.io/hostname
+
+# Don't run on same node as other replicas (anti-affinity)
+spec:
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values: [myapp]
+        topologyKey: kubernetes.io/hostname</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Scheduler Performance:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Throughput:</strong> Can schedule 100+ pods per second</li>
+                    <li><strong>Latency:</strong> Typically <100ms per pod</li>
+                    <li><strong>Scalability:</strong> Handles clusters with 5000+ nodes</li>
+                    <li><strong>Extensibility:</strong> Custom schedulers and scheduler extenders supported</li>
+                </ul>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 Pro Tips:</strong>
+                    <ul style="margin-top: 10px; line-height: 2;">
+                        <li>Use node affinity for flexible node selection</li>
+                        <li>Use pod anti-affinity for high availability (spread replicas)</li>
+                        <li>Use taints for dedicated nodes (GPU, high-memory)</li>
+                        <li>Monitor scheduler queue depth and latency</li>
+                        <li>Consider custom schedulers for special workloads</li>
+                    </ul>
+                </div>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Troubleshooting Scheduling Issues:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check why pod is not scheduled
+kubectl describe pod <pod-name>
+
+# Common issues:
+# 1. Insufficient resources
+Events:
+  Warning  FailedScheduling  pod has unbound immediate PersistentVolumeClaims
+  
+# 2. No nodes match selector
+Events:
+  Warning  FailedScheduling  0/3 nodes are available: 3 node(s) didn't match node selector
+
+# 3. Taints not tolerated
+Events:
+  Warning  FailedScheduling  0/3 nodes are available: 3 node(s) had taint {key: value}, that the pod didn't tolerate
+
+# View scheduler logs
+kubectl logs -n kube-system kube-scheduler-<node-name></code></pre>
             </div>
 
-            <h3 style="color: #667eea;">4. Controller Manager (kube-controller-manager)</h3>
+            <h3 style="color: #667eea;">4. Controller Manager (kube-controller-manager) - The Autopilot</h3>
             
             <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
-                <p><strong>Role:</strong> Runs controllers that maintain desired state.</p>
+                <p style="font-size: 1.1rem; line-height: 1.8;"><strong>Role:</strong> The Controller Manager runs multiple controllers that continuously watch the cluster state and make changes to move the current state toward the desired state. It's the autopilot that keeps everything running smoothly.</p>
                 
-                <p><strong>Analogy:</strong> Like building maintenance staff who constantly check and fix things.</p>
+                <p><strong>Analogy:</strong> Like building maintenance staff who constantly check and fix things - HVAC controller maintains temperature, security controller monitors access, cleaning controller maintains cleanliness.</p>
                 
-                <p><strong>Key controllers:</strong></p>
-                
-                <h4 style="color: #667eea;">Node Controller</h4>
-                <ul>
-                    <li>Monitors node health</li>
-                    <li>Marks nodes as NotReady if they stop responding</li>
-                    <li>Evicts pods from failed nodes</li>
-                </ul>
+                <h4 style="color: #90cdf4; margin-top: 20px;">Controller Pattern - The Core Concept:</h4>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.6;"><code>┌─────────────────────────────────────────────────────────┐
+│              Controller Reconciliation Loop              │
+│                                                          │
+│  while true:                                            │
+│    ┌──────────────────────────────────────────────┐    │
+│    │  1. OBSERVE                                  │    │
+│    │     Watch API Server for changes             │    │
+│    │     Get current state                        │    │
+│    └──────────────┬───────────────────────────────┘    │
+│                   │                                     │
+│                   ▼                                     │
+│    ┌──────────────────────────────────────────────┐    │
+│    │  2. DIFF                                     │    │
+│    │     Compare current state vs desired state   │    │
+│    │     Identify differences                     │    │
+│    └──────────────┬───────────────────────────────┘    │
+│                   │                                     │
+│                   ▼                                     │
+│    ┌──────────────────────────────────────────────┐    │
+│    │  3. ACT                                      │    │
+│    │     Make changes to reconcile state          │    │
+│    │     Create/Update/Delete resources           │    │
+│    └──────────────┬───────────────────────────────┘    │
+│                   │                                     │
+│                   └─────────────┐                       │
+│                                 │                       │
+│                   ┌─────────────▼─────────────┐        │
+│                   │  Wait for next event or   │        │
+│                   │  periodic sync (30s)      │        │
+│                   └───────────────────────────┘        │
+└─────────────────────────────────────────────────────────┘
 
-                <h4 style="color: #667eea;">Replication Controller</h4>
-                <ul>
-                    <li>Ensures correct number of pod replicas</li>
-                    <li>Creates new pods if some die</li>
-                    <li>Deletes extra pods if too many</li>
-                </ul>
-
-                <h4 style="color: #667eea;">Endpoints Controller</h4>
-                <ul>
-                    <li>Populates Endpoints objects (joins Services & Pods)</li>
-                </ul>
-
-                <h4 style="color: #667eea;">Service Account Controller</h4>
-                <ul>
-                    <li>Creates default ServiceAccounts for namespaces</li>
-                </ul>
-
-                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example: Replication Controller in action
-
-Desired State: 3 replicas of nginx
-Current State: 2 replicas running (1 crashed)
-
-Controller detects: 2 < 3
-Action: Creates 1 new pod
+Example: ReplicaSet Controller
+Desired: 3 replicas
+Current: 2 replicas (1 crashed)
+Diff: Need 1 more replica
+Action: Create 1 new pod
 Result: 3 replicas running ✅</code></pre>
+                </div>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Built-in Controllers (20+):</h4>
+                
+                <p><strong>1. Node Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Monitors node health and manages node lifecycle</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Assigns CIDR blocks to new nodes</li>
+                            <li>Keeps node list up to date</li>
+                            <li>Monitors node health (heartbeats every 10s)</li>
+                            <li>Marks nodes as NotReady if no heartbeat for 40s</li>
+                            <li>Evicts pods from NotReady nodes after 5 minutes</li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Node lifecycle:
+Ready → NotReady (40s no heartbeat) → Evict pods (5 min) → Delete node (optional)
+
+# Node conditions monitored:
+- Ready: Node is healthy and ready to accept pods
+- MemoryPressure: Node is running out of memory
+- DiskPressure: Node is running out of disk space
+- PIDPressure: Too many processes running
+- NetworkUnavailable: Network not configured correctly</code></pre>
+
+                <p><strong>2. Replication Controller / ReplicaSet Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Ensures correct number of pod replicas are running</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates pods if count < desired</li>
+                            <li>Deletes pods if count > desired</li>
+                            <li>Replaces failed pods</li>
+                            <li>Handles pod adoption (pods without owner)</li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example: ReplicaSet with 3 replicas
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+
+# Controller actions:
+# - Watches for ReplicaSet changes
+# - Counts pods matching selector (app=nginx)
+# - If count != 3, creates or deletes pods
+# - Continuously reconciles every 30s</code></pre>
+
+                <p><strong>3. Deployment Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages Deployments and their ReplicaSets</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates ReplicaSets for new Deployments</li>
+                            <li>Performs rolling updates</li>
+                            <li>Handles rollbacks</li>
+                            <li>Scales ReplicaSets</li>
+                            <li>Pauses/resumes rollouts</li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Rolling update process:
+1. User updates Deployment image: nginx:1.20 → nginx:1.21
+2. Deployment Controller creates new ReplicaSet (nginx:1.21)
+3. Gradually scales up new RS, scales down old RS
+4. Strategy: RollingUpdate (default)
+   - maxSurge: 25% (max pods above desired during update)
+   - maxUnavailable: 25% (max pods unavailable during update)
+
+# Example with 4 replicas:
+Old RS (nginx:1.20): 4 pods
+New RS (nginx:1.21): 0 pods
+↓
+Old RS: 3 pods, New RS: 1 pod (surge: 1)
+↓
+Old RS: 2 pods, New RS: 2 pods
+↓
+Old RS: 1 pod, New RS: 3 pods
+↓
+Old RS: 0 pods, New RS: 4 pods ✅</code></pre>
+
+                <p><strong>4. StatefulSet Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages stateful applications</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates pods in order (0, 1, 2...)</li>
+                            <li>Provides stable network identities</li>
+                            <li>Manages persistent storage</li>
+                            <li>Performs ordered, graceful scaling</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>5. DaemonSet Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Ensures a pod runs on all (or some) nodes</li>
+                    <li><strong>Use Cases:</strong> Log collectors, monitoring agents, network plugins</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates pod on new nodes</li>
+                            <li>Deletes pod when node is removed</li>
+                            <li>Respects node selectors and taints</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>6. Job Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages batch jobs</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates pods to run to completion</li>
+                            <li>Tracks successful completions</li>
+                            <li>Retries failed pods</li>
+                            <li>Cleans up completed jobs (optional)</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>7. CronJob Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages scheduled jobs</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates Jobs on schedule (cron format)</li>
+                            <li>Manages job history</li>
+                            <li>Handles missed schedules</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>8. Service Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages Services</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates cloud load balancers for LoadBalancer services</li>
+                            <li>Allocates cluster IPs</li>
+                            <li>Updates endpoints</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>9. Endpoints Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Populates Endpoints objects</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Watches Services and Pods</li>
+                            <li>Creates Endpoints linking Services to Pods</li>
+                            <li>Updates Endpoints when pods change</li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Service selects pods with label app=nginx
+# Endpoints Controller finds matching pods and creates:
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: nginx-service
+subsets:
+- addresses:
+  - ip: 10.244.1.5  # Pod 1 IP
+  - ip: 10.244.2.3  # Pod 2 IP
+  - ip: 10.244.3.7  # Pod 3 IP
+  ports:
+  - port: 80</code></pre>
+
+                <p><strong>10. Namespace Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages namespace lifecycle</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Deletes all resources in namespace when namespace is deleted</li>
+                            <li>Prevents deletion of system namespaces</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>11. ServiceAccount Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages ServiceAccounts</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Creates default ServiceAccount in new namespaces</li>
+                            <li>Creates tokens for ServiceAccounts</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>12. PersistentVolume Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Manages PV and PVC binding</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Binds PVCs to PVs</li>
+                            <li>Provisions dynamic volumes</li>
+                            <li>Handles volume lifecycle</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>13. ResourceQuota Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Enforces resource quotas</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Tracks resource usage per namespace</li>
+                            <li>Rejects requests exceeding quota</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>14. Garbage Collector Controller</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>Responsibility:</strong> Cleans up orphaned resources</li>
+                    <li><strong>Actions:</strong>
+                        <ul>
+                            <li>Deletes dependent objects when owner is deleted</li>
+                            <li>Handles cascading deletion</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Controller Manager Configuration:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Key flags:
+--controllers=*                    # Which controllers to run (* = all)
+--node-monitor-period=5s          # How often to check node health
+--node-monitor-grace-period=40s   # Grace period before marking NotReady
+--pod-eviction-timeout=5m         # Time before evicting pods from NotReady node
+--concurrent-deployment-syncs=5   # Concurrent deployment reconciliations
+--leader-elect=true               # Enable leader election for HA</code></pre>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 Understanding Controllers:</strong>
+                    <ul style="margin-top: 10px; line-height: 2;">
+                        <li>Controllers are the "brains" that make Kubernetes self-healing</li>
+                        <li>Each controller is responsible for one resource type</li>
+                        <li>Controllers run in parallel and independently</li>
+                        <li>You can write custom controllers for custom resources (CRDs)</li>
+                        <li>Controllers use optimistic concurrency (resource versions)</li>
+                    </ul>
+                </div>
             </div>
 
             <h3 style="color: #667eea;">5. Cloud Controller Manager (Optional)</h3>
@@ -582,61 +1098,618 @@ Result: 3 replicas running ✅</code></pre>
 
             <p>Worker Nodes are where your applications actually run. Each node has three main components:</p>
 
-            <h3 style="color: #667eea;">1. kubelet</h3>
+            <h3 style="color: #667eea;">1. kubelet - The Node Agent</h3>
             
             <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
-                <p><strong>Role:</strong> The agent running on each node. It's the node's manager.</p>
+                <p style="font-size: 1.1rem; line-height: 1.8;"><strong>Role:</strong> The kubelet is the primary node agent that runs on each worker node. It's responsible for managing pods and containers on its node, ensuring they're running and healthy.</p>
                 
-                <p><strong>Analogy:</strong> Like a building superintendent who manages their building.</p>
+                <p><strong>Analogy:</strong> Like a building superintendent who manages their building - ensures apartments (pods) are occupied, maintained, and functioning properly.</p>
                 
-                <p><strong>Responsibilities:</strong></p>
-                <ul>
-                    <li>Registers node with API Server</li>
-                    <li>Watches API Server for pods assigned to its node</li>
-                    <li>Starts/stops containers via container runtime</li>
-                    <li>Monitors pod and container health</li>
-                    <li>Reports node and pod status to API Server</li>
-                    <li>Runs liveness/readiness probes</li>
+                <h4 style="color: #90cdf4; margin-top: 20px;">Core Responsibilities:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Node Registration:</strong> Registers the node with API Server</li>
+                    <li><strong>Pod Management:</strong> Watches API Server for pods assigned to its node</li>
+                    <li><strong>Container Lifecycle:</strong> Starts, stops, and restarts containers</li>
+                    <li><strong>Health Monitoring:</strong> Runs liveness, readiness, and startup probes</li>
+                    <li><strong>Resource Reporting:</strong> Reports node and pod status to API Server</li>
+                    <li><strong>Volume Management:</strong> Mounts volumes for pods</li>
+                    <li><strong>Image Management:</strong> Pulls container images</li>
+                    <li><strong>Pod Eviction:</strong> Evicts pods when node resources are low</li>
                 </ul>
 
-                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># kubelet workflow:
+                <h4 style="color: #90cdf4; margin-top: 20px;">kubelet Workflow:</h4>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.6;"><code>┌─────────────────────────────────────────────────────────────┐
+│              kubelet Pod Lifecycle Management                │
+│                                                              │
+│  1. Watch API Server                                        │
+│     - Long-polling watch on /api/v1/pods                    │
+│     - Filter: pods where spec.nodeName == this node         │
+│     ↓                                                        │
+│  2. Receive Pod Spec                                        │
+│     - New pod assigned to this node                         │
+│     - Pod spec includes: containers, volumes, etc.          │
+│     ↓                                                        │
+│  3. Sync Pod                                                │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ a. Create Pod Sandbox                       │        │
+│     │    - Set up network namespace               │        │
+│     │    - Allocate IP address                    │        │
+│     │    - Set up pause container                 │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ b. Pull Images                              │        │
+│     │    - Check if image exists locally          │        │
+│     │    - Pull from registry if needed           │        │
+│     │    - Verify image integrity                 │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ c. Mount Volumes                            │        │
+│     │    - Create volume directories              │        │
+│     │    - Mount ConfigMaps/Secrets               │        │
+│     │    - Attach persistent volumes              │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ d. Start Init Containers (if any)           │        │
+│     │    - Run sequentially                       │        │
+│     │    - Wait for each to complete              │        │
+│     │    - Fail pod if init container fails       │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ e. Start Main Containers                    │        │
+│     │    - Start all containers in parallel       │        │
+│     │    - Set up environment variables           │        │
+│     │    - Apply resource limits                  │        │
+│     │    - Apply security context                 │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│  4. Monitor Container Health                                │
+│     ┌─────────────────────────────────────────────┐        │
+│     │ • Liveness Probe (is container alive?)     │        │
+│     │   - HTTP GET, TCP Socket, or Exec          │        │
+│     │   - If fails: restart container            │        │
+│     │                                             │        │
+│     │ • Readiness Probe (ready for traffic?)     │        │
+│     │   - HTTP GET, TCP Socket, or Exec          │        │
+│     │   - If fails: remove from endpoints        │        │
+│     │                                             │        │
+│     │ • Startup Probe (has it started?)          │        │
+│     │   - For slow-starting containers           │        │
+│     │   - Disables liveness until passes         │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│  5. Report Status to API Server                             │
+│     - Pod phase (Pending, Running, Succeeded, Failed)       │
+│     - Container states (Waiting, Running, Terminated)       │
+│     - Resource usage (CPU, memory)                          │
+│     - Events (pulled image, started container, etc.)        │
+│     ↓                                                        │
+│  6. Continuous Reconciliation                               │
+│     - Every 10 seconds: sync pod state                      │
+│     - Every 10 seconds: run health probes                   │
+│     - Every 10 seconds: report status                       │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
 
-1. API Server: "Run this pod on your node"
-2. kubelet: "Got it! Let me start the containers"
-3. kubelet → Container Runtime: "Start nginx container"
-4. Container Runtime: "Container started"
-5. kubelet → API Server: "Pod is running"
-6. kubelet: *continuously monitors pod health*
-7. kubelet → API Server: "Pod still healthy" (every 10s)</code></pre>
+                <h4 style="color: #90cdf4; margin-top: 20px;">kubelet Communication:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># kubelet talks to:
+1. API Server (port 6443)
+   - Watch for pod assignments
+   - Report node/pod status
+   - Get secrets/configmaps
+
+2. Container Runtime (via CRI)
+   - Start/stop containers
+   - List containers
+   - Get container stats
+
+3. CNI Plugin (via CNI)
+   - Set up pod networking
+   - Allocate IP addresses
+
+4. CSI Plugin (via CSI)
+   - Mount volumes
+   - Unmount volumes
+
+# kubelet exposes:
+- Port 10250: kubelet API (authenticated)
+- Port 10255: Read-only API (deprecated)
+- Port 10248: Health check endpoint</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Pod Lifecycle Phases:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Pod goes through these phases:
+
+1. Pending
+   - Pod accepted by cluster
+   - Waiting for scheduling or image pull
+   
+2. Running
+   - Pod bound to node
+   - At least one container is running
+   
+3. Succeeded
+   - All containers terminated successfully
+   - Won't be restarted
+   
+4. Failed
+   - All containers terminated
+   - At least one failed (non-zero exit)
+   
+5. Unknown
+   - Can't determine pod state
+   - Usually communication error with node
+
+# Container states within pod:
+- Waiting: Not running yet (pulling image, waiting for init)
+- Running: Executing normally
+- Terminated: Finished execution or was killed</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Health Probes in Detail:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Liveness Probe (restart if fails)
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 30  # Wait before first probe
+  periodSeconds: 10        # Probe every 10s
+  timeoutSeconds: 5        # Timeout after 5s
+  successThreshold: 1      # 1 success = healthy
+  failureThreshold: 3      # 3 failures = restart
+
+# Readiness Probe (remove from service if fails)
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  
+# Startup Probe (for slow-starting apps)
+startupProbe:
+  httpGet:
+    path: /startup
+    port: 8080
+  failureThreshold: 30     # 30 * 10s = 5 minutes to start
+  periodSeconds: 10
+
+# Probe types:
+1. HTTP GET: Success if 200-399 response
+2. TCP Socket: Success if port is open
+3. Exec: Success if command exits with 0</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Resource Management:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># kubelet enforces resource limits using cgroups
+
+# Pod with resource requests/limits:
+resources:
+  requests:
+    cpu: 500m      # 0.5 CPU cores (guaranteed)
+    memory: 512Mi  # 512 MiB (guaranteed)
+  limits:
+    cpu: 1000m     # 1 CPU core (max)
+    memory: 1Gi    # 1 GiB (max, killed if exceeded)
+
+# kubelet actions:
+1. Reserves requested resources (scheduling)
+2. Enforces limits via cgroups
+3. Evicts pods if node resources are low
+4. Prioritizes eviction by QoS class:
+   - BestEffort (no requests/limits) → evicted first
+   - Burstable (requests < limits) → evicted second
+   - Guaranteed (requests = limits) → evicted last</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Pod Eviction:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># kubelet evicts pods when node resources are low
+
+# Eviction signals:
+- memory.available < 100Mi
+- nodefs.available < 10% (root filesystem)
+- nodefs.inodesFree < 5%
+- imagefs.available < 15% (image filesystem)
+
+# Eviction process:
+1. kubelet detects resource pressure
+2. Marks node with condition (MemoryPressure, DiskPressure)
+3. Stops accepting new pods
+4. Evicts pods based on priority:
+   - BestEffort pods first
+   - Burstable pods exceeding requests
+   - Guaranteed pods (only if critical)
+5. Sends SIGTERM to containers
+6. Waits 30s (grace period)
+7. Sends SIGKILL if still running</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">kubelet Configuration:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Key kubelet flags:
+--kubeconfig=/etc/kubernetes/kubelet.conf
+--config=/var/lib/kubelet/config.yaml
+--container-runtime-endpoint=unix:///var/run/containerd/containerd.sock
+--pod-infra-container-image=k8s.gcr.io/pause:3.9
+--max-pods=110                    # Max pods per node
+--node-status-update-frequency=10s
+--image-pull-progress-deadline=1m
+--eviction-hard=memory.available<100Mi
+--eviction-soft=memory.available<300Mi
+--eviction-soft-grace-period=memory.available=1m30s</code></pre>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 kubelet Best Practices:</strong>
+                    <ul style="margin-top: 10px; line-height: 2;">
+                        <li>Always set resource requests and limits</li>
+                        <li>Use readiness probes to prevent traffic to unhealthy pods</li>
+                        <li>Use liveness probes to restart crashed containers</li>
+                        <li>Use startup probes for slow-starting applications</li>
+                        <li>Monitor kubelet logs for errors</li>
+                        <li>Keep kubelet version in sync with API Server</li>
+                        <li>Use SSD for kubelet working directory</li>
+                    </ul>
+                </div>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Troubleshooting kubelet:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check kubelet status
+systemctl status kubelet
+
+# View kubelet logs
+journalctl -u kubelet -f
+
+# Check kubelet configuration
+kubectl get --raw /api/v1/nodes/<node-name>/proxy/configz
+
+# Common issues:
+1. Node NotReady
+   - Check kubelet is running
+   - Check network connectivity to API Server
+   - Check container runtime is running
+
+2. Pods stuck in Pending
+   - Check kubelet logs
+   - Check if image can be pulled
+   - Check resource availability
+
+3. Pods being evicted
+   - Check node resource usage
+   - Check eviction thresholds
+   - Add more resources or reduce pod requests</code></pre>
             </div>
 
-            <h3 style="color: #667eea;">2. kube-proxy</h3>
+            <h3 style="color: #667eea;">2. kube-proxy - The Network Traffic Controller</h3>
             
             <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0;">
-                <p><strong>Role:</strong> Network proxy that maintains network rules on nodes.</p>
+                <p style="font-size: 1.1rem; line-height: 1.8;"><strong>Role:</strong> kube-proxy is a network proxy that runs on each node and maintains network rules. It implements the Kubernetes Service concept by enabling network communication to pods from inside or outside the cluster.</p>
                 
-                <p><strong>Analogy:</strong> Like a traffic cop directing traffic to the right destinations.</p>
+                <p><strong>Analogy:</strong> Like a traffic cop directing traffic to the right destinations - when you ask for "nginx-service", kube-proxy knows which pods to send you to.</p>
                 
-                <p><strong>What it does:</strong></p>
-                <ul>
-                    <li>Implements Kubernetes Service concept</li>
-                    <li>Maintains network rules (iptables/IPVS)</li>
-                    <li>Enables communication to pods via Services</li>
-                    <li>Load balances traffic across pod replicas</li>
+                <h4 style="color: #90cdf4; margin-top: 20px;">What kube-proxy Does:</h4>
+                <ul style="line-height: 2;">
+                    <li><strong>Service Implementation:</strong> Makes Kubernetes Services work</li>
+                    <li><strong>Load Balancing:</strong> Distributes traffic across pod replicas</li>
+                    <li><strong>Network Rules:</strong> Maintains iptables/IPVS rules</li>
+                    <li><strong>Service Discovery:</strong> Routes traffic to correct pods</li>
+                    <li><strong>Health-Aware Routing:</strong> Only sends traffic to ready pods</li>
                 </ul>
 
-                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example: Service with 3 pod replicas
+                <h4 style="color: #90cdf4; margin-top: 20px;">How Services Work:</h4>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.6;"><code>┌─────────────────────────────────────────────────────────────┐
+│              Service to Pod Routing                          │
+│                                                              │
+│  1. Create Service                                          │
+│     apiVersion: v1                                          │
+│     kind: Service                                           │
+│     metadata:                                               │
+│       name: nginx-service                                   │
+│     spec:                                                   │
+│       selector:                                             │
+│         app: nginx                                          │
+│       ports:                                                │
+│       - port: 80                                            │
+│         targetPort: 8080                                    │
+│     ↓                                                        │
+│  2. API Server assigns ClusterIP                            │
+│     Service IP: 10.96.0.10                                  │
+│     ↓                                                        │
+│  3. Endpoints Controller finds matching pods                │
+│     Pod 1: 10.244.1.5:8080                                  │
+│     Pod 2: 10.244.2.3:8080                                  │
+│     Pod 3: 10.244.3.7:8080                                  │
+│     ↓                                                        │
+│  4. kube-proxy watches Service and Endpoints                │
+│     ↓                                                        │
+│  5. kube-proxy creates network rules                        │
+│     ┌─────────────────────────────────────────────┐        │
+│     │  Traffic to 10.96.0.10:80 →                 │        │
+│     │    Load balance to:                         │        │
+│     │    - 10.244.1.5:8080 (33%)                  │        │
+│     │    - 10.244.2.3:8080 (33%)                  │        │
+│     │    - 10.244.3.7:8080 (33%)                  │        │
+│     └─────────────────────────────────────────────┘        │
+│     ↓                                                        │
+│  6. Client sends request to Service IP                      │
+│     curl http://10.96.0.10:80                               │
+│     ↓                                                        │
+│  7. kube-proxy intercepts and forwards to pod               │
+│     Request → 10.244.2.3:8080 (random pod selected)         │
+│     ↓                                                        │
+│  8. Pod processes request and responds                      │
+│     Response → Client                                       │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
 
-Service IP: 10.96.0.10:80
-Pod IPs: 
-  - 10.244.1.5:8080
-  - 10.244.2.3:8080
-  - 10.244.3.7:8080
+                <h4 style="color: #90cdf4; margin-top: 20px;">kube-proxy Modes:</h4>
+                
+                <p><strong>1. iptables Mode (Default)</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>How it works:</strong> Uses Linux iptables rules for packet filtering and NAT</li>
+                    <li><strong>Pros:</strong>
+                        <ul>
+                            <li>Mature and stable</li>
+                            <li>No additional dependencies</li>
+                            <li>Works on all Linux distributions</li>
+                        </ul>
+                    </li>
+                    <li><strong>Cons:</strong>
+                        <ul>
+                            <li>Performance degrades with many services (O(n) complexity)</li>
+                            <li>Random load balancing only</li>
+                            <li>No connection tracking</li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Example iptables rules created by kube-proxy:
 
-kube-proxy creates iptables rules:
-"Traffic to 10.96.0.10:80 → load balance to pod IPs"
+# KUBE-SERVICES chain (entry point)
+-A KUBE-SERVICES -d 10.96.0.10/32 -p tcp -m tcp --dport 80 \
+   -j KUBE-SVC-NGINX
 
-Result: Requests distributed across all 3 pods</code></pre>
+# KUBE-SVC-NGINX chain (load balancing)
+-A KUBE-SVC-NGINX -m statistic --mode random --probability 0.33 \
+   -j KUBE-SEP-POD1
+-A KUBE-SVC-NGINX -m statistic --mode random --probability 0.50 \
+   -j KUBE-SEP-POD2
+-A KUBE-SVC-NGINX -j KUBE-SEP-POD3
+
+# KUBE-SEP-POD1 chain (DNAT to pod)
+-A KUBE-SEP-POD1 -p tcp -m tcp \
+   -j DNAT --to-destination 10.244.1.5:8080
+
+# Similar rules for POD2 and POD3...</code></pre>
+
+                <p><strong>2. IPVS Mode (Recommended for Large Clusters)</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>How it works:</strong> Uses Linux IPVS (IP Virtual Server) for load balancing</li>
+                    <li><strong>Pros:</strong>
+                        <ul>
+                            <li>Better performance (O(1) complexity)</li>
+                            <li>Multiple load balancing algorithms (rr, lc, dh, sh, etc.)</li>
+                            <li>Connection tracking</li>
+                            <li>Scales to 10,000+ services</li>
+                        </ul>
+                    </li>
+                    <li><strong>Cons:</strong>
+                        <ul>
+                            <li>Requires IPVS kernel modules</li>
+                            <li>More complex to debug</li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Enable IPVS mode:
+kube-proxy --proxy-mode=ipvs
+
+# Load balancing algorithms:
+--ipvs-scheduler=rr    # Round Robin (default)
+--ipvs-scheduler=lc    # Least Connection
+--ipvs-scheduler=dh    # Destination Hashing
+--ipvs-scheduler=sh    # Source Hashing
+--ipvs-scheduler=sed   # Shortest Expected Delay
+--ipvs-scheduler=nq    # Never Queue
+
+# View IPVS rules:
+ipvsadm -Ln
+
+# Output:
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  10.96.0.10:80 rr
+  -> 10.244.1.5:8080              Masq    1      0          0
+  -> 10.244.2.3:8080              Masq    1      0          0
+  -> 10.244.3.7:8080              Masq    1      0          0</code></pre>
+
+                <p><strong>3. userspace Mode (Legacy, Deprecated)</strong></p>
+                <ul style="line-height: 2;">
+                    <li><strong>How it works:</strong> kube-proxy acts as a proxy server</li>
+                    <li><strong>Status:</strong> Deprecated, not recommended</li>
+                    <li><strong>Issue:</strong> All traffic goes through userspace (slow)</li>
+                </ul>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Service Types and kube-proxy:</h4>
+                
+                <p><strong>1. ClusterIP (Default)</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: ClusterIP  # Internal cluster IP
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 8080
+
+# kube-proxy creates rules for ClusterIP
+# Accessible only within cluster</code></pre>
+
+                <p><strong>2. NodePort</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 8080
+    nodePort: 30080  # Exposed on all nodes
+
+# kube-proxy creates rules:
+# 1. ClusterIP rules (10.96.0.10:80)
+# 2. NodePort rules (NodeIP:30080)
+# Accessible from outside: http://<any-node-ip>:30080</code></pre>
+
+                <p><strong>3. LoadBalancer</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 8080
+
+# kube-proxy creates rules:
+# 1. ClusterIP rules
+# 2. NodePort rules
+# 3. Cloud provider creates external load balancer
+# Accessible from internet: http://<external-lb-ip>:80</code></pre>
+
+                <p><strong>4. ExternalName</strong></p>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Service
+metadata:
+  name: external-db
+spec:
+  type: ExternalName
+  externalName: database.example.com
+
+# kube-proxy creates DNS CNAME record
+# No load balancing, just DNS resolution</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Session Affinity:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stick client to same pod (session affinity)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  sessionAffinity: ClientIP  # Default: None
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+
+# kube-proxy ensures same client IP goes to same pod</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">kube-proxy Configuration:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Key kube-proxy flags:
+--proxy-mode=iptables          # or ipvs
+--cluster-cidr=10.244.0.0/16   # Pod CIDR
+--iptables-sync-period=30s     # How often to sync rules
+--ipvs-sync-period=30s
+--ipvs-scheduler=rr            # IPVS algorithm
+--masquerade-all=false         # SNAT all traffic
+--cleanup-iptables=true        # Clean up on exit</code></pre>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Network Flow Example:</h4>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>┌─────────────────────────────────────────────────────────────┐
+│         Pod-to-Service Communication Flow                    │
+│                                                              │
+│  Client Pod (10.244.1.10)                                   │
+│     │                                                        │
+│     │ curl http://nginx-service:80                          │
+│     │                                                        │
+│     ▼                                                        │
+│  DNS Resolution                                             │
+│     nginx-service → 10.96.0.10 (ClusterIP)                  │
+│     │                                                        │
+│     ▼                                                        │
+│  Packet: src=10.244.1.10, dst=10.96.0.10:80                │
+│     │                                                        │
+│     ▼                                                        │
+│  kube-proxy iptables/IPVS rules                             │
+│     │                                                        │
+│     ├─ Match: dst=10.96.0.10:80                             │
+│     ├─ Load balance: Select pod (round-robin)               │
+│     ├─ DNAT: dst=10.96.0.10:80 → 10.244.2.5:8080           │
+│     │                                                        │
+│     ▼                                                        │
+│  Packet: src=10.244.1.10, dst=10.244.2.5:8080              │
+│     │                                                        │
+│     ▼                                                        │
+│  Target Pod (10.244.2.5)                                    │
+│     │                                                        │
+│     │ Process request                                       │
+│     │                                                        │
+│     ▼                                                        │
+│  Response: src=10.244.2.5:8080, dst=10.244.1.10            │
+│     │                                                        │
+│     ▼                                                        │
+│  kube-proxy reverse NAT                                     │
+│     │                                                        │
+│     ├─ SNAT: src=10.244.2.5:8080 → 10.96.0.10:80           │
+│     │                                                        │
+│     ▼                                                        │
+│  Response: src=10.96.0.10:80, dst=10.244.1.10              │
+│     │                                                        │
+│     ▼                                                        │
+│  Client Pod receives response                               │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <strong>💡 kube-proxy Best Practices:</strong>
+                    <ul style="margin-top: 10px; line-height: 2;">
+                        <li>Use IPVS mode for large clusters (1000+ services)</li>
+                        <li>Monitor kube-proxy logs for errors</li>
+                        <li>Use readiness probes to prevent traffic to unhealthy pods</li>
+                        <li>Consider service mesh (Istio, Linkerd) for advanced routing</li>
+                        <li>Use headless services for direct pod-to-pod communication</li>
+                    </ul>
+                </div>
+
+                <h4 style="color: #90cdf4; margin-top: 20px;">Troubleshooting kube-proxy:</h4>
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check kube-proxy is running
+kubectl get pods -n kube-system | grep kube-proxy
+
+# View kube-proxy logs
+kubectl logs -n kube-system kube-proxy-xxxxx
+
+# Check iptables rules (iptables mode)
+iptables-save | grep KUBE
+
+# Check IPVS rules (IPVS mode)
+ipvsadm -Ln
+
+# Test service connectivity
+kubectl run test --image=busybox -it --rm -- wget -O- http://nginx-service
+
+# Common issues:
+1. Service not accessible
+   - Check service exists: kubectl get svc
+   - Check endpoints exist: kubectl get endpoints
+   - Check kube-proxy is running
+   - Check iptables/IPVS rules
+
+2. Load balancing not working
+   - Check multiple pods are ready
+   - Check session affinity settings
+   - Verify kube-proxy mode
+
+3. External access not working (NodePort/LoadBalancer)
+   - Check firewall rules
+   - Check cloud provider load balancer
+   - Verify NodePort is in valid range (30000-32767)</code></pre>
             </div>
 
             <h3 style="color: #667eea;">3. Container Runtime</h3>
