@@ -325,8 +325,10 @@ const k8sTutorials = [
             'Automated deployments and rollbacks'
         ],
         handsOn: 'Build a complete GitOps workflow from code commit to production',
-        readTime: '45 min',
-        difficulty: 'advanced'
+        readTime: '50 min',
+        difficulty: 'advanced',
+        url: 'tutorials/19-gitops-cicd.html',
+        status: 'available'
     },
     {
         id: 20,

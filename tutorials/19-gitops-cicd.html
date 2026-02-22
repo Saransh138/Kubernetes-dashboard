@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitOps and CI/CD with Kubernetes | K8s Tutorial #19</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🔄</div>
+                <h1 class="post-title">GitOps and CI/CD with Kubernetes</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #19 of 20</span>
+                    <span><i class="fas fa-signal"></i> Advanced</span>
+                    <span><i class="far fa-clock"></i> 50 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>GitOps principles and benefits</li>
+                    <li>ArgoCD installation and configuration</li>
+                    <li>Flux CD as an alternative</li>
+                    <li>CI/CD pipeline integration</li>
+                    <li>Automated deployments and rollbacks</li>
+                    <li>Multi-environment management</li>
+                    <li>Secret management in GitOps</li>
+                    <li>Progressive delivery strategies</li>
+                    <li>Monitoring and observability</li>
+                    <li>Best practices for production</li>
+                </ul>
+
+                <h2>🤔 What is GitOps?</h2>
+
+                <p>GitOps is a way of implementing Continuous Deployment for cloud native applications. It uses Git as the single source of truth for declarative infrastructure and applications.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Core GitOps Principles</h3>
+                    <ol style="line-height: 2;">
+                        <li><strong>Declarative:</strong> The entire system is described declaratively</li>
+                        <li><strong>Versioned and Immutable:</strong> The canonical desired state is versioned in Git</li>
+                        <li><strong>Pulled Automatically:</strong> Software agents automatically pull the desired state from Git</li>
+                        <li><strong>Continuously Reconciled:</strong> Software agents continuously observe actual state and reconcile with desired state</li>
+                    </ol>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    GitOps Workflow                               │
+│                                                                   │
+│  Developer                                                       │
+│      │                                                            │
+│      │ 1. Push code                                             │
+│      ▼                                                            │
+│  ┌─────────┐                                                     │
+│  │   Git   │  (Source of Truth)                                 │
+│  │  Repo   │                                                     │
+│  └────┬────┘                                                     │
+│       │                                                           │
+│       │ 2. CI Pipeline                                          │
+│       │    - Build                                              │
+│       │    - Test                                               │
+│       │    - Build Image                                        │
+│       │    - Push to Registry                                   │
+│       │    - Update manifest                                    │
+│       ▼                                                           │
+│  ┌─────────┐                                                     │
+│  │ Config  │  (Kubernetes Manifests)                            │
+│  │  Repo   │                                                     │
+│  └────┬────┘                                                     │
+│       │                                                           │
+│       │ 3. GitOps Operator watches                              │
+│       │    for changes                                          │
+│       ▼                                                           │
+│  ┌──────────────┐                                               │
+│  │   ArgoCD /   │                                               │
+│  │   Flux CD    │                                               │
+│  └──────┬───────┘                                               │
+│         │                                                         │
+│         │ 4. Sync & Deploy                                      │
+│         ▼                                                         │
+│  ┌──────────────┐                                               │
+│  │  Kubernetes  │                                               │
+│  │   Cluster    │                                               │
+│  └──────────────┘                                               │
+│                                                                   │
+│  Benefits:                                                       │
+│  ✓ Git as single source of truth                               │
+│  ✓ Audit trail (Git history)                                   │
+│  ✓ Easy rollback (Git revert)                                  │
+│  ✓ Declarative and version controlled                          │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>🚀 ArgoCD - Getting Started</h2>
+
+                <p>ArgoCD is a declarative, GitOps continuous delivery tool for Kubernetes.</p>
+
+                <h3 style="color: #667eea;">Installing ArgoCD</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create namespace
+kubectl create namespace argocd
+
+# Install ArgoCD
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Wait for pods to be ready
+kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+
+# Check installation
+kubectl get pods -n argocd
+
+# Output:
+# NAME                                  READY   STATUS    RESTARTS   AGE
+# argocd-application-controller-0       1/1     Running   0          2m
+# argocd-dex-server-xxx                 1/1     Running   0          2m
+# argocd-redis-xxx                      1/1     Running   0          2m
+# argocd-repo-server-xxx                1/1     Running   0          2m
+# argocd-server-xxx                     1/1     Running   0          2m</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Accessing ArgoCD UI</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Method 1: Port Forward (for local access)
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+# Access at: https://localhost:8080
+
+# Method 2: LoadBalancer (for cloud)
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+
+# Method 3: Ingress (recommended for production)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: argocd.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server
+            port:
+              name: https
+  tls:
+  - hosts:
+    - argocd.example.com
+    secretName: argocd-server-tls
+
+# Get initial admin password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+# Login with:
+# Username: admin
+# Password: <output from above command>
+
+# Change password after first login
+argocd account update-password</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Installing ArgoCD CLI</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Linux
+curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+rm argocd-linux-amd64
+
+# macOS
+brew install argocd
+
+# Windows (using Chocolatey)
+choco install argocd-cli
+
+# Login to ArgoCD
+argocd login localhost:8080 --username admin --password <password> --insecure
+
+# Verify
+argocd version</code></pre>
+                </div>
+
+                <h2>📦 Creating Your First ArgoCD Application</h2>
+
+                <h3 style="color: #667eea;">Example 1: Deploy Guestbook Application</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Using CLI
+argocd app create guestbook \
+  --repo https://github.com/argoproj/argocd-example-apps.git \
+  --path guestbook \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace default
+
+# Sync the application
+argocd app sync guestbook
+
+# Check status
+argocd app get guestbook
+
+# Watch sync progress
+argocd app wait guestbook --health</code></pre>
+                </div>
+
+
+                <h3 style="color: #667eea;">Example 2: Using Application Manifest</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp
+  namespace: argocd
+spec:
+  project: default
+  
+  # Source repository
+  source:
+    repoURL: https://github.com/myorg/myapp-config.git
+    targetRevision: HEAD
+    path: k8s/overlays/production
+    
+  # Destination cluster and namespace
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+    
+  # Sync policy
+  syncPolicy:
+    automated:
+      prune: true      # Delete resources not in Git
+      selfHeal: true   # Sync when cluster state differs
+      allowEmpty: false
+    syncOptions:
+    - Validate=true
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+# Apply the application
+kubectl apply -f application.yaml
+
+# Check status
+kubectl get application -n argocd</code></pre>
+                </div>
+
+                <h2>🔄 CI/CD Pipeline Integration</h2>
+
+                <p>Integrate ArgoCD with your CI pipeline for complete automation.</p>
+
+                <h3 style="color: #667eea;">GitHub Actions + ArgoCD</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># .github/workflows/ci-cd.yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Log in to Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha,prefix={{branch}}-
+          type=ref,event=branch
+          
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Update Kubernetes manifests
+      run: |
+        git clone https://github.com/myorg/myapp-config.git
+        cd myapp-config
+        
+        # Update image tag in kustomization
+        cd k8s/overlays/production
+        kustomize edit set image myapp=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Update image to ${{ github.sha }}"
+        git push
+        
+    # ArgoCD will automatically detect the change and deploy</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">GitLab CI + ArgoCD</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># .gitlab-ci.yml
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+    
+update-manifest:
+  stage: deploy
+  image: alpine/git
+  before_script:
+    - apk add --no-cache curl
+    - curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+  script:
+    - git clone https://${GITLAB_TOKEN}@gitlab.com/myorg/myapp-config.git
+    - cd myapp-config/k8s/overlays/production
+    - ../../../kustomize edit set image myapp=$IMAGE_TAG
+    - git config user.name "GitLab CI"
+    - git config user.email "ci@gitlab.com"
+    - git add .
+    - git commit -m "Update image to $CI_COMMIT_SHORT_SHA"
+    - git push origin main</code></pre>
+                </div>
+
+
+                <h2>🌊 Flux CD - Alternative to ArgoCD</h2>
+
+                <p>Flux is another popular GitOps tool that follows the same principles but with a different architecture.</p>
+
+                <h3 style="color: #667eea;">Installing Flux</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Flux CLI
+curl -s https://fluxcd.io/install.sh | sudo bash
+
+# Verify installation
+flux --version
+
+# Bootstrap Flux on your cluster
+export GITHUB_TOKEN=<your-token>
+export GITHUB_USER=<your-username>
+
+flux bootstrap github \
+  --owner=$GITHUB_USER \
+  --repository=fleet-infra \
+  --branch=main \
+  --path=./clusters/my-cluster \
+  --personal
+
+# Check Flux components
+flux check
+
+# Output:
+# ► checking prerequisites
+# ✔ Kubernetes 1.28.0 >=1.26.0-0
+# ► checking controllers
+# ✔ helm-controller: deployment ready
+# ✔ kustomize-controller: deployment ready
+# ✔ notification-controller: deployment ready
+# ✔ source-controller: deployment ready
+# ✔ all checks passed</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Creating Flux Resources</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create a GitRepository source
+flux create source git myapp \
+  --url=https://github.com/myorg/myapp-config \
+  --branch=main \
+  --interval=1m \
+  --export > gitrepository.yaml
+
+# gitrepository.yaml
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/myorg/myapp-config
+  ref:
+    branch: main
+
+# Create a Kustomization
+flux create kustomization myapp \
+  --source=myapp \
+  --path="./k8s/overlays/production" \
+  --prune=true \
+  --interval=5m \
+  --export > kustomization.yaml
+
+# kustomization.yaml
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./k8s/overlays/production
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: myapp
+
+# Apply resources
+kubectl apply -f gitrepository.yaml
+kubectl apply -f kustomization.yaml
+
+# Watch reconciliation
+flux get kustomizations --watch</code></pre>
+                </div>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">ArgoCD vs Flux CD</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Feature</th>
+                                <th style="padding: 15px; text-align: left;">ArgoCD</th>
+                                <th style="padding: 15px; text-align: left;">Flux CD</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>UI</strong></td>
+                                <td style="padding: 15px;">Rich web UI included</td>
+                                <td style="padding: 15px;">No built-in UI (use Weave GitOps)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Architecture</strong></td>
+                                <td style="padding: 15px;">Pull-based, centralized</td>
+                                <td style="padding: 15px;">Pull-based, distributed</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Multi-tenancy</strong></td>
+                                <td style="padding: 15px;">Built-in projects and RBAC</td>
+                                <td style="padding: 15px;">Namespace-based isolation</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Helm Support</strong></td>
+                                <td style="padding: 15px;">Native support</td>
+                                <td style="padding: 15px;">Via HelmRelease CRD</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Best For</strong></td>
+                                <td style="padding: 15px;">Teams wanting UI, multi-cluster</td>
+                                <td style="padding: 15px;">Cloud-native, GitOps purists</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🔐 Secret Management in GitOps</h2>
+
+                <p>Secrets should never be stored in plain text in Git. Here are secure approaches.</p>
+
+                <h3 style="color: #667eea;">Option 1: Sealed Secrets</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Sealed Secrets controller
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/controller.yaml
+
+# Install kubeseal CLI
+wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/kubeseal-0.24.0-linux-amd64.tar.gz
+tar xfz kubeseal-0.24.0-linux-amd64.tar.gz
+sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+
+# Create a regular secret (don't commit this!)
+kubectl create secret generic mysecret \
+  --from-literal=username=admin \
+  --from-literal=password=secret123 \
+  --dry-run=client -o yaml > secret.yaml
+
+# Seal the secret (safe to commit)
+kubeseal -f secret.yaml -w sealedsecret.yaml
+
+# sealedsecret.yaml (encrypted, safe for Git)
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: mysecret
+  namespace: default
+spec:
+  encryptedData:
+    username: AgBh8j3k...
+    password: AgCk9m2n...
+
+# Commit sealed secret to Git
+git add sealedsecret.yaml
+git commit -m "Add sealed secret"
+git push
+
+# Controller automatically decrypts and creates Secret
+kubectl get secret mysecret</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Option 2: External Secrets Operator</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install External Secrets Operator
+helm repo add external-secrets https://charts.external-secrets.io
+helm install external-secrets \
+  external-secrets/external-secrets \
+  -n external-secrets-system \
+  --create-namespace
+
+# Create SecretStore (connects to AWS Secrets Manager)
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: aws-secretsmanager
+  namespace: default
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: us-east-1
+      auth:
+        jwt:
+          serviceAccountRef:
+            name: external-secrets-sa
+
+# Create ExternalSecret (references external secret)
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: myapp-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secretsmanager
+    kind: SecretStore
+  target:
+    name: myapp-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: username
+    remoteRef:
+      key: myapp/credentials
+      property: username
+  - secretKey: password
+    remoteRef:
+      key: myapp/credentials
+      property: password
+
+# Operator syncs from AWS and creates Kubernetes Secret
+kubectl get secret myapp-secret</code></pre>
+                </div>
+
+
+                <h2>🎯 Multi-Environment Management</h2>
+
+                <p>Manage multiple environments (dev, staging, production) with GitOps.</p>
+
+                <h3 style="color: #667eea;">Repository Structure</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Option 1: Monorepo with Kustomize overlays
+myapp-config/
+├── base/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── kustomization.yaml
+├── overlays/
+│   ├── dev/
+│   │   ├── kustomization.yaml
+│   │   └── patches.yaml
+│   ├── staging/
+│   │   ├── kustomization.yaml
+│   │   └── patches.yaml
+│   └── production/
+│       ├── kustomization.yaml
+│       └── patches.yaml
+└── README.md
+
+# base/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- deployment.yaml
+- service.yaml
+
+# overlays/production/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../../base
+namespace: production
+replicas:
+- name: myapp
+  count: 3
+images:
+- name: myapp
+  newTag: v1.2.3
+patches:
+- path: patches.yaml
+
+# overlays/production/patches.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  template:
+    spec:
+      containers:
+      - name: myapp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">ArgoCD Applications for Each Environment</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># dev-application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/myapp-config.git
+    targetRevision: main
+    path: overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+
+---
+# staging-application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-staging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/myapp-config.git
+    targetRevision: main
+    path: overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+
+---
+# production-application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/myapp-config.git
+    targetRevision: main
+    path: overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    # Manual sync for production
+    syncOptions:
+    - CreateNamespace=true
+
+# Apply all environments
+kubectl apply -f dev-application.yaml
+kubectl apply -f staging-application.yaml
+kubectl apply -f production-application.yaml</code></pre>
+                </div>
+
+                <h2>🚀 Progressive Delivery with Argo Rollouts</h2>
+
+                <p>Implement advanced deployment strategies like Canary and Blue-Green.</p>
+
+                <h3 style="color: #667eea;">Installing Argo Rollouts</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Argo Rollouts controller
+kubectl create namespace argo-rollouts
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+
+# Install kubectl plugin
+curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+chmod +x kubectl-argo-rollouts-linux-amd64
+sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+
+# Verify
+kubectl argo rollouts version</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Canary Deployment Example</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># rollout.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: myapp
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      steps:
+      - setWeight: 20    # 20% traffic to new version
+      - pause: {duration: 1m}
+      - setWeight: 40    # 40% traffic
+      - pause: {duration: 1m}
+      - setWeight: 60    # 60% traffic
+      - pause: {duration: 1m}
+      - setWeight: 80    # 80% traffic
+      - pause: {duration: 1m}
+      # 100% traffic (automatic)
+      
+      # Optional: Analysis for automated promotion
+      analysis:
+        templates:
+        - templateName: success-rate
+        startingStep: 2
+        args:
+        - name: service-name
+          value: myapp
+          
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:v2.0.0
+        ports:
+        - containerPort: 8080
+
+---
+# analysistemplate.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: success-rate
+    interval: 1m
+    successCondition: result >= 0.95
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          sum(rate(
+            http_requests_total{
+              service="{{args.service-name}}",
+              status!~"5.."
+            }[1m]
+          )) /
+          sum(rate(
+            http_requests_total{
+              service="{{args.service-name}}"
+            }[1m]
+          ))
+
+# Deploy
+kubectl apply -f rollout.yaml
+kubectl apply -f analysistemplate.yaml
+
+# Watch rollout progress
+kubectl argo rollouts get rollout myapp --watch
+
+# Promote manually (if paused)
+kubectl argo rollouts promote myapp
+
+# Abort rollout
+kubectl argo rollouts abort myapp
+
+# Rollback
+kubectl argo rollouts undo myapp</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Blue-Green Deployment Example</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># blue-green-rollout.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: myapp-bluegreen
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:v2.0.0
+        ports:
+        - containerPort: 8080
+        
+  strategy:
+    blueGreen:
+      # Active service (production traffic)
+      activeService: myapp-active
+      # Preview service (for testing)
+      previewService: myapp-preview
+      # Auto promotion after 30 seconds
+      autoPromotionEnabled: false
+      # Seconds to keep old version after promotion
+      scaleDownDelaySeconds: 30
+
+---
+# services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-active
+spec:
+  selector:
+    app: myapp
+  ports:
+  - port: 80
+    targetPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-preview
+spec:
+  selector:
+    app: myapp
+  ports:
+  - port: 80
+    targetPort: 8080
+
+# Deploy
+kubectl apply -f blue-green-rollout.yaml
+kubectl apply -f services.yaml
+
+# Test preview version
+kubectl port-forward svc/myapp-preview 8080:80
+
+# Promote to active
+kubectl argo rollouts promote myapp-bluegreen</code></pre>
+                </div>
+
+
+                <h2>📊 Monitoring and Observability</h2>
+
+                <h3 style="color: #667eea;">ArgoCD Metrics</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ArgoCD exposes Prometheus metrics
+# ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-metrics
+  namespace: argocd
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+  endpoints:
+  - port: metrics
+
+# Key metrics to monitor:
+# - argocd_app_info: Application information
+# - argocd_app_sync_total: Total number of syncs
+# - argocd_app_health_status: Application health status
+# - argocd_app_sync_status: Application sync status
+
+# Grafana dashboard
+# Import dashboard ID: 14584 (ArgoCD)
+
+# Alert rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: argocd-alerts
+  namespace: argocd
+spec:
+  groups:
+  - name: argocd
+    interval: 30s
+    rules:
+    - alert: ArgoCDAppOutOfSync
+      expr: argocd_app_sync_status{sync_status="OutOfSync"} == 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "ArgoCD app {{ $labels.name }} is out of sync"
+        
+    - alert: ArgoCDAppUnhealthy
+      expr: argocd_app_health_status{health_status!="Healthy"} == 1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "ArgoCD app {{ $labels.name }} is unhealthy"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Notifications</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Configure ArgoCD notifications
+# argocd-notifications-cm ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  # Slack configuration
+  service.slack: |
+    token: $slack-token
+    
+  # Trigger on sync status change
+  trigger.on-sync-status-unknown: |
+    - when: app.status.sync.status == 'Unknown'
+      send: [app-sync-status]
+      
+  trigger.on-deployed: |
+    - when: app.status.operationState.phase in ['Succeeded']
+      send: [app-deployed]
+      
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      send: [app-health-degraded]
+      
+  # Templates
+  template.app-deployed: |
+    message: |
+      Application {{.app.metadata.name}} is now running new version.
+    slack:
+      attachments: |
+        [{
+          "title": "{{ .app.metadata.name}}",
+          "title_link": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+          "color": "good",
+          "fields": [{
+            "title": "Sync Status",
+            "value": "{{.app.status.sync.status}}",
+            "short": true
+          }, {
+            "title": "Repository",
+            "value": "{{.app.spec.source.repoURL}}",
+            "short": true
+          }]
+        }]
+        
+  template.app-health-degraded: |
+    message: |
+      Application {{.app.metadata.name}} has degraded health.
+    slack:
+      attachments: |
+        [{
+          "title": "{{ .app.metadata.name}}",
+          "title_link": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+          "color": "danger",
+          "fields": [{
+            "title": "Health Status",
+            "value": "{{.app.status.health.status}}",
+            "short": true
+          }]
+        }]
+
+---
+# Secret with Slack token
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-notifications-secret
+  namespace: argocd
+stringData:
+  slack-token: xoxb-your-slack-token
+
+---
+# Subscribe application to notifications
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp
+  namespace: argocd
+  annotations:
+    notifications.argoproj.io/subscribe.on-deployed.slack: my-channel
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: my-channel
+spec:
+  # ... rest of application spec</code></pre>
+                </div>
+
+                <h2>🛠️ Troubleshooting Common Issues</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Application Stuck in Progressing</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check application status
+argocd app get myapp
+
+# Check sync operation
+argocd app get myapp --show-operation
+
+# Check application events
+kubectl get events -n argocd --field-selector involvedObject.name=myapp
+
+# Check resource status
+kubectl get all -n production -l app.kubernetes.io/instance=myapp</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Health check timeout:</strong> Increase timeout in sync policy</li>
+                        <li><strong>Resource hooks:</strong> Check PreSync/PostSync hooks aren't failing</li>
+                        <li><strong>Manual intervention:</strong> Terminate sync and retry</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: Out of Sync Despite No Changes</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check diff
+argocd app diff myapp
+
+# Common causes:
+# 1. Cluster modifies resources (HPA changing replicas)
+# 2. Timestamps in status fields
+# 3. Default values added by admission controllers</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Ignore differences:</strong> Add ignoreDifferences in Application spec</li>
+                        <li><strong>Respect ignore differences:</strong> Use RespectIgnoreDifferences sync option</li>
+                    </ul>
+                    
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code># Ignore HPA-managed replicas
+spec:
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: Sync Fails with Permission Error</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check ArgoCD service account permissions
+kubectl auth can-i create deployment --as=system:serviceaccount:argocd:argocd-application-controller -n production
+
+# Check RBAC
+kubectl get rolebinding -n production
+kubectl describe rolebinding argocd-application-controller -n production</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Grant permissions:</strong> Create Role and RoleBinding for ArgoCD</li>
+                        <li><strong>Use AppProject:</strong> Define allowed resources in AppProject</li>
+                    </ul>
+                    
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code># Grant ArgoCD permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argocd-application-controller
+  namespace: production
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-application-controller
+  namespace: production
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argocd-application-controller
+subjects:
+- kind: ServiceAccount
+  name: argocd-application-controller
+  namespace: argocd</code></pre>
+                </div>
+
+
+                <h2>✅ GitOps Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Separate repos:</strong> Keep application code and config in separate repositories</li>
+                        <li>✅ <strong>Environment branches:</strong> Use branches or directories for environments</li>
+                        <li>✅ <strong>Automated sync for dev/staging:</strong> Manual approval for production</li>
+                        <li>✅ <strong>Encrypt secrets:</strong> Use Sealed Secrets or External Secrets</li>
+                        <li>✅ <strong>Use Kustomize or Helm:</strong> Avoid duplicating manifests</li>
+                        <li>✅ <strong>Implement RBAC:</strong> Restrict who can deploy to production</li>
+                        <li>✅ <strong>Monitor sync status:</strong> Set up alerts for failed syncs</li>
+                        <li>✅ <strong>Test manifests:</strong> Validate YAML before committing</li>
+                        <li>✅ <strong>Document structure:</strong> Clear README for repository layout</li>
+                        <li>✅ <strong>Use AppProjects:</strong> Isolate teams and applications</li>
+                        <li>✅ <strong>Progressive delivery:</strong> Use Argo Rollouts for canary/blue-green</li>
+                        <li>✅ <strong>Backup ArgoCD:</strong> Export applications and settings</li>
+                        <li>✅ <strong>Version control everything:</strong> Including ArgoCD Application manifests</li>
+                        <li>✅ <strong>Use sync waves:</strong> Control deployment order with annotations</li>
+                        <li>✅ <strong>Implement notifications:</strong> Alert on deployment events</li>
+                    </ol>
+                </div>
+
+                <h2>🏗️ Complete GitOps Workflow Example</h2>
+
+                <p>Let's put it all together with a complete end-to-end example.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│              Complete GitOps Workflow                            │
+│                                                                   │
+│  1. Developer pushes code                                        │
+│     └─> GitHub: myapp (application code)                        │
+│                                                                   │
+│  2. GitHub Actions CI Pipeline                                   │
+│     ├─> Run tests                                               │
+│     ├─> Build Docker image                                      │
+│     ├─> Push to registry (ghcr.io/myorg/myapp:sha-abc123)      │
+│     └─> Update image tag in config repo                        │
+│                                                                   │
+│  3. Config repo updated                                          │
+│     └─> GitHub: myapp-config                                    │
+│         └─> overlays/production/kustomization.yaml              │
+│             (image: myapp:sha-abc123)                           │
+│                                                                   │
+│  4. ArgoCD detects change                                        │
+│     ├─> Polls Git repo every 3 minutes                         │
+│     ├─> Detects new commit                                     │
+│     └─> Triggers sync                                          │
+│                                                                   │
+│  5. ArgoCD syncs to cluster                                      │
+│     ├─> Applies manifests to Kubernetes                        │
+│     ├─> Argo Rollouts performs canary deployment               │
+│     │   ├─> 20% traffic to new version                         │
+│     │   ├─> Prometheus analysis (success rate)                 │
+│     │   ├─> 50% traffic                                        │
+│     │   ├─> Analysis continues                                 │
+│     │   └─> 100% traffic (if healthy)                          │
+│     └─> Sends Slack notification                               │
+│                                                                   │
+│  6. Monitoring & Observability                                   │
+│     ├─> Prometheus scrapes metrics                             │
+│     ├─> Grafana dashboards show deployment                     │
+│     └─> Alerts if issues detected                              │
+│                                                                   │
+│  7. Rollback if needed                                           │
+│     ├─> Git revert commit                                      │
+│     ├─> ArgoCD syncs previous version                          │
+│     └─> Or: kubectl argo rollouts undo                         │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Step-by-Step Implementation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. Create application repository
+git clone https://github.com/myorg/myapp.git
+cd myapp
+
+# Add Dockerfile
+cat > Dockerfile <<EOF
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]
+EOF
+
+# Add GitHub Actions workflow
+mkdir -p .github/workflows
+cat > .github/workflows/ci-cd.yaml <<EOF
+name: CI/CD
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build and push
+      run: |
+        docker build -t ghcr.io/myorg/myapp:\${{ github.sha }} .
+        docker push ghcr.io/myorg/myapp:\${{ github.sha }}
+    - name: Update config repo
+      run: |
+        git clone https://github.com/myorg/myapp-config.git
+        cd myapp-config/overlays/production
+        kustomize edit set image myapp=ghcr.io/myorg/myapp:\${{ github.sha }}
+        git commit -am "Update to \${{ github.sha }}"
+        git push
+EOF
+
+# 2. Create config repository
+git clone https://github.com/myorg/myapp-config.git
+cd myapp-config
+
+# Create base manifests
+mkdir -p base
+cat > base/deployment.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:latest
+        ports:
+        - containerPort: 3000
+EOF
+
+cat > base/service.yaml <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+spec:
+  selector:
+    app: myapp
+  ports:
+  - port: 80
+    targetPort: 3000
+EOF
+
+cat > base/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- deployment.yaml
+- service.yaml
+EOF
+
+# Create production overlay
+mkdir -p overlays/production
+cat > overlays/production/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../../base
+namespace: production
+replicas:
+- name: myapp
+  count: 5
+images:
+- name: myapp
+  newName: ghcr.io/myorg/myapp
+  newTag: latest
+EOF
+
+# 3. Create ArgoCD Application
+cat > argocd-application.yaml <<EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/myapp-config.git
+    targetRevision: HEAD
+    path: overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+EOF
+
+kubectl apply -f argocd-application.yaml
+
+# 4. Verify deployment
+argocd app get myapp-production
+argocd app sync myapp-production
+kubectl get all -n production</code></pre>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>GitOps principles:</strong> Git as single source of truth, declarative, automated</li>
+                        <li>✅ <strong>ArgoCD:</strong> Popular GitOps tool with rich UI and features</li>
+                        <li>✅ <strong>Flux CD:</strong> Cloud-native alternative with distributed architecture</li>
+                        <li>✅ <strong>CI/CD integration:</strong> Build in CI, deploy with GitOps</li>
+                        <li>✅ <strong>Secret management:</strong> Use Sealed Secrets or External Secrets</li>
+                        <li>✅ <strong>Multi-environment:</strong> Kustomize overlays for different environments</li>
+                        <li>✅ <strong>Progressive delivery:</strong> Argo Rollouts for canary and blue-green</li>
+                        <li>✅ <strong>Monitoring:</strong> Track sync status, health, and deployment metrics</li>
+                        <li>✅ <strong>Notifications:</strong> Alert on deployment events via Slack/email</li>
+                        <li>✅ <strong>Best practices:</strong> Separate repos, automate dev, manual prod approval</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Congratulations! You've learned about GitOps and CI/CD with Kubernetes. Next, you'll learn about <strong>Production Deployment Strategies</strong> - advanced patterns for zero-downtime deployments, disaster recovery, and cost optimization!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready for production strategies?</h3>
+                    <a href="20-production-strategies.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #20: Production Deployment Strategies →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
