@@ -204,8 +204,10 @@ const k8sTutorials = [
             'Init containers'
         ],
         handsOn: 'Set up log collection with DaemonSet and scheduled backup job',
-        readTime: '22 min',
-        difficulty: 'intermediate'
+        readTime: '45 min',
+        difficulty: 'intermediate',
+        url: 'tutorials/12-daemonsets-jobs.html',
+        status: 'available'
     },
     {
         id: 13,

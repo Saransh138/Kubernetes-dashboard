@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DaemonSets and Jobs - Special Workload Types | K8s Tutorial #12</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">⚙️</div>
+                <h1 class="post-title">DaemonSets and Jobs — Special Workload Types in Kubernetes</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #12 of 20</span>
+                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                    <span><i class="far fa-clock"></i> 45 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>What are DaemonSets and when to use them</li>
+                    <li>Running pods on every node automatically</li>
+                    <li>Node selectors and taints/tolerations with DaemonSets</li>
+                    <li>What are Jobs and CronJobs</li>
+                    <li>Running batch workloads and scheduled tasks</li>
+                    <li>Job patterns: single, parallel, and work queue</li>
+                    <li>Init containers for setup tasks</li>
+                    <li>Real-world examples: logging, monitoring, backups</li>
+                    <li>Troubleshooting DaemonSets and Jobs</li>
+                    <li>Best practices for production</li>
+                </ul>
+
+                <h2>📚 Overview: Two Special Workload Types</h2>
+
+                <p>While Deployments and StatefulSets handle most application workloads, Kubernetes provides specialized controllers for specific use cases:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">DaemonSets</h4>
+                    <p><strong>Purpose:</strong> Run a copy of a pod on every node (or selected nodes)</p>
+                    <p><strong>Use Cases:</strong> Logging agents, monitoring agents, network plugins, storage daemons</p>
+                    
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Jobs</h4>
+                    <p><strong>Purpose:</strong> Run pods to completion (batch processing)</p>
+                    <p><strong>Use Cases:</strong> Data processing, backups, database migrations, report generation</p>
+                    
+                    <h4 style="color: #90cdf4; margin-top: 20px;">CronJobs</h4>
+                    <p><strong>Purpose:</strong> Run Jobs on a schedule</p>
+                    <p><strong>Use Cases:</strong> Scheduled backups, periodic cleanup, report generation</p>
+                </div>
+
+                <h2>🔄 Part 1: DaemonSets</h2>
+
+                <h3 style="color: #667eea;">What are DaemonSets?</h3>
+
+                <p>A DaemonSet ensures that all (or some) nodes run a copy of a pod. As nodes are added to the cluster, pods are automatically added to them. As nodes are removed, those pods are garbage collected.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of DaemonSets like installing antivirus software on every computer in an office. Just as you want antivirus on every machine, DaemonSets ensure certain pods (like logging or monitoring agents) run on every node in your cluster.</p>
+                </div>
+
+                <h3 style="color: #667eea;">DaemonSet Characteristics</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>One Pod Per Node:</strong> Automatically runs on all nodes</li>
+                        <li><strong>Automatic Scheduling:</strong> New nodes get the pod automatically</li>
+                        <li><strong>Node Affinity:</strong> Can target specific nodes</li>
+                        <li><strong>No Replica Count:</strong> Number of pods = number of matching nodes</li>
+                        <li><strong>System-Level:</strong> Often used for cluster infrastructure</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Visual Representation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster                            │
+│                                                                  │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
+│  │   Node 1         │  │   Node 2         │  │   Node 3     │ │
+│  │                  │  │                  │  │              │ │
+│  │  ┌────────────┐  │  │  ┌────────────┐  │  │  ┌────────┐ │ │
+│  │  │ App Pod    │  │  │  │ App Pod    │  │  │  │App Pod │ │ │
+│  │  └────────────┘  │  │  └────────────┘  │  │  └────────┘ │ │
+│  │                  │  │                  │  │              │ │
+│  │  ┌────────────┐  │  │  ┌────────────┐  │  │  ┌────────┐ │ │
+│  │  │ DaemonSet  │  │  │  │ DaemonSet  │  │  │  │Daemon  │ │ │
+│  │  │ (logging)  │  │  │  │ (logging)  │  │  │  │Set     │ │ │
+│  │  └────────────┘  │  │  └────────────┘  │  │  └────────┘ │ │
+│  └──────────────────┘  └──────────────────┘  └──────────────┘ │
+│                                                                  │
+│  New Node Added:                                                │
+│  ┌──────────────────┐                                          │
+│  │   Node 4         │                                          │
+│  │                  │                                          │
+│  │  ┌────────────┐  │  ← DaemonSet pod automatically created! │
+│  │  │ DaemonSet  │  │                                          │
+│  │  │ (logging)  │  │                                          │
+│  │  └────────────┘  │                                          │
+│  └──────────────────┘                                          │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Common Use Cases for DaemonSets</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>Log Collection:</strong> Fluentd, Filebeat, Logstash</li>
+                        <li><strong>Monitoring:</strong> Prometheus Node Exporter, Datadog agent</li>
+                        <li><strong>Network:</strong> CNI plugins, kube-proxy</li>
+                        <li><strong>Storage:</strong> Ceph, GlusterFS daemons</li>
+                        <li><strong>Security:</strong> Security scanning agents</li>
+                        <li><strong>Performance:</strong> Performance monitoring tools</li>
+                    </ul>
+                </div>
+
+
+                <h3 style="color: #667eea;">Creating a DaemonSet</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Example 1: Simple Logging DaemonSet</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># fluentd-daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: kube-system
+  labels:
+    app: fluentd
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+    spec:
+      containers:
+      - name: fluentd
+        image: fluent/fluentd:v1.14
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      
+      # Volumes to access node logs
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+
+kubectl apply -f fluentd-daemonset.yaml
+
+# View DaemonSet
+kubectl get daemonset -n kube-system
+
+# Output:
+# NAME      DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR
+# fluentd   3         3         3       3            3           <none>
+
+# View pods (one per node)
+kubectl get pods -n kube-system -l app=fluentd -o wide
+
+# Output:
+# NAME            READY   STATUS    NODE
+# fluentd-abc12   1/1     Running   node-1
+# fluentd-def34   1/1     Running   node-2
+# fluentd-ghi56   1/1     Running   node-3</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Running DaemonSet on Specific Nodes</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Method 1: Node Selector</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Label nodes
+kubectl label nodes node-1 disktype=ssd
+kubectl label nodes node-2 disktype=ssd
+
+# DaemonSet with node selector
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ssd-monitor
+spec:
+  selector:
+    matchLabels:
+      app: ssd-monitor
+  template:
+    metadata:
+      labels:
+        app: ssd-monitor
+    spec:
+      nodeSelector:
+        disktype: ssd  # Only runs on nodes with this label
+      containers:
+      - name: monitor
+        image: monitoring-agent:v1
+
+# This DaemonSet only runs on node-1 and node-2</code></pre>
+
+                    <p><strong>Method 2: Node Affinity</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-monitor
+spec:
+  selector:
+    matchLabels:
+      app: gpu-monitor
+  template:
+    metadata:
+      labels:
+        app: gpu-monitor
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: gpu
+                operator: In
+                values:
+                - "true"
+      containers:
+      - name: monitor
+        image: gpu-monitor:v1</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Tolerations for Master Nodes</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p>By default, DaemonSets don't run on master nodes (they have taints). To run on masters:</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      # Tolerate master node taints
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      
+      containers:
+      - name: node-exporter
+        image: prom/node-exporter:latest
+        ports:
+        - containerPort: 9100
+          hostPort: 9100  # Expose on node's port
+
+# Now runs on ALL nodes including masters</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Updating DaemonSets</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Update Strategy: RollingUpdate (Default)</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1  # Update one node at a time
+  # ... rest of spec
+
+# Update the image
+kubectl set image daemonset/fluentd fluentd=fluent/fluentd:v1.15 -n kube-system
+
+# Watch the rollout
+kubectl rollout status daemonset/fluentd -n kube-system
+
+# Rollback if needed
+kubectl rollout undo daemonset/fluentd -n kube-system</code></pre>
+
+                    <p><strong>Update Strategy: OnDelete</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+spec:
+  updateStrategy:
+    type: OnDelete  # Manual control
+  # ... rest of spec
+
+# Update image
+kubectl set image daemonset/fluentd fluentd=fluent/fluentd:v1.15 -n kube-system
+
+# Pods won't update automatically
+# Manually delete pods to trigger update
+kubectl delete pod fluentd-abc12 -n kube-system
+# New pod created with updated image</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Real-World Example: Prometheus Node Exporter</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># node-exporter-daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      hostNetwork: true  # Use host network
+      hostPID: true      # Access host processes
+      
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      
+      containers:
+      - name: node-exporter
+        image: prom/node-exporter:v1.3.1
+        args:
+        - --path.procfs=/host/proc
+        - --path.sysfs=/host/sys
+        - --path.rootfs=/host/root
+        - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+        ports:
+        - containerPort: 9100
+          hostPort: 9100
+          name: metrics
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: root
+          mountPath: /host/root
+          readOnly: true
+      
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: root
+        hostPath:
+          path: /
+
+kubectl apply -f node-exporter-daemonset.yaml
+
+# Verify it's running on all nodes
+kubectl get pods -n monitoring -o wide
+
+# Access metrics from any node
+curl http://node-1:9100/metrics</code></pre>
+                </div>
+
+                <h2>⏱️ Part 2: Jobs</h2>
+
+                <h3 style="color: #667eea;">What are Jobs?</h3>
+
+                <p>A Job creates one or more pods and ensures that a specified number of them successfully terminate. Jobs track successful completions and when the specified number is reached, the Job is complete.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of Jobs like running a script or batch process. Unlike Deployments that keep pods running forever, Jobs run pods until they complete their task and exit successfully. It's like running a one-time data migration or generating a monthly report.</p>
+                </div>
+
+                <h3 style="color: #667eea;">Job Characteristics</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>Run to Completion:</strong> Pods run until they exit successfully</li>
+                        <li><strong>Retry on Failure:</strong> Automatically retries failed pods</li>
+                        <li><strong>Parallel Execution:</strong> Can run multiple pods in parallel</li>
+                        <li><strong>Completion Tracking:</strong> Tracks successful completions</li>
+                        <li><strong>Cleanup:</strong> Completed pods remain for log inspection</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Job vs Deployment</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Aspect</th>
+                                <th style="padding: 15px; text-align: left;">Deployment</th>
+                                <th style="padding: 15px; text-align: left;">Job</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Purpose</strong></td>
+                                <td style="padding: 15px;">Long-running services</td>
+                                <td style="padding: 15px;">Batch/one-time tasks</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Lifecycle</strong></td>
+                                <td style="padding: 15px;">Runs forever</td>
+                                <td style="padding: 15px;">Runs until completion</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Restart</strong></td>
+                                <td style="padding: 15px;">Always restart</td>
+                                <td style="padding: 15px;">Retry on failure only</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Success</strong></td>
+                                <td style="padding: 15px;">Running = success</td>
+                                <td style="padding: 15px;">Exit code 0 = success</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Use Case</strong></td>
+                                <td style="padding: 15px;">Web servers, APIs</td>
+                                <td style="padding: 15px;">Data processing, backups</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Creating a Simple Job</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># simple-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-calculation
+spec:
+  template:
+    spec:
+      containers:
+      - name: pi
+        image: perl:5.34
+        command: ["perl", "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never  # Never or OnFailure (not Always!)
+  
+  backoffLimit: 4  # Retry up to 4 times on failure
+
+kubectl apply -f simple-job.yaml
+
+# Watch job progress
+kubectl get jobs -w
+
+# Output:
+# NAME              COMPLETIONS   DURATION   AGE
+# pi-calculation    0/1           5s         5s
+# pi-calculation    1/1           10s        10s  ← Completed!
+
+# View pod
+kubectl get pods
+
+# Output:
+# NAME                    READY   STATUS      RESTARTS   AGE
+# pi-calculation-abc12    0/1     Completed   0          1m
+
+# View logs
+kubectl logs pi-calculation-abc12
+# Output: 3.14159265358979323846264338327950288419716939937510...</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Job Patterns</h3>
+
+                <h4 style="color: #667eea;">Pattern 1: Single Job (Default)</h4>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p>Run one pod to completion</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backup-job
+spec:
+  completions: 1  # Run 1 pod (default)
+  parallelism: 1  # Run 1 at a time (default)
+  template:
+    spec:
+      containers:
+      - name: backup
+        image: backup-tool:v1
+        command: ["./backup.sh"]
+      restartPolicy: OnFailure</code></pre>
+                </div>
+
+                <h4 style="color: #667eea;">Pattern 2: Parallel Jobs with Fixed Completion Count</h4>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p>Run multiple pods in parallel until N completions</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-job
+spec:
+  completions: 10      # Need 10 successful completions
+  parallelism: 3       # Run 3 pods at a time
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: worker:v1
+        command: ["./process-item.sh"]
+      restartPolicy: OnFailure
+
+# Execution:
+# - Starts 3 pods
+# - When one completes, starts another
+# - Continues until 10 completions
+# - Total pods created: 10 (if all succeed)</code></pre>
+                </div>
+
+                <h4 style="color: #667eea;">Pattern 3: Work Queue (Parallel Processing)</h4>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p>Multiple pods process items from a queue</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: queue-job
+spec:
+  parallelism: 5       # Run 5 workers
+  # No completions specified - workers decide when done
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: queue-worker:v1
+        env:
+        - name: QUEUE_URL
+          value: "redis://redis:6379"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do
+            item=$(redis-cli lpop work-queue)
+            if [ -z "$item" ]; then
+              echo "Queue empty, exiting"
+              exit 0
+            fi
+            echo "Processing: $item"
+            ./process.sh "$item"
+          done
+      restartPolicy: OnFailure
+
+# Workers pull items from queue until empty</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Job Configuration Options</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: configured-job
+spec:
+  # Completion settings
+  completions: 5              # Number of successful completions needed
+  parallelism: 2              # Number of pods to run in parallel
+  
+  # Failure handling
+  backoffLimit: 6             # Max retries before marking as failed
+  activeDeadlineSeconds: 600  # Max time job can run (10 minutes)
+  
+  # Pod lifecycle
+  ttlSecondsAfterFinished: 100  # Delete job 100s after completion
+  
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: worker:v1
+      restartPolicy: OnFailure  # Never or OnFailure only</code></pre>
+
+                    <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>💡 Key Settings:</strong>
+                        <ul style="margin-top: 10px;">
+                            <li><strong>backoffLimit:</strong> How many times to retry failed pods</li>
+                            <li><strong>activeDeadlineSeconds:</strong> Timeout for entire job</li>
+                            <li><strong>ttlSecondsAfterFinished:</strong> Auto-cleanup completed jobs</li>
+                            <li><strong>restartPolicy:</strong> Must be Never or OnFailure (not Always)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 style="color: #667eea;">Real-World Example: Database Backup Job</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># postgres-backup-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-backup
+  labels:
+    app: postgres-backup
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 3600  # 1 hour timeout
+  template:
+    metadata:
+      labels:
+        app: postgres-backup
+    spec:
+      containers:
+      - name: backup
+        image: postgres:14
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Starting backup..."
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_FILE="/backup/postgres-backup-${TIMESTAMP}.sql"
+          
+          pg_dump -h postgres -U postgres -d mydb > ${BACKUP_FILE}
+          
+          if [ $? -eq 0 ]; then
+            echo "Backup successful: ${BACKUP_FILE}"
+            # Upload to S3 or other storage
+            # aws s3 cp ${BACKUP_FILE} s3://my-backups/
+            exit 0
+          else
+            echo "Backup failed!"
+            exit 1
+          fi
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        volumeMounts:
+        - name: backup-storage
+          mountPath: /backup
+      
+      volumes:
+      - name: backup-storage
+        persistentVolumeClaim:
+          claimName: backup-pvc
+      
+      restartPolicy: OnFailure
+
+kubectl apply -f postgres-backup-job.yaml
+
+# Monitor job
+kubectl get job postgres-backup -w
+
+# View logs
+kubectl logs -l app=postgres-backup
+
+# Check backup file
+kubectl exec -it postgres-backup-abc12 -- ls -lh /backup</code></pre>
+                </div>
+
+                <h2>⏰ Part 3: CronJobs</h2>
+
+                <h3 style="color: #667eea;">What are CronJobs?</h3>
+
+                <p>CronJobs create Jobs on a schedule, similar to cron in Linux. They're perfect for recurring tasks like backups, reports, or cleanup.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of CronJobs like scheduled tasks on your computer. Just as you might schedule a weekly virus scan or daily backup, CronJobs run tasks on a schedule in Kubernetes.</p>
+                </div>
+
+                <h3 style="color: #667eea;">Cron Schedule Format</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>┌───────────── minute (0 - 59)
+│ ┌───────────── hour (0 - 23)
+│ │ ┌───────────── day of month (1 - 31)
+│ │ │ ┌───────────── month (1 - 12)
+│ │ │ │ ┌───────────── day of week (0 - 6) (Sunday=0)
+│ │ │ │ │
+* * * * *
+
+Examples:
+"0 0 * * *"      # Daily at midnight
+"0 */6 * * *"    # Every 6 hours
+"0 9 * * 1"      # Every Monday at 9 AM
+"*/15 * * * *"   # Every 15 minutes
+"0 0 1 * *"      # First day of every month at midnight
+"0 2 * * 0"      # Every Sunday at 2 AM</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Creating a CronJob</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Example 1: Daily Backup</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># daily-backup-cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-backup
+spec:
+  schedule: "0 2 * * *"  # Every day at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: backup-tool:v1
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Running backup at $(date)"
+              ./backup.sh
+              echo "Backup completed"
+          restartPolicy: OnFailure
+  
+  # CronJob specific settings
+  successfulJobsHistoryLimit: 3  # Keep last 3 successful jobs
+  failedJobsHistoryLimit: 1      # Keep last 1 failed job
+  concurrencyPolicy: Forbid       # Don't run if previous job still running
+
+kubectl apply -f daily-backup-cronjob.yaml
+
+# View CronJob
+kubectl get cronjob
+
+# Output:
+# NAME           SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+# daily-backup   0 2 * * *     False     0        <none>          10s
+
+# Manually trigger a job (for testing)
+kubectl create job --from=cronjob/daily-backup manual-backup-1
+
+# View jobs created by CronJob
+kubectl get jobs -l job-name=daily-backup</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">CronJob Concurrency Policies</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>Allow (default):</strong> Multiple jobs can run concurrently</li>
+                        <li><strong>Forbid:</strong> Skip new job if previous is still running</li>
+                        <li><strong>Replace:</strong> Cancel running job and start new one</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-job
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  concurrencyPolicy: Forbid  # Don't overlap
+  startingDeadlineSeconds: 300  # If missed, don't start after 5 min
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cleanup
+            image: busybox
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Cleaning up old files..."
+              find /data -type f -mtime +7 -delete
+              echo "Cleanup complete"
+          restartPolicy: OnFailure</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Real-World Example: Database Cleanup CronJob</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># db-cleanup-cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-cleanup
+  namespace: production
+spec:
+  schedule: "0 3 * * 0"  # Every Sunday at 3 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800  # 30 minutes
+      template:
+        spec:
+          containers:
+          - name: cleanup
+            image: postgres:14
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting database cleanup..."
+              
+              # Delete old logs
+              psql -h postgres -U postgres -d mydb -c "
+                DELETE FROM logs WHERE created_at < NOW() - INTERVAL '90 days';
+              "
+              
+              # Delete old sessions
+              psql -h postgres -U postgres -d mydb -c "
+                DELETE FROM sessions WHERE last_activity < NOW() - INTERVAL '30 days';
+              "
+              
+              # Vacuum database
+              psql -h postgres -U postgres -d mydb -c "VACUUM ANALYZE;"
+              
+              echo "Cleanup completed successfully"
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+          restartPolicy: OnFailure
+
+kubectl apply -f db-cleanup-cronjob.yaml</code></pre>
+                </div>
+
+                <h2>🔧 Init Containers</h2>
+
+                <p>Init containers run before app containers and are useful for setup tasks.</p>
+
+                <h3 style="color: #667eea;">What are Init Containers?</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>Run Before App:</strong> Execute before main containers start</li>
+                        <li><strong>Run Sequentially:</strong> One at a time, in order</li>
+                        <li><strong>Must Complete:</strong> App containers don't start until all init containers succeed</li>
+                        <li><strong>Use Cases:</strong> Wait for dependencies, setup, data loading</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Init Container Examples</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Example 1: Wait for Service</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+spec:
+  initContainers:
+  - name: wait-for-db
+    image: busybox:1.28
+    command:
+    - sh
+    - -c
+    - |
+      echo "Waiting for database..."
+      until nslookup postgres.default.svc.cluster.local; do
+        echo "Database not ready, waiting..."
+        sleep 2
+      done
+      echo "Database is ready!"
+  
+  containers:
+  - name: app
+    image: myapp:v1
+    # This starts only after init container completes</code></pre>
+
+                    <p><strong>Example 2: Download Configuration</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+spec:
+  initContainers:
+  - name: download-config
+    image: busybox:1.28
+    command:
+    - sh
+    - -c
+    - |
+      echo "Downloading configuration..."
+      wget -O /config/app.conf https://config-server/app.conf
+      echo "Configuration downloaded"
+    volumeMounts:
+    - name: config
+      mountPath: /config
+  
+  containers:
+  - name: app
+    image: myapp:v1
+    volumeMounts:
+    - name: config
+      mountPath: /etc/app
+  
+  volumes:
+  - name: config
+    emptyDir: {}</code></pre>
+
+                    <p><strong>Example 3: Database Migration</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      initContainers:
+      - name: db-migration
+        image: myapp:v1
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Running database migrations..."
+          ./migrate.sh up
+          echo "Migrations complete"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: url
+      
+      containers:
+      - name: app
+        image: myapp:v1
+        # App starts with migrated database</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting</h2>
+
+                <h3 style="color: #667eea;">DaemonSet Issues</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue: DaemonSet Not Running on All Nodes</h4>
+                    
+                    <p><strong>🔍 Diagnosis:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check DaemonSet status
+kubectl get daemonset
+
+# Check which nodes have pods
+kubectl get pods -o wide -l app=fluentd
+
+# Check node taints
+kubectl describe nodes | grep Taints</code></pre>
+
+                    <p><strong>✅ Solutions:</strong></p>
+                    <ul style="line-height: 2;">
+                        <li>Add tolerations for node taints</li>
+                        <li>Check node selectors match nodes</li>
+                        <li>Verify nodes are Ready</li>
+                        <li>Check resource availability on nodes</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Job Issues</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue: Job Never Completes</h4>
+                    
+                    <p><strong>🔍 Diagnosis:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check job status
+kubectl describe job my-job
+
+# Check pod status
+kubectl get pods -l job-name=my-job
+
+# Check pod logs
+kubectl logs -l job-name=my-job
+
+# Common causes:
+# - Container doesn't exit (runs forever)
+# - Exit code is non-zero (failure)
+# - activeDeadlineSeconds exceeded</code></pre>
+
+                    <p><strong>✅ Solutions:</strong></p>
+                    <ul style="line-height: 2;">
+                        <li>Ensure container exits with code 0 on success</li>
+                        <li>Check logs for errors</li>
+                        <li>Increase activeDeadlineSeconds if needed</li>
+                        <li>Fix application logic to complete properly</li>
+                    </ul>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue: CronJob Not Running</h4>
+                    
+                    <p><strong>🔍 Diagnosis:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check CronJob status
+kubectl get cronjob
+
+# Check if suspended
+kubectl get cronjob my-cronjob -o yaml | grep suspend
+
+# Check schedule
+kubectl describe cronjob my-cronjob
+
+# Check created jobs
+kubectl get jobs -l cronjob=my-cronjob</code></pre>
+
+                    <p><strong>✅ Solutions:</strong></p>
+                    <ul style="line-height: 2;">
+                        <li>Verify cron schedule syntax</li>
+                        <li>Check if CronJob is suspended</li>
+                        <li>Ensure startingDeadlineSeconds isn't too short</li>
+                        <li>Check cluster time is correct</li>
+                    </ul>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">DaemonSet Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Set resource limits:</strong> Prevent node resource exhaustion</li>
+                        <li>✅ <strong>Use tolerations carefully:</strong> Only run on appropriate nodes</li>
+                        <li>✅ <strong>Implement health checks:</strong> Ensure pods are working correctly</li>
+                        <li>✅ <strong>Use RollingUpdate:</strong> Safer than OnDelete for updates</li>
+                        <li>✅ <strong>Monitor all nodes:</strong> Ensure DaemonSet runs everywhere needed</li>
+                        <li>✅ <strong>Use hostPath sparingly:</strong> Security risk if not needed</li>
+                        <li>✅ <strong>Label nodes appropriately:</strong> For targeted DaemonSets</li>
+                        <li>✅ <strong>Test on single node first:</strong> Before rolling out cluster-wide</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Job Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Set activeDeadlineSeconds:</strong> Prevent runaway jobs</li>
+                        <li>✅ <strong>Use appropriate backoffLimit:</strong> Balance retries vs failure detection</li>
+                        <li>✅ <strong>Implement idempotency:</strong> Jobs should be safe to retry</li>
+                        <li>✅ <strong>Use ttlSecondsAfterFinished:</strong> Auto-cleanup completed jobs</li>
+                        <li>✅ <strong>Log progress:</strong> Make debugging easier</li>
+                        <li>✅ <strong>Exit with proper codes:</strong> 0 for success, non-zero for failure</li>
+                        <li>✅ <strong>Handle signals:</strong> Graceful shutdown on termination</li>
+                        <li>✅ <strong>Test locally first:</strong> Verify job logic before deploying</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">CronJob Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use Forbid concurrency:</strong> For jobs that shouldn't overlap</li>
+                        <li>✅ <strong>Set history limits:</strong> Prevent accumulation of old jobs</li>
+                        <li>✅ <strong>Monitor job failures:</strong> Set up alerts for failed jobs</li>
+                        <li>✅ <strong>Test schedule:</strong> Verify cron expression is correct</li>
+                        <li>✅ <strong>Consider timezone:</strong> CronJobs use cluster timezone</li>
+                        <li>✅ <strong>Add startingDeadlineSeconds:</strong> Handle missed schedules</li>
+                        <li>✅ <strong>Document schedule:</strong> Make it clear when jobs run</li>
+                        <li>✅ <strong>Use manual triggers:</strong> Test before waiting for schedule</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>DaemonSets run pods on every node</strong> automatically</li>
+                        <li>✅ <strong>Use DaemonSets for</strong> logging, monitoring, and system agents</li>
+                        <li>✅ <strong>Jobs run pods to completion</strong> for batch processing</li>
+                        <li>✅ <strong>CronJobs schedule Jobs</strong> for recurring tasks</li>
+                        <li>✅ <strong>Init containers run setup tasks</strong> before main containers</li>
+                        <li>✅ <strong>Set resource limits</strong> on DaemonSets to protect nodes</li>
+                        <li>✅ <strong>Use proper exit codes</strong> in Jobs (0 = success)</li>
+                        <li>✅ <strong>Implement idempotency</strong> for safe job retries</li>
+                        <li>✅ <strong>Monitor job completion</strong> and set up failure alerts</li>
+                        <li>✅ <strong>Clean up completed jobs</strong> with ttlSecondsAfterFinished</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand DaemonSets and Jobs, you're ready to learn about <strong>Ingress</strong> - how to expose your applications to the internet with advanced routing and SSL termination!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Ingress?</h3>
+                    <a href="13-ingress.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #13: Ingress - External Access to Services →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
