@@ -238,8 +238,10 @@ const k8sTutorials = [
             'Graceful shutdown patterns'
         ],
         handsOn: 'Implement comprehensive health checks for a web application',
-        readTime: '20 min',
-        difficulty: 'intermediate'
+        readTime: '45 min',
+        difficulty: 'intermediate',
+        url: 'tutorials/14-health-checks.html',
+        status: 'available'
     },
     
     // Advanced Level (Posts 15-20)

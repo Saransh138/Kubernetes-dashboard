@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Checks - Keeping Your Apps Healthy | K8s Tutorial #14</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">💚</div>
+                <h1 class="post-title">Health Checks — Keeping Your Applications Healthy</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #14 of 20</span>
+                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                    <span><i class="far fa-clock"></i> 45 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Why health checks are critical for reliability</li>
+                    <li>Liveness probes - detecting dead containers</li>
+                    <li>Readiness probes - managing traffic flow</li>
+                    <li>Startup probes - handling slow-starting apps</li>
+                    <li>Probe types: HTTP, TCP, Exec</li>
+                    <li>Probe configuration and timing</li>
+                    <li>Graceful shutdown patterns</li>
+                    <li>Real-world health check strategies</li>
+                    <li>Troubleshooting probe failures</li>
+                    <li>Best practices for production</li>
+                </ul>
+
+                <h2>🤔 The Problem: How Do You Know Your App is Healthy?</h2>
+
+                <p>Your pods are running, but are they actually working? Can they handle traffic? Are they stuck in a deadlock?</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Without Health Checks:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Dead containers keep running:</strong> Process exists but app is frozen/deadlocked</li>
+                        <li><strong>Traffic to unready pods:</strong> Requests fail during startup or shutdown</li>
+                        <li><strong>Cascading failures:</strong> One bad pod affects entire service</li>
+                        <li><strong>Manual intervention:</strong> You have to manually restart pods</li>
+                        <li><strong>Poor user experience:</strong> Users see errors and timeouts</li>
+                        <li><strong>No automatic recovery:</strong> System can't self-heal</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ With Health Checks:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Automatic restart:</strong> Kubernetes restarts unhealthy containers</li>
+                        <li><strong>Smart traffic routing:</strong> Only ready pods receive traffic</li>
+                        <li><strong>Graceful startup:</strong> Pods aren't sent traffic until ready</li>
+                        <li><strong>Graceful shutdown:</strong> Pods finish requests before terminating</li>
+                        <li><strong>Self-healing:</strong> System automatically recovers from failures</li>
+                        <li><strong>Zero-downtime deployments:</strong> New pods ready before old ones terminate</li>
+                    </ul>
+                </div>
+
+                <h2>💚 The Three Types of Probes</h2>
+
+                <p>Kubernetes provides three types of health checks, each serving a different purpose:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">1. Liveness Probe</h3>
+                    <p><strong>Question:</strong> "Is the container alive or should I restart it?"</p>
+                    <p><strong>Purpose:</strong> Detect when a container is stuck or deadlocked</p>
+                    <p><strong>Action on failure:</strong> Kubernetes kills and restarts the container</p>
+                    <p><strong>Use case:</strong> Detect deadlocks, infinite loops, or corrupted state</p>
+                    
+                    <h3 style="color: #90cdf4; margin-top: 20px;">2. Readiness Probe</h3>
+                    <p><strong>Question:</strong> "Is the container ready to accept traffic?"</p>
+                    <p><strong>Purpose:</strong> Control when a pod receives traffic from Services</p>
+                    <p><strong>Action on failure:</strong> Remove pod from Service endpoints (no restart)</p>
+                    <p><strong>Use case:</strong> Startup delays, temporary unavailability, dependency checks</p>
+                    
+                    <h3 style="color: #90cdf4; margin-top: 20px;">3. Startup Probe</h3>
+                    <p><strong>Question:</strong> "Has the container finished starting up?"</p>
+                    <p><strong>Purpose:</strong> Give slow-starting containers more time to start</p>
+                    <p><strong>Action on failure:</strong> Kill and restart if startup takes too long</p>
+                    <p><strong>Use case:</strong> Legacy apps, large initialization, database migrations</p>
+                </div>
+
+                <h3 style="color: #667eea;">Visual Representation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>Container Lifecycle with Probes:
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONTAINER STARTS                              │
+│                           │                                      │
+│                           ▼                                      │
+│                  ┌─────────────────┐                            │
+│                  │ Startup Probe   │                            │
+│                  │ (if configured) │                            │
+│                  └────────┬────────┘                            │
+│                           │                                      │
+│                    ┌──────┴──────┐                              │
+│                    │             │                              │
+│              PASS  │             │  FAIL (after max attempts)   │
+│                    │             │                              │
+│                    ▼             ▼                              │
+│         ┌──────────────┐   ┌──────────┐                        │
+│         │ Liveness &   │   │ RESTART  │                        │
+│         │ Readiness    │   │ POD      │                        │
+│         │ Probes Start │   └──────────┘                        │
+│         └──────┬───────┘                                        │
+│                │                                                 │
+│         ┌──────┴──────────────────────┐                        │
+│         │                              │                        │
+│         ▼                              ▼                        │
+│  ┌─────────────┐              ┌──────────────┐                │
+│  │ Liveness    │              │ Readiness    │                │
+│  │ Probe       │              │ Probe        │                │
+│  │ (periodic)  │              │ (periodic)   │                │
+│  └──────┬──────┘              └──────┬───────┘                │
+│         │                             │                         │
+│    FAIL │                        FAIL │                         │
+│         │                             │                         │
+│         ▼                             ▼                         │
+│  ┌──────────┐              ┌─────────────────┐                │
+│  │ RESTART  │              │ REMOVE FROM     │                │
+│  │ POD      │              │ SERVICE         │                │
+│  └──────────┘              │ (no traffic)    │                │
+│                            └─────────────────┘                │
+│                                                                 │
+│  Liveness: Restarts container if unhealthy                    │
+│  Readiness: Controls traffic flow                             │
+│  Startup: Protects slow-starting containers                   │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>🔧 Probe Types</h2>
+
+                <p>Each probe can use one of three mechanisms to check health:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">1. HTTP GET Probe</h3>
+                    <p>Performs an HTTP GET request to a specified path and port.</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Success:</strong> HTTP status code 200-399</li>
+                        <li><strong>Failure:</strong> Any other status code or connection failure</li>
+                        <li><strong>Best for:</strong> Web applications, REST APIs</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+    httpHeaders:
+    - name: Custom-Header
+      value: Awesome</code></pre>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">2. TCP Socket Probe</h3>
+                    <p>Attempts to open a TCP connection to a specified port.</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Success:</strong> Connection established</li>
+                        <li><strong>Failure:</strong> Connection refused or timeout</li>
+                        <li><strong>Best for:</strong> Databases, message queues, TCP services</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>livenessProbe:
+  tcpSocket:
+    port: 3306</code></pre>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">3. Exec Probe</h3>
+                    <p>Executes a command inside the container.</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Success:</strong> Command exits with status 0</li>
+                        <li><strong>Failure:</strong> Non-zero exit status</li>
+                        <li><strong>Best for:</strong> Custom health checks, file existence, complex logic</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>livenessProbe:
+  exec:
+    command:
+    - cat
+    - /tmp/healthy</code></pre>
+                </div>
+
+                <h2>⚙️ Probe Configuration Parameters</h2>
+
+                <p>All probes support these configuration parameters:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Parameter</th>
+                                <th style="padding: 15px; text-align: left;">Default</th>
+                                <th style="padding: 15px; text-align: left;">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>initialDelaySeconds</strong></td>
+                                <td style="padding: 15px;">0</td>
+                                <td style="padding: 15px;">Wait before first probe</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>periodSeconds</strong></td>
+                                <td style="padding: 15px;">10</td>
+                                <td style="padding: 15px;">How often to probe</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>timeoutSeconds</strong></td>
+                                <td style="padding: 15px;">1</td>
+                                <td style="padding: 15px;">Probe timeout</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>successThreshold</strong></td>
+                                <td style="padding: 15px;">1</td>
+                                <td style="padding: 15px;">Consecutive successes needed</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>failureThreshold</strong></td>
+                                <td style="padding: 15px;">3</td>
+                                <td style="padding: 15px;">Consecutive failures before action</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Complete Probe Configuration Example</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: probe-example
+spec:
+  containers:
+  - name: app
+    image: myapp:1.0
+    ports:
+    - containerPort: 8080
+    
+    # Startup Probe - runs first
+    startupProbe:
+      httpGet:
+        path: /startup
+        port: 8080
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      timeoutSeconds: 1
+      successThreshold: 1
+      failureThreshold: 30  # 30 * 10s = 5 minutes max startup time
+    
+    # Liveness Probe - starts after startup succeeds
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+      initialDelaySeconds: 0  # Startup probe handles initial delay
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 3  # Restart after 3 failures (30 seconds)
+    
+    # Readiness Probe - controls traffic
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+      initialDelaySeconds: 0
+      periodSeconds: 5  # Check more frequently
+      timeoutSeconds: 3
+      successThreshold: 1
+      failureThreshold: 3  # Remove from service after 3 failures (15 seconds)</code></pre>
+                </div>
+
+                <h2>🔧 Hands-On: Liveness Probe Example</h2>
+
+                <h3 style="color: #667eea;">Example 1: HTTP Liveness Probe</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Create a pod with liveness probe:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># liveness-http.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-http
+spec:
+  containers:
+  - name: liveness
+    image: k8s.gcr.io/liveness
+    args:
+    - /server
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        httpHeaders:
+        - name: Custom-Header
+          value: Awesome
+      initialDelaySeconds: 3
+      periodSeconds: 3
+
+kubectl apply -f liveness-http.yaml
+
+# Watch the pod
+kubectl get pod liveness-http --watch
+
+# The container will be restarted after liveness probe fails
+# Check events
+kubectl describe pod liveness-http
+
+# Output shows:
+# Liveness probe failed: HTTP probe failed with statuscode: 500
+# Container liveness failed liveness probe, will be restarted</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 2: Exec Liveness Probe</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># liveness-exec.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-exec
+spec:
+  containers:
+  - name: liveness
+    image: busybox
+    args:
+    - /bin/sh
+    - -c
+    - touch /tmp/healthy; sleep 30; rm -f /tmp/healthy; sleep 600
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/healthy
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+kubectl apply -f liveness-exec.yaml
+
+# Watch what happens
+kubectl get pod liveness-exec --watch
+
+# After 30 seconds, file is deleted, probe fails, container restarts
+kubectl describe pod liveness-exec
+
+# Check restart count
+kubectl get pod liveness-exec
+# NAME            READY   STATUS    RESTARTS   AGE
+# liveness-exec   1/1     Running   1          2m</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 3: TCP Liveness Probe</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># liveness-tcp.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-tcp
+spec:
+  containers:
+  - name: goproxy
+    image: k8s.gcr.io/goproxy:0.1
+    ports:
+    - containerPort: 8080
+    livenessProbe:
+      tcpSocket:
+        port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 20
+
+kubectl apply -f liveness-tcp.yaml
+
+# Kubernetes will try to open a TCP connection to port 8080
+# If connection succeeds, container is healthy</code></pre>
+                </div>
+
+                <h2>🚦 Readiness Probe Examples</h2>
+
+                <h3 style="color: #667eea;">Example 4: Readiness Probe with Service</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Create deployment with readiness probe:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># readiness-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readiness-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: readiness-demo
+  template:
+    metadata:
+      labels:
+        app: readiness-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: readiness-demo
+spec:
+  selector:
+    app: readiness-demo
+  ports:
+  - port: 80
+    targetPort: 80
+
+kubectl apply -f readiness-deployment.yaml
+
+# Check endpoints - only ready pods are included
+kubectl get endpoints readiness-demo
+
+# Simulate pod becoming unready
+kubectl exec -it readiness-demo-xxx -- rm /usr/share/nginx/html/index.html
+
+# Watch endpoints - pod removed from service
+kubectl get endpoints readiness-demo --watch
+
+# Pod is still running but not receiving traffic
+kubectl get pods -l app=readiness-demo</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 5: Readiness with Dependency Check</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># readiness-dependency.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-dependency
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'echo "Waiting for database..."; sleep 30; echo "Ready!"; sleep 3600']
+    readinessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - 'test -f /tmp/ready'
+      initialDelaySeconds: 5
+      periodSeconds: 5
+  initContainers:
+  - name: wait-for-db
+    image: busybox
+    command: ['sh', '-c', 'sleep 30 && touch /tmp/ready']
+    volumeMounts:
+    - name: ready-flag
+      mountPath: /tmp
+  volumes:
+  - name: ready-flag
+    emptyDir: {}</code></pre>
+                </div>
+
+                <h2>🚀 Startup Probe Examples</h2>
+
+                <h3 style="color: #667eea;">Example 6: Startup Probe for Slow Applications</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># startup-probe.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: startup-probe-demo
+spec:
+  containers:
+  - name: slow-app
+    image: busybox
+    command: ['sh', '-c', 'echo "Starting..."; sleep 60; echo "Started!"; sleep 3600']
+    ports:
+    - containerPort: 8080
+    
+    # Startup probe - gives app up to 5 minutes to start
+    startupProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/started
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      failureThreshold: 30  # 30 * 10s = 5 minutes
+    
+    # Liveness probe - only starts after startup succeeds
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/started
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      failureThreshold: 3
+    
+    # Readiness probe
+    readinessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/ready
+      initialDelaySeconds: 0
+      periodSeconds: 5
+
+kubectl apply -f startup-probe.yaml
+
+# Watch the pod start
+kubectl get pod startup-probe-demo --watch
+
+# Check probe status
+kubectl describe pod startup-probe-demo</code></pre>
+                </div>
+
+                <h2>🎯 Real-World Example: Complete Web Application</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Production-ready deployment with all probes:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># production-app.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: production-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: production-app
+  template:
+    metadata:
+      labels:
+        app: production-app
+    spec:
+      containers:
+      - name: app
+        image: myapp:1.0
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: metrics
+          containerPort: 9090
+        
+        # Environment variables
+        env:
+        - name: DATABASE_URL
+          value: "postgres://db:5432/myapp"
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        
+        # Startup probe - for initial startup
+        startupProbe:
+          httpGet:
+            path: /startup
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30  # 5 minutes max
+        
+        # Liveness probe - detect deadlocks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            httpHeaders:
+            - name: X-Probe-Type
+              value: liveness
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Readiness probe - control traffic
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+            httpHeaders:
+            - name: X-Probe-Type
+              value: readiness
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+        
+        # Termination grace period
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: production-app
+spec:
+  selector:
+    app: production-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+
+kubectl apply -f production-app.yaml
+
+# Monitor deployment
+kubectl rollout status deployment/production-app
+
+# Check pod readiness
+kubectl get pods -l app=production-app
+
+# Check service endpoints
+kubectl get endpoints production-app
+
+# Test the service
+kubectl run test --image=busybox -it --rm -- wget -O- http://production-app</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting Health Check Issues</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Container Keeps Restarting</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods
+# NAME      READY   STATUS             RESTARTS   AGE
+# my-pod    0/1     CrashLoopBackOff   5          3m</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check pod events
+kubectl describe pod my-pod
+
+# Look for:
+# Liveness probe failed: Get http://10.244.1.5:8080/healthz: dial tcp 10.244.1.5:8080: connect: connection refused
+
+# Check logs
+kubectl logs my-pod
+kubectl logs my-pod --previous  # Logs from previous container</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>initialDelaySeconds too short:</strong> App not ready when probe starts</li>
+                        <li><strong>Wrong port:</strong> Probe checking wrong port</li>
+                        <li><strong>Wrong path:</strong> Health endpoint doesn't exist</li>
+                        <li><strong>App actually unhealthy:</strong> Fix application code</li>
+                        <li><strong>Use startup probe:</strong> For slow-starting apps</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: Pod Not Receiving Traffic</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Pod is running but not in service endpoints</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check pod readiness
+kubectl get pods
+# NAME      READY   STATUS    RESTARTS   AGE
+# my-pod    0/1     Running   0          2m
+
+# Check endpoints
+kubectl get endpoints my-service
+# No endpoints listed
+
+# Check readiness probe
+kubectl describe pod my-pod | grep -A 10 Readiness</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Readiness probe failing:</strong> Check probe configuration</li>
+                        <li><strong>App not ready:</strong> Check application logs</li>
+                        <li><strong>Dependencies unavailable:</strong> Check database, cache, etc.</li>
+                        <li><strong>Wrong readiness endpoint:</strong> Verify path and port</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: Slow Rolling Updates</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Deployment takes forever to roll out</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check rollout status
+kubectl rollout status deployment/my-app
+# Waiting for deployment "my-app" rollout to finish: 1 out of 3 new replicas have been updated...
+
+# Check pod status
+kubectl get pods -l app=my-app
+# New pods stuck in "Not Ready" state</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Readiness probe too strict:</strong> Adjust thresholds</li>
+                        <li><strong>Slow startup:</strong> Add startup probe</li>
+                        <li><strong>Resource constraints:</strong> Check CPU/memory limits</li>
+                        <li><strong>Image pull issues:</strong> Check image availability</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 4: Probe Timeout Errors</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Readiness probe failed: Get http://10.244.1.5:8080/ready: context deadline exceeded</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Increase timeoutSeconds:</strong> Health endpoint is slow</li>
+                        <li><strong>Optimize health endpoint:</strong> Make it faster</li>
+                        <li><strong>Check resource limits:</strong> Container may be throttled</li>
+                        <li><strong>Network issues:</strong> Check pod networking</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 5: Probes Causing High Load</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Health check endpoints consuming too many resources</p>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Increase periodSeconds:</strong> Check less frequently</li>
+                        <li><strong>Lightweight health checks:</strong> Don't query database</li>
+                        <li><strong>Cache health status:</strong> Don't recalculate every time</li>
+                        <li><strong>Separate endpoints:</strong> Different checks for liveness vs readiness</li>
+                    </ul>
+                </div>
+
+                <h2>🎨 Health Check Patterns</h2>
+
+                <h3 style="color: #667eea;">Pattern 1: Shallow vs Deep Health Checks</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Shallow Health Check (Liveness)</h4>
+                    <p>Quick check that process is alive and not deadlocked</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># /healthz endpoint
+GET /healthz
+Response: 200 OK
+Body: {"status": "ok"}
+
+# Just checks if web server responds
+# No database queries, no external dependencies</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Deep Health Check (Readiness)</h4>
+                    <p>Comprehensive check including dependencies</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># /ready endpoint
+GET /ready
+Response: 200 OK
+Body: {
+  "status": "ready",
+  "checks": {
+    "database": "ok",
+    "cache": "ok",
+    "disk_space": "ok"
+  }
+}
+
+# Checks all dependencies
+# Returns 503 if any dependency is down</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 2: Graceful Shutdown</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: graceful-shutdown
+spec:
+  containers:
+  - name: app
+    image: myapp:1.0
+    
+    # Readiness probe
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+      periodSeconds: 5
+    
+    # PreStop hook - mark as not ready
+    lifecycle:
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "sleep 15"]
+    
+  # Give time to finish requests
+  terminationGracePeriodSeconds: 30
+
+# Shutdown sequence:
+# 1. PreStop hook executes (sleep 15s)
+# 2. Readiness probe fails (pod removed from service)
+# 3. No new traffic sent to pod
+# 4. Existing requests complete
+# 5. After 30s, SIGTERM sent
+# 6. After grace period, SIGKILL if still running</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 3: Dependency-Aware Readiness</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Application code (pseudo-code)
+func readinessHandler(w http.ResponseWriter, r *http.Request) {
+    // Check database
+    if !database.Ping() {
+        w.WriteHeader(503)
+        json.NewEncoder(w).Encode(map[string]string{
+            "status": "not ready",
+            "reason": "database unavailable"
+        })
+        return
+    }
+    
+    // Check cache
+    if !cache.Ping() {
+        w.WriteHeader(503)
+        json.NewEncoder(w).Encode(map[string]string{
+            "status": "not ready",
+            "reason": "cache unavailable"
+        })
+        return
+    }
+    
+    // All checks passed
+    w.WriteHeader(200)
+    json.NewEncoder(w).Encode(map[string]string{
+        "status": "ready"
+    })
+}</code></pre>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Always use readiness probes:</strong> Essential for zero-downtime deployments</li>
+                        <li>✅ <strong>Use liveness probes carefully:</strong> Only for detecting deadlocks, not transient failures</li>
+                        <li>✅ <strong>Add startup probes for slow apps:</strong> Prevents premature liveness failures</li>
+                        <li>✅ <strong>Separate liveness and readiness:</strong> Different endpoints with different checks</li>
+                        <li>✅ <strong>Keep health checks lightweight:</strong> Should complete in < 1 second</li>
+                        <li>✅ <strong>Don't check dependencies in liveness:</strong> Only check if app itself is alive</li>
+                        <li>✅ <strong>Check dependencies in readiness:</strong> Ensure app can handle traffic</li>
+                        <li>✅ <strong>Set appropriate timeouts:</strong> Balance between responsiveness and false positives</li>
+                        <li>✅ <strong>Use failureThreshold wisely:</strong> 3 is usually good (avoid flapping)</li>
+                        <li>✅ <strong>Implement graceful shutdown:</strong> Use preStop hooks and termination grace period</li>
+                        <li>✅ <strong>Monitor probe metrics:</strong> Track probe success/failure rates</li>
+                        <li>✅ <strong>Test probe behavior:</strong> Verify probes work before production</li>
+                    </ol>
+                </div>
+
+                <h2>📊 Probe Configuration Guidelines</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Probe Type</th>
+                                <th style="padding: 15px; text-align: left;">initialDelay</th>
+                                <th style="padding: 15px; text-align: left;">period</th>
+                                <th style="padding: 15px; text-align: left;">timeout</th>
+                                <th style="padding: 15px; text-align: left;">failure</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Startup</strong></td>
+                                <td style="padding: 15px;">0</td>
+                                <td style="padding: 15px;">10s</td>
+                                <td style="padding: 15px;">3s</td>
+                                <td style="padding: 15px;">30 (5 min)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Liveness</strong></td>
+                                <td style="padding: 15px;">0</td>
+                                <td style="padding: 15px;">10s</td>
+                                <td style="padding: 15px;">5s</td>
+                                <td style="padding: 15px;">3</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Readiness</strong></td>
+                                <td style="padding: 15px;">0</td>
+                                <td style="padding: 15px;">5s</td>
+                                <td style="padding: 15px;">3s</td>
+                                <td style="padding: 15px;">3</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Three probe types:</strong> Liveness (restart), Readiness (traffic), Startup (slow apps)</li>
+                        <li>✅ <strong>Three probe mechanisms:</strong> HTTP GET, TCP Socket, Exec command</li>
+                        <li>✅ <strong>Liveness detects deadlocks:</strong> Restarts unhealthy containers</li>
+                        <li>✅ <strong>Readiness controls traffic:</strong> Removes unready pods from service</li>
+                        <li>✅ <strong>Startup protects slow apps:</strong> Prevents premature liveness failures</li>
+                        <li>✅ <strong>Configure timing carefully:</strong> Balance responsiveness vs false positives</li>
+                        <li>✅ <strong>Separate concerns:</strong> Different checks for liveness vs readiness</li>
+                        <li>✅ <strong>Lightweight checks:</strong> Fast, simple, no heavy operations</li>
+                        <li>✅ <strong>Graceful shutdown:</strong> Use preStop hooks and grace periods</li>
+                        <li>✅ <strong>Essential for production:</strong> Enable zero-downtime deployments</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand health checks and can keep your applications reliable, you're ready to learn about <strong>Resource Management</strong> - managing CPU, memory, and implementing auto-scaling!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Resource Management?</h3>
+                    <a href="15-resource-management.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #15: Resource Management & Auto-Scaling →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
