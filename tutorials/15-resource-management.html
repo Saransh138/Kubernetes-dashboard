@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Management - CPU, Memory & Auto-Scaling | K8s Tutorial #15</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">📊</div>
+                <h1 class="post-title">Resource Management — CPU, Memory & Auto-Scaling</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #15 of 20</span>
+                    <span><i class="fas fa-signal"></i> Advanced</span>
+                    <span><i class="far fa-clock"></i> 50 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Resource requests vs limits explained</li>
+                    <li>CPU and memory units in Kubernetes</li>
+                    <li>Quality of Service (QoS) classes</li>
+                    <li>Resource quotas and limit ranges</li>
+                    <li>Horizontal Pod Autoscaler (HPA)</li>
+                    <li>Vertical Pod Autoscaler (VPA)</li>
+                    <li>Cluster Autoscaler basics</li>
+                    <li>Metrics Server setup</li>
+                    <li>Resource optimization strategies</li>
+                    <li>Troubleshooting resource issues</li>
+                </ul>
+
+                <h2>🤔 The Problem: Resource Management</h2>
+
+                <p>Without proper resource management, your cluster can become unstable, inefficient, and expensive.</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Without Resource Management:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Resource starvation:</strong> One pod consumes all CPU/memory</li>
+                        <li><strong>Node overcommitment:</strong> Too many pods scheduled on one node</li>
+                        <li><strong>OOMKilled pods:</strong> Pods killed when exceeding memory limits</li>
+                        <li><strong>CPU throttling:</strong> Pods slowed down when exceeding CPU limits</li>
+                        <li><strong>Wasted resources:</strong> Over-provisioned pods sitting idle</li>
+                        <li><strong>Manual scaling:</strong> You have to scale pods manually</li>
+                        <li><strong>High costs:</strong> Running more resources than needed</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ With Resource Management:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Fair resource allocation:</strong> Each pod gets what it needs</li>
+                        <li><strong>Predictable scheduling:</strong> Scheduler knows resource availability</li>
+                        <li><strong>Automatic scaling:</strong> Pods scale based on actual usage</li>
+                        <li><strong>Cost optimization:</strong> Right-size resources for workloads</li>
+                        <li><strong>Stability:</strong> Prevent resource exhaustion</li>
+                        <li><strong>Multi-tenancy:</strong> Isolate teams with quotas</li>
+                    </ul>
+                </div>
+
+                <h2>📊 Resource Requests vs Limits</h2>
+
+                <p>Kubernetes uses two concepts to manage resources: requests and limits.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Resource Requests</h3>
+                    <p><strong>Definition:</strong> Minimum amount of resources guaranteed to a container</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Used by scheduler:</strong> To find nodes with enough resources</li>
+                        <li><strong>Guaranteed:</strong> Container always gets at least this much</li>
+                        <li><strong>Can use more:</strong> If available on the node</li>
+                        <li><strong>Affects scheduling:</strong> Pod won't be scheduled if no node has enough</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">Resource Limits</h3>
+                    <p><strong>Definition:</strong> Maximum amount of resources a container can use</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Hard cap:</strong> Container cannot exceed this</li>
+                        <li><strong>CPU:</strong> Container is throttled if it tries to use more</li>
+                        <li><strong>Memory:</strong> Container is killed (OOMKilled) if it exceeds</li>
+                        <li><strong>Not used for scheduling:</strong> Only enforced at runtime</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Visual Comparison</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Node Resources                                │
+│                    Total: 4 CPU, 8Gi Memory                      │
+│                                                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Pod A                                                    │   │
+│  │  Request: 1 CPU, 1Gi    Limit: 2 CPU, 2Gi               │   │
+│  │                                                           │   │
+│  │  ┌─────────────┬──────────────────────────┐             │   │
+│  │  │  Guaranteed │  Can burst up to limit   │             │   │
+│  │  │  (Request)  │  if available            │             │   │
+│  │  └─────────────┴──────────────────────────┘             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Pod B                                                    │   │
+│  │  Request: 0.5 CPU, 512Mi    Limit: 1 CPU, 1Gi           │   │
+│  │                                                           │   │
+│  │  ┌──────┬─────────────────────┐                         │   │
+│  │  │ Req  │  Can burst          │                         │   │
+│  │  └──────┴─────────────────────┘                         │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                   │
+│  Scheduler sees: 1.5 CPU and 1.5Gi requested                    │
+│  Available for new pods: 2.5 CPU and 6.5Gi                      │
+│                                                                   │
+│  What happens:                                                   │
+│  - CPU: Throttled at limit (slowed down)                        │
+│  - Memory: OOMKilled at limit (pod killed)                      │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>💾 CPU and Memory Units</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">CPU Units</h3>
+                    <p>CPU is measured in cores (or millicores):</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>1 CPU = 1000m (millicores)</strong></li>
+                        <li><strong>100m = 0.1 CPU</strong> (10% of one core)</li>
+                        <li><strong>500m = 0.5 CPU</strong> (half a core)</li>
+                        <li><strong>2 = 2000m</strong> (two full cores)</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>resources:
+  requests:
+    cpu: "250m"      # 0.25 CPU cores
+  limits:
+    cpu: "500m"      # 0.5 CPU cores</code></pre>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">Memory Units</h3>
+                    <p>Memory is measured in bytes (with various suffixes):</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Ki, Mi, Gi, Ti</strong> - Binary (1024-based): 1Mi = 1024Ki</li>
+                        <li><strong>K, M, G, T</strong> - Decimal (1000-based): 1M = 1000K</li>
+                        <li><strong>Prefer binary units</strong> (Mi, Gi) for consistency</li>
+                    </ul>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>resources:
+  requests:
+    memory: "128Mi"   # 128 Mebibytes
+  limits:
+    memory: "256Mi"   # 256 Mebibytes
+
+# Common values:
+# 64Mi, 128Mi, 256Mi, 512Mi, 1Gi, 2Gi, 4Gi</code></pre>
+                </div>
+
+                <h2>🎯 Quality of Service (QoS) Classes</h2>
+
+                <p>Kubernetes assigns a QoS class to each pod based on resource configuration. This determines eviction priority when nodes run out of resources.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">1. Guaranteed (Highest Priority)</h3>
+                    <p><strong>Conditions:</strong></p>
+                    <ul style="line-height: 2;">
+                        <li>Every container has CPU and memory requests AND limits</li>
+                        <li>Requests equal limits for both CPU and memory</li>
+                    </ul>
+                    <p><strong>Eviction:</strong> Last to be evicted</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>resources:
+  requests:
+    memory: "256Mi"
+    cpu: "500m"
+  limits:
+    memory: "256Mi"  # Same as request
+    cpu: "500m"      # Same as request</code></pre>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">2. Burstable (Medium Priority)</h3>
+                    <p><strong>Conditions:</strong></p>
+                    <ul style="line-height: 2;">
+                        <li>At least one container has CPU or memory request/limit</li>
+                        <li>Requests don't equal limits</li>
+                    </ul>
+                    <p><strong>Eviction:</strong> Evicted after BestEffort, before Guaranteed</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>resources:
+  requests:
+    memory: "128Mi"
+    cpu: "250m"
+  limits:
+    memory: "256Mi"  # Different from request
+    cpu: "500m"      # Different from request</code></pre>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">3. BestEffort (Lowest Priority)</h3>
+                    <p><strong>Conditions:</strong></p>
+                    <ul style="line-height: 2;">
+                        <li>No containers have CPU or memory requests/limits</li>
+                    </ul>
+                    <p><strong>Eviction:</strong> First to be evicted</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># No resources specified
+# Pod gets whatever is available</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">QoS Class Comparison</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">QoS Class</th>
+                                <th style="padding: 15px; text-align: left;">Configuration</th>
+                                <th style="padding: 15px; text-align: left;">Eviction Priority</th>
+                                <th style="padding: 15px; text-align: left;">Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Guaranteed</strong></td>
+                                <td style="padding: 15px;">Requests = Limits</td>
+                                <td style="padding: 15px;">🟢 Last</td>
+                                <td style="padding: 15px;">Critical apps</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Burstable</strong></td>
+                                <td style="padding: 15px;">Requests < Limits</td>
+                                <td style="padding: 15px;">🟡 Middle</td>
+                                <td style="padding: 15px;">Most apps</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>BestEffort</strong></td>
+                                <td style="padding: 15px;">No requests/limits</td>
+                                <td style="padding: 15px;">🔴 First</td>
+                                <td style="padding: 15px;">Batch jobs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🔧 Hands-On: Resource Requests and Limits</h2>
+
+                <h3 style="color: #667eea;">Example 1: Pod with Resource Requests and Limits</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># resource-demo.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-demo
+spec:
+  containers:
+  - name: app
+    image: nginx:1.21
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+
+kubectl apply -f resource-demo.yaml
+
+# Check QoS class
+kubectl get pod resource-demo -o jsonpath='{.status.qosClass}'
+# Output: Burstable
+
+# Check resource usage
+kubectl top pod resource-demo
+
+# Describe to see resources
+kubectl describe pod resource-demo | grep -A 5 "Requests\|Limits"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 2: Testing Memory Limits (OOMKilled)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># memory-limit-test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: memory-limit-test
+spec:
+  containers:
+  - name: memory-hog
+    image: polinux/stress
+    resources:
+      requests:
+        memory: "50Mi"
+      limits:
+        memory: "100Mi"
+    command: ["stress"]
+    args: ["--vm", "1", "--vm-bytes", "150M", "--vm-hang", "1"]
+
+kubectl apply -f memory-limit-test.yaml
+
+# Watch the pod get OOMKilled
+kubectl get pod memory-limit-test --watch
+
+# Check why it was killed
+kubectl describe pod memory-limit-test | grep -A 5 "Last State"
+# Output: Reason: OOMKilled
+
+# Check events
+kubectl get events --field-selector involvedObject.name=memory-limit-test</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 3: Testing CPU Limits (Throttling)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># cpu-limit-test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cpu-limit-test
+spec:
+  containers:
+  - name: cpu-hog
+    image: polinux/stress
+    resources:
+      requests:
+        cpu: "250m"
+      limits:
+        cpu: "500m"
+    command: ["stress"]
+    args: ["--cpu", "2"]
+
+kubectl apply -f cpu-limit-test.yaml
+
+# Monitor CPU usage
+kubectl top pod cpu-limit-test
+
+# CPU will be throttled at 500m (0.5 cores)
+# Pod stays running but is slowed down</code></pre>
+                </div>
+
+                <h2>📏 Resource Quotas</h2>
+
+                <p>ResourceQuotas limit the total resources that can be consumed in a namespace.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create namespace
+kubectl create namespace team-a
+
+# resource-quota.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-a-quota
+  namespace: team-a
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+    
+    # Object counts
+    pods: "10"
+    services: "5"
+    persistentvolumeclaims: "5"
+    
+    # Storage
+    requests.storage: "100Gi"
+
+kubectl apply -f resource-quota.yaml
+
+# Check quota
+kubectl get resourcequota -n team-a
+kubectl describe resourcequota team-a-quota -n team-a
+
+# Output shows:
+# Resource         Used  Hard
+# --------         ----  ----
+# limits.cpu       0     20
+# limits.memory    0     40Gi
+# pods             0     10
+# requests.cpu     0     10
+# requests.memory  0     20Gi</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Testing Resource Quota</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Try to create pod without resources (will fail)
+kubectl run test -n team-a --image=nginx
+
+# Error: pods "test" is forbidden: failed quota: team-a-quota: 
+# must specify limits.cpu,limits.memory,requests.cpu,requests.memory
+
+# Create pod with resources
+kubectl run test -n team-a --image=nginx \
+  --requests='cpu=100m,memory=128Mi' \
+  --limits='cpu=200m,memory=256Mi'
+
+# Check quota usage
+kubectl describe resourcequota team-a-quota -n team-a
+
+# Output shows:
+# Resource         Used   Hard
+# --------         ----   ----
+# limits.cpu       200m   20
+# limits.memory    256Mi  40Gi
+# pods             1      10
+# requests.cpu     100m   10
+# requests.memory  128Mi  20Gi</code></pre>
+                </div>
+
+                <h2>📐 LimitRange</h2>
+
+                <p>LimitRange sets default requests/limits and min/max constraints for containers in a namespace.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># limit-range.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: resource-limits
+  namespace: team-a
+spec:
+  limits:
+  - max:
+      cpu: "2"
+      memory: "2Gi"
+    min:
+      cpu: "100m"
+      memory: "64Mi"
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    type: Container
+
+kubectl apply -f limit-range.yaml
+
+# Check LimitRange
+kubectl describe limitrange resource-limits -n team-a
+
+# Now create pod without specifying resources
+kubectl run auto-limits -n team-a --image=nginx
+
+# Check the pod - it has default resources!
+kubectl get pod auto-limits -n team-a -o yaml | grep -A 10 resources:</code></pre>
+                </div>
+
+                <h2>📈 Horizontal Pod Autoscaler (HPA)</h2>
+
+                <p>HPA automatically scales the number of pods based on CPU, memory, or custom metrics.</p>
+
+                <h3 style="color: #667eea;">Prerequisites: Install Metrics Server</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Metrics Server
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+# For minikube
+minikube addons enable metrics-server
+
+# Verify metrics server is running
+kubectl get deployment metrics-server -n kube-system
+
+# Wait a minute, then check if metrics are available
+kubectl top nodes
+kubectl top pods</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 4: CPU-Based Autoscaling</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create deployment
+# hpa-demo.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hpa-demo
+  template:
+    metadata:
+      labels:
+        app: hpa-demo
+    spec:
+      containers:
+      - name: php-apache
+        image: k8s.gcr.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "200m"
+          limits:
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hpa-demo
+spec:
+  selector:
+    app: hpa-demo
+  ports:
+  - port: 80
+    targetPort: 80
+
+kubectl apply -f hpa-demo.yaml
+
+# Create HPA
+kubectl autoscale deployment hpa-demo \
+  --cpu-percent=50 \
+  --min=1 \
+  --max=10
+
+# Or using YAML:
+# hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-demo
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+
+kubectl apply -f hpa.yaml
+
+# Check HPA status
+kubectl get hpa
+# NAME       REFERENCE             TARGETS   MINPODS   MAXPODS   REPLICAS
+# hpa-demo   Deployment/hpa-demo   0%/50%    1         10        1
+
+# Watch HPA
+kubectl get hpa hpa-demo --watch</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 5: Load Testing HPA</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Generate load
+kubectl run -it --rm load-generator --image=busybox -- /bin/sh
+
+# Inside the pod:
+while true; do wget -q -O- http://hpa-demo; done
+
+# In another terminal, watch the HPA scale up
+kubectl get hpa hpa-demo --watch
+
+# Output:
+# NAME       REFERENCE             TARGETS    MINPODS   MAXPODS   REPLICAS
+# hpa-demo   Deployment/hpa-demo   0%/50%     1         10        1
+# hpa-demo   Deployment/hpa-demo   250%/50%   1         10        1
+# hpa-demo   Deployment/hpa-demo   250%/50%   1         10        5
+# hpa-demo   Deployment/hpa-demo   80%/50%    1         10        5
+# hpa-demo   Deployment/hpa-demo   50%/50%    1         10        5
+
+# Watch pods scale
+kubectl get pods -l app=hpa-demo --watch
+
+# Stop load generator (Ctrl+C)
+# Watch HPA scale down (takes ~5 minutes)
+kubectl get hpa hpa-demo --watch</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 6: Memory-Based Autoscaling</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># hpa-memory.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-memory
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+kubectl apply -f hpa-memory.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 7: Multiple Metrics</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># hpa-multi-metric.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-multi
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  # CPU metric
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  # Memory metric
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Custom metric (requests per second)
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "1000"
+
+# HPA will scale based on whichever metric requires more replicas</code></pre>
+                </div>
+
+                <h2>📊 Vertical Pod Autoscaler (VPA)</h2>
+
+                <p>VPA automatically adjusts CPU and memory requests/limits based on actual usage.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">VPA vs HPA</h3>
+                    <ul style="line-height: 2;">
+                        <li><strong>HPA:</strong> Scales number of pods (horizontal)</li>
+                        <li><strong>VPA:</strong> Scales pod resources (vertical)</li>
+                        <li><strong>Can use together:</strong> VPA for resources, HPA for replicas</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install VPA (one-time setup)
+git clone https://github.com/kubernetes/autoscaler.git
+cd autoscaler/vertical-pod-autoscaler
+./hack/vpa-up.sh
+
+# vpa-demo.yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: vpa-demo
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-app
+  updatePolicy:
+    updateMode: "Auto"  # Auto, Recreate, Initial, or Off
+  resourcePolicy:
+    containerPolicies:
+    - containerName: "*"
+      minAllowed:
+        cpu: "100m"
+        memory: "50Mi"
+      maxAllowed:
+        cpu: "2"
+        memory: "2Gi"
+
+kubectl apply -f vpa-demo.yaml
+
+# Check VPA recommendations
+kubectl describe vpa vpa-demo
+
+# Output shows recommended resources:
+# Container Recommendations:
+#   Container Name: app
+#   Lower Bound:
+#     Cpu:     100m
+#     Memory:  262144k
+#   Target:
+#     Cpu:     250m
+#     Memory:  524288k
+#   Upper Bound:
+#     Cpu:     500m
+#     Memory:  1048576k</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting Resource Issues</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Pod Stuck in Pending</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods
+# NAME      READY   STATUS    RESTARTS   AGE
+# my-pod    0/1     Pending   0          2m</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl describe pod my-pod
+
+# Look for:
+# Events:
+#   Warning  FailedScheduling  Insufficient cpu
+#   Warning  FailedScheduling  Insufficient memory
+
+# Check node resources
+kubectl describe nodes | grep -A 5 "Allocated resources"</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Reduce resource requests:</strong> Lower CPU/memory requests</li>
+                        <li><strong>Add more nodes:</strong> Scale cluster</li>
+                        <li><strong>Delete unused pods:</strong> Free up resources</li>
+                        <li><strong>Use cluster autoscaler:</strong> Automatically add nodes</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: OOMKilled Pods</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods
+# NAME      READY   STATUS      RESTARTS   AGE
+# my-pod    0/1     OOMKilled   3          5m</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl describe pod my-pod | grep -A 5 "Last State"
+# Last State:     Terminated
+#   Reason:       OOMKilled
+#   Exit Code:    137
+
+# Check memory usage before crash
+kubectl top pod my-pod</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Increase memory limit:</strong> Give pod more memory</li>
+                        <li><strong>Fix memory leak:</strong> Check application code</li>
+                        <li><strong>Use VPA:</strong> Automatically adjust limits</li>
+                        <li><strong>Add memory monitoring:</strong> Track usage over time</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: CPU Throttling</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Application is slow, high latency</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check CPU usage
+kubectl top pod my-pod
+
+# Check if hitting limit
+kubectl get pod my-pod -o yaml | grep -A 5 "limits:"
+
+# Check throttling metrics (if Prometheus available)
+# container_cpu_cfs_throttled_seconds_total</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Increase CPU limit:</strong> Give pod more CPU</li>
+                        <li><strong>Remove CPU limit:</strong> If not needed (use with caution)</li>
+                        <li><strong>Optimize application:</strong> Reduce CPU usage</li>
+                        <li><strong>Scale horizontally:</strong> Add more pods</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 4: HPA Not Scaling</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>HPA shows "unknown" for metrics</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get hpa
+# NAME     REFERENCE           TARGETS         MINPODS   MAXPODS   REPLICAS
+# my-hpa   Deployment/my-app   <unknown>/50%   1         10        1
+
+# Check metrics server
+kubectl get deployment metrics-server -n kube-system
+
+# Check if pods have resource requests
+kubectl get deployment my-app -o yaml | grep -A 5 "resources:"
+
+# Check HPA events
+kubectl describe hpa my-hpa</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Install metrics server:</strong> Required for HPA</li>
+                        <li><strong>Add resource requests:</strong> HPA needs requests defined</li>
+                        <li><strong>Wait for metrics:</strong> Takes 1-2 minutes to populate</li>
+                        <li><strong>Check RBAC:</strong> Ensure HPA has permissions</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 5: Resource Quota Exceeded</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Error: pods "my-pod" is forbidden: exceeded quota: team-quota</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check quota usage
+kubectl describe resourcequota -n my-namespace
+
+# Output:
+# Resource         Used   Hard
+# --------         ----   ----
+# limits.cpu       10     10    # At limit!
+# limits.memory    20Gi   20Gi  # At limit!
+# pods             10     10    # At limit!</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Delete unused pods:</strong> Free up quota</li>
+                        <li><strong>Reduce resource requests:</strong> Use less per pod</li>
+                        <li><strong>Increase quota:</strong> Request more from admin</li>
+                        <li><strong>Use different namespace:</strong> If available</li>
+                    </ul>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Always set resource requests:</strong> Essential for proper scheduling</li>
+                        <li>✅ <strong>Set resource limits carefully:</strong> Prevent resource exhaustion</li>
+                        <li>✅ <strong>Use QoS classes intentionally:</strong> Guaranteed for critical apps</li>
+                        <li>✅ <strong>Monitor actual usage:</strong> Use kubectl top and metrics</li>
+                        <li>✅ <strong>Right-size resources:</strong> Don't over-provision</li>
+                        <li>✅ <strong>Use HPA for variable load:</strong> Automatic scaling saves costs</li>
+                        <li>✅ <strong>Consider VPA for optimization:</strong> Automatically adjust resources</li>
+                        <li>✅ <strong>Set resource quotas:</strong> Prevent namespace resource hogging</li>
+                        <li>✅ <strong>Use LimitRange:</strong> Set defaults and constraints</li>
+                        <li>✅ <strong>Test under load:</strong> Verify scaling behavior</li>
+                        <li>✅ <strong>Monitor throttling:</strong> Track CPU throttling metrics</li>
+                        <li>✅ <strong>Plan for growth:</strong> Leave headroom for scaling</li>
+                    </ol>
+                </div>
+
+                <h2>📊 Resource Sizing Guidelines</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Workload Type</th>
+                                <th style="padding: 15px; text-align: left;">CPU Request</th>
+                                <th style="padding: 15px; text-align: left;">CPU Limit</th>
+                                <th style="padding: 15px; text-align: left;">Memory</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Small Web App</strong></td>
+                                <td style="padding: 15px;">100-250m</td>
+                                <td style="padding: 15px;">500m-1</td>
+                                <td style="padding: 15px;">128-256Mi</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>API Service</strong></td>
+                                <td style="padding: 15px;">250-500m</td>
+                                <td style="padding: 15px;">1-2</td>
+                                <td style="padding: 15px;">256-512Mi</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Database</strong></td>
+                                <td style="padding: 15px;">500m-2</td>
+                                <td style="padding: 15px;">2-4</td>
+                                <td style="padding: 15px;">1-4Gi</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Batch Job</strong></td>
+                                <td style="padding: 15px;">500m-1</td>
+                                <td style="padding: 15px;">2-4</td>
+                                <td style="padding: 15px;">512Mi-2Gi</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Sidecar</strong></td>
+                                <td style="padding: 15px;">50-100m</td>
+                                <td style="padding: 15px;">200-500m</td>
+                                <td style="padding: 15px;">64-128Mi</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Requests guarantee resources:</strong> Used for scheduling decisions</li>
+                        <li>✅ <strong>Limits cap resource usage:</strong> CPU throttled, memory OOMKilled</li>
+                        <li>✅ <strong>Three QoS classes:</strong> Guaranteed, Burstable, BestEffort</li>
+                        <li>✅ <strong>ResourceQuota limits namespace:</strong> Total resources per namespace</li>
+                        <li>✅ <strong>LimitRange sets defaults:</strong> Per-container constraints</li>
+                        <li>✅ <strong>HPA scales pod count:</strong> Based on CPU, memory, or custom metrics</li>
+                        <li>✅ <strong>VPA adjusts pod resources:</strong> Automatically right-sizes containers</li>
+                        <li>✅ <strong>Metrics Server required:</strong> For HPA and kubectl top</li>
+                        <li>✅ <strong>Monitor actual usage:</strong> Adjust based on real data</li>
+                        <li>✅ <strong>Essential for production:</strong> Prevents resource exhaustion</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand resource management and auto-scaling, you're ready to learn about <strong>Security Best Practices</strong> - securing your Kubernetes cluster with RBAC, Pod Security, and Network Policies!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Security?</h3>
+                    <a href="16-security-best-practices.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #16: Security Best Practices →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

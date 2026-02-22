@@ -257,8 +257,10 @@ const k8sTutorials = [
             'Horizontal Pod Autoscaler (HPA)'
         ],
         handsOn: 'Configure auto-scaling based on CPU and memory metrics',
-        readTime: '25 min',
-        difficulty: 'advanced'
+        readTime: '50 min',
+        difficulty: 'advanced',
+        url: 'tutorials/15-resource-management.html',
+        status: 'available'
     },
     {
         id: 16,
