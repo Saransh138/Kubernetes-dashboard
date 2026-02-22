@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Deployment Strategies | K8s Tutorial #20</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🚀</div>
+                <h1 class="post-title">Production Deployment Strategies and Best Practices</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #20 of 20</span>
+                    <span><i class="fas fa-signal"></i> Advanced</span>
+                    <span><i class="far fa-clock"></i> 55 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Advanced deployment strategies (Blue-Green, Canary, A/B Testing)</li>
+                    <li>Zero-downtime deployments</li>
+                    <li>Multi-cluster strategies</li>
+                    <li>Disaster recovery planning</li>
+                    <li>Backup and restore procedures</li>
+                    <li>High availability patterns</li>
+                    <li>Cost optimization techniques</li>
+                    <li>Performance tuning</li>
+                    <li>Production readiness checklist</li>
+                    <li>Incident response procedures</li>
+                </ul>
+
+                <h2>🎨 Advanced Deployment Strategies</h2>
+
+                <p>Different deployment strategies offer various trade-offs between risk, speed, and complexity.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Deployment Strategy Comparison</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Strategy</th>
+                                <th style="padding: 15px; text-align: left;">Risk</th>
+                                <th style="padding: 15px; text-align: left;">Speed</th>
+                                <th style="padding: 15px; text-align: left;">Cost</th>
+                                <th style="padding: 15px; text-align: left;">Rollback</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Rolling Update</strong></td>
+                                <td style="padding: 15px;">Medium</td>
+                                <td style="padding: 15px;">Fast</td>
+                                <td style="padding: 15px;">Low</td>
+                                <td style="padding: 15px;">Slow</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Blue-Green</strong></td>
+                                <td style="padding: 15px;">Low</td>
+                                <td style="padding: 15px;">Fast</td>
+                                <td style="padding: 15px;">High (2x)</td>
+                                <td style="padding: 15px;">Instant</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Canary</strong></td>
+                                <td style="padding: 15px;">Very Low</td>
+                                <td style="padding: 15px;">Slow</td>
+                                <td style="padding: 15px;">Medium</td>
+                                <td style="padding: 15px;">Fast</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>A/B Testing</strong></td>
+                                <td style="padding: 15px;">Low</td>
+                                <td style="padding: 15px;">Slow</td>
+                                <td style="padding: 15px;">Medium</td>
+                                <td style="padding: 15px;">Fast</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Recreate</strong></td>
+                                <td style="padding: 15px;">High</td>
+                                <td style="padding: 15px;">Very Fast</td>
+                                <td style="padding: 15px;">Very Low</td>
+                                <td style="padding: 15px;">Slow</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">1. Blue-Green Deployment</h3>
+
+                <p>Run two identical production environments. Switch traffic from blue (current) to green (new) instantly.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                  Blue-Green Deployment                           │
+│                                                                   │
+│  Phase 1: Blue is active                                         │
+│  ┌──────────────┐                                               │
+│  │   Ingress    │                                               │
+│  └──────┬───────┘                                               │
+│         │                                                         │
+│         │ 100% traffic                                          │
+│         ▼                                                         │
+│  ┌──────────────┐         ┌──────────────┐                     │
+│  │  Blue (v1)   │         │  Green (v2)  │                     │
+│  │  ✓ Active    │         │  ⏸ Standby   │                     │
+│  │  3 replicas  │         │  3 replicas  │                     │
+│  └──────────────┘         └──────────────┘                     │
+│                                                                   │
+│  Phase 2: Switch traffic to Green                               │
+│  ┌──────────────┐                                               │
+│  │   Ingress    │                                               │
+│  └──────┬───────┘                                               │
+│         │                                                         │
+│         │ 100% traffic                                          │
+│         ▼                                                         │
+│  ┌──────────────┐         ┌──────────────┐                     │
+│  │  Blue (v1)   │         │  Green (v2)  │                     │
+│  │  ⏸ Standby   │         │  ✓ Active    │                     │
+│  │  3 replicas  │         │  3 replicas  │                     │
+│  └──────────────┘         └──────────────┘                     │
+│                                                                   │
+│  Phase 3: Decommission Blue (optional)                          │
+│  ┌──────────────┐                                               │
+│  │   Ingress    │                                               │
+│  └──────┬───────┘                                               │
+│         │                                                         │
+│         │ 100% traffic                                          │
+│         ▼                                                         │
+│                           ┌──────────────┐                     │
+│                           │  Green (v2)  │                     │
+│                           │  ✓ Active    │                     │
+│                           │  3 replicas  │                     │
+│                           └──────────────┘                     │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># blue-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-blue
+  labels:
+    app: myapp
+    version: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: blue
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:v1.0.0
+        ports:
+        - containerPort: 8080
+
+---
+# green-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-green
+  labels:
+    app: myapp
+    version: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      version: green
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: green
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:v2.0.0
+        ports:
+        - containerPort: 8080
+
+---
+# service.yaml (initially points to blue)
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+spec:
+  selector:
+    app: myapp
+    version: blue  # Switch to 'green' to cutover
+  ports:
+  - port: 80
+    targetPort: 8080
+
+# Deployment steps:
+# 1. Deploy blue (current version)
+kubectl apply -f blue-deployment.yaml
+kubectl apply -f service.yaml
+
+# 2. Deploy green (new version)
+kubectl apply -f green-deployment.yaml
+
+# 3. Test green deployment
+kubectl port-forward deployment/myapp-green 8080:8080
+
+# 4. Switch traffic to green
+kubectl patch service myapp -p '{"spec":{"selector":{"version":"green"}}}'
+
+# 5. Verify traffic switched
+kubectl get endpoints myapp
+
+# 6. Rollback if needed (switch back to blue)
+kubectl patch service myapp -p '{"spec":{"selector":{"version":"blue"}}}'
+
+# 7. Clean up old version
+kubectl delete deployment myapp-blue</code></pre>
+                </div>
+
+
+                <h3 style="color: #667eea;">2. Canary Deployment with Traffic Splitting</h3>
+
+                <p>Gradually shift traffic from old to new version while monitoring metrics.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Using Istio for traffic splitting
+# virtualservice.yaml
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: myapp
+spec:
+  hosts:
+  - myapp
+  http:
+  - match:
+    - headers:
+        user-agent:
+          regex: ".*Mobile.*"
+    route:
+    - destination:
+        host: myapp
+        subset: v2
+      weight: 100
+  - route:
+    - destination:
+        host: myapp
+        subset: v1
+      weight: 90  # 90% to stable
+    - destination:
+        host: myapp
+        subset: v2
+      weight: 10  # 10% to canary
+
+---
+# destinationrule.yaml
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: myapp
+spec:
+  host: myapp
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+
+# Progressive rollout script
+#!/bin/bash
+# canary-rollout.sh
+
+# Stage 1: 10% canary
+kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: myapp
+spec:
+  hosts: [myapp]
+  http:
+  - route:
+    - destination: {host: myapp, subset: v1}
+      weight: 90
+    - destination: {host: myapp, subset: v2}
+      weight: 10
+EOF
+
+echo "10% traffic to canary. Monitoring for 5 minutes..."
+sleep 300
+
+# Check metrics
+ERROR_RATE=$(curl -s "http://prometheus:9090/api/v1/query?query=rate(http_requests_total{status=~'5..'}[5m])" | jq -r '.data.result[0].value[1]')
+
+if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
+  echo "Error rate too high! Rolling back..."
+  kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: myapp
+spec:
+  hosts: [myapp]
+  http:
+  - route:
+    - destination: {host: myapp, subset: v1}
+      weight: 100
+EOF
+  exit 1
+fi
+
+# Stage 2: 50% canary
+kubectl patch virtualservice myapp --type merge -p '
+spec:
+  http:
+  - route:
+    - destination: {host: myapp, subset: v1}
+      weight: 50
+    - destination: {host: myapp, subset: v2}
+      weight: 50
+'
+
+echo "50% traffic to canary. Monitoring for 5 minutes..."
+sleep 300
+
+# Stage 3: 100% canary
+kubectl patch virtualservice myapp --type merge -p '
+spec:
+  http:
+  - route:
+    - destination: {host: myapp, subset: v2}
+      weight: 100
+'
+
+echo "Canary deployment complete!"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">3. A/B Testing Deployment</h3>
+
+                <p>Route traffic based on user attributes for feature testing.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># A/B testing with header-based routing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: myapp-ab-test
+spec:
+  hosts:
+  - myapp.example.com
+  http:
+  # Route beta users to v2
+  - match:
+    - headers:
+        x-user-group:
+          exact: "beta"
+    route:
+    - destination:
+        host: myapp
+        subset: v2
+  
+  # Route premium users to v2
+  - match:
+    - headers:
+        x-user-tier:
+          exact: "premium"
+    route:
+    - destination:
+        host: myapp
+        subset: v2
+  
+  # Route users from specific region to v2
+  - match:
+    - headers:
+        x-user-region:
+          exact: "us-west"
+    route:
+    - destination:
+        host: myapp
+        subset: v2
+      weight: 50
+    - destination:
+        host: myapp
+        subset: v1
+      weight: 50
+  
+  # Default: route to v1
+  - route:
+    - destination:
+        host: myapp
+        subset: v1
+
+# Cookie-based A/B testing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: myapp-cookie-ab
+spec:
+  hosts:
+  - myapp.example.com
+  http:
+  - match:
+    - headers:
+        cookie:
+          regex: ".*experiment=variant-b.*"
+    route:
+    - destination:
+        host: myapp
+        subset: v2
+  - route:
+    - destination:
+        host: myapp
+        subset: v1</code></pre>
+                </div>
+
+                <h2>⚡ Zero-Downtime Deployments</h2>
+
+                <p>Ensure your application remains available during updates.</p>
+
+                <h3 style="color: #667eea;">Key Techniques</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ol style="line-height: 2;">
+                        <li><strong>Readiness Probes:</strong> Don't send traffic until pod is ready</li>
+                        <li><strong>Graceful Shutdown:</strong> Handle SIGTERM properly</li>
+                        <li><strong>PreStop Hooks:</strong> Delay pod termination</li>
+                        <li><strong>PodDisruptionBudget:</strong> Limit simultaneous disruptions</li>
+                        <li><strong>Rolling Update Strategy:</strong> Control update pace</li>
+                    </ol>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Complete zero-downtime deployment configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 5
+  
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Max 1 extra pod during update
+      maxUnavailable: 0  # Always maintain full capacity
+  
+  selector:
+    matchLabels:
+      app: myapp
+  
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      # Graceful termination
+      terminationGracePeriodSeconds: 60
+      
+      containers:
+      - name: myapp
+        image: myapp:v2.0.0
+        ports:
+        - containerPort: 8080
+        
+        # Readiness probe - don't send traffic until ready
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3
+        
+        # Liveness probe - restart if unhealthy
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        
+        # Lifecycle hooks
+        lifecycle:
+          # PreStop: delay termination to allow connections to drain
+          preStop:
+            exec:
+              command:
+              - sh
+              - -c
+              - |
+                # Remove from load balancer
+                sleep 5
+                # Wait for existing connections to complete
+                sleep 10
+
+---
+# PodDisruptionBudget - ensure minimum availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp-pdb
+spec:
+  minAvailable: 3  # Always keep at least 3 pods running
+  selector:
+    matchLabels:
+      app: myapp
+
+---
+# Application code for graceful shutdown (Node.js example)
+const express = require('express');
+const app = express();
+const server = app.listen(8080);
+
+// Health endpoints
+app.get('/health/ready', (req, res) => {
+  // Check if app is ready (DB connected, etc.)
+  if (isReady) {
+    res.status(200).send('OK');
+  } else {
+    res.status(503).send('Not Ready');
+  }
+});
+
+app.get('/health/live', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Graceful shutdown
+let isShuttingDown = false;
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, starting graceful shutdown');
+  isShuttingDown = true;
+  
+  // Stop accepting new connections
+  server.close(() => {
+    console.log('Server closed');
+    
+    // Close database connections
+    db.close(() => {
+      console.log('Database closed');
+      process.exit(0);
+    });
+  });
+  
+  // Force shutdown after 30 seconds
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
+});
+
+// Middleware to reject requests during shutdown
+app.use((req, res, next) => {
+  if (isShuttingDown) {
+    res.status(503).send('Service Unavailable');
+  } else {
+    next();
+  }
+});</code></pre>
+                </div>
+
+
+                <h2>🌍 Multi-Cluster Strategies</h2>
+
+                <p>Run applications across multiple Kubernetes clusters for high availability and disaster recovery.</p>
+
+                <h3 style="color: #667eea;">Multi-Cluster Patterns</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│              Multi-Cluster Architecture                          │
+│                                                                   │
+│                    ┌──────────────────┐                          │
+│                    │  Global DNS /    │                          │
+│                    │  Load Balancer   │                          │
+│                    └────────┬─────────┘                          │
+│                             │                                     │
+│              ┌──────────────┼──────────────┐                     │
+│              │              │              │                     │
+│              ▼              ▼              ▼                     │
+│     ┌────────────┐  ┌────────────┐  ┌────────────┐             │
+│     │ Cluster 1  │  │ Cluster 2  │  │ Cluster 3  │             │
+│     │ us-east-1  │  │ us-west-2  │  │ eu-west-1  │             │
+│     │            │  │            │  │            │             │
+│     │ ┌────────┐ │  │ ┌────────┐ │  │ ┌────────┐ │             │
+│     │ │  App   │ │  │ │  App   │ │  │ │  App   │ │             │
+│     │ │ v2.0.0 │ │  │ │ v2.0.0 │ │  │ │ v2.0.0 │ │             │
+│     │ └────────┘ │  │ └────────┘ │  │ └────────┘ │             │
+│     │            │  │            │  │            │             │
+│     │ ┌────────┐ │  │ ┌────────┐ │  │ ┌────────┐ │             │
+│     │ │   DB   │ │  │ │   DB   │ │  │ │   DB   │ │             │
+│     │ │Replica │ │  │ │Replica │ │  │ │Replica │ │             │
+│     │ └────────┘ │  │ └────────┘ │  │ └────────┘ │             │
+│     └────────────┘  └────────────┘  └────────────┘             │
+│                                                                   │
+│  Benefits:                                                       │
+│  ✓ High availability across regions                             │
+│  ✓ Disaster recovery                                            │
+│  ✓ Reduced latency (geo-distribution)                           │
+│  ✓ Compliance (data residency)                                  │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Using Cluster Federation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install KubeFed (Kubernetes Federation)
+helm repo add kubefed-charts https://raw.githubusercontent.com/kubernetes-sigs/kubefed/master/charts
+helm install kubefed kubefed-charts/kubefed --namespace kube-federation-system --create-namespace
+
+# Join clusters to federation
+kubefedctl join cluster1 --cluster-context cluster1 --host-cluster-context cluster1
+kubefedctl join cluster2 --cluster-context cluster2 --host-cluster-context cluster1
+kubefedctl join cluster3 --cluster-context cluster3 --host-cluster-context cluster1
+
+# Verify joined clusters
+kubectl get kubefedclusters -n kube-federation-system
+
+# Federated Deployment
+apiVersion: types.kubefed.io/v1beta1
+kind: FederatedDeployment
+metadata:
+  name: myapp
+  namespace: default
+spec:
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: myapp
+      template:
+        metadata:
+          labels:
+            app: myapp
+        spec:
+          containers:
+          - name: myapp
+            image: myapp:v2.0.0
+            ports:
+            - containerPort: 8080
+  
+  # Placement: which clusters to deploy to
+  placement:
+    clusters:
+    - name: cluster1
+    - name: cluster2
+    - name: cluster3
+  
+  # Overrides: customize per cluster
+  overrides:
+  - clusterName: cluster1
+    clusterOverrides:
+    - path: "/spec/replicas"
+      value: 5  # More replicas in primary cluster
+  - clusterName: cluster2
+    clusterOverrides:
+    - path: "/spec/replicas"
+      value: 3
+  - clusterName: cluster3
+    clusterOverrides:
+    - path: "/spec/replicas"
+      value: 3
+
+# Apply federated deployment
+kubectl apply -f federated-deployment.yaml
+
+# Check deployment across clusters
+kubectl get deployments --context cluster1
+kubectl get deployments --context cluster2
+kubectl get deployments --context cluster3</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Multi-Cluster Service Mesh</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Istio multi-cluster setup
+# Install Istio on primary cluster
+istioctl install --set profile=demo \
+  --set values.global.meshID=mesh1 \
+  --set values.global.multiCluster.clusterName=cluster1 \
+  --set values.global.network=network1
+
+# Install Istio on remote cluster
+istioctl install --set profile=demo \
+  --set values.global.meshID=mesh1 \
+  --set values.global.multiCluster.clusterName=cluster2 \
+  --set values.global.network=network2
+
+# Enable endpoint discovery between clusters
+istioctl x create-remote-secret \
+  --context=cluster1 \
+  --name=cluster1 | \
+  kubectl apply -f - --context=cluster2
+
+istioctl x create-remote-secret \
+  --context=cluster2 \
+  --name=cluster2 | \
+  kubectl apply -f - --context=cluster1
+
+# Deploy application to both clusters
+kubectl apply -f myapp.yaml --context=cluster1
+kubectl apply -f myapp.yaml --context=cluster2
+
+# ServiceEntry for cross-cluster communication
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: myapp-cluster2
+spec:
+  hosts:
+  - myapp.default.svc.cluster.local
+  location: MESH_INTERNAL
+  ports:
+  - number: 80
+    name: http
+    protocol: HTTP
+  resolution: DNS
+  endpoints:
+  - address: myapp.default.svc.cluster2.global
+    ports:
+      http: 80</code></pre>
+                </div>
+
+                <h2>🔄 Disaster Recovery Planning</h2>
+
+                <h3 style="color: #667eea;">Backup Strategy</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Velero for cluster backups
+wget https://github.com/vmware-tanzu/velero/releases/download/v1.12.0/velero-v1.12.0-linux-amd64.tar.gz
+tar -xvf velero-v1.12.0-linux-amd64.tar.gz
+sudo mv velero-v1.12.0-linux-amd64/velero /usr/local/bin/
+
+# Configure Velero with AWS S3
+velero install \
+  --provider aws \
+  --plugins velero/velero-plugin-for-aws:v1.8.0 \
+  --bucket my-velero-backups \
+  --backup-location-config region=us-east-1 \
+  --snapshot-location-config region=us-east-1 \
+  --secret-file ./credentials-velero
+
+# Create backup schedule
+velero schedule create daily-backup \
+  --schedule="0 2 * * *" \
+  --include-namespaces production,staging \
+  --ttl 720h0m0s
+
+# Manual backup
+velero backup create production-backup \
+  --include-namespaces production \
+  --include-resources deployments,services,configmaps,secrets,persistentvolumeclaims
+
+# Backup specific application
+velero backup create myapp-backup \
+  --selector app=myapp \
+  --include-namespaces production
+
+# List backups
+velero backup get
+
+# Describe backup
+velero backup describe production-backup --details
+
+# Restore from backup
+velero restore create --from-backup production-backup
+
+# Restore to different namespace
+velero restore create --from-backup production-backup \
+  --namespace-mappings production:production-restored
+
+# Restore specific resources
+velero restore create --from-backup production-backup \
+  --include-resources deployments,services \
+  --selector app=myapp</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Database Backup and Restore</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># PostgreSQL backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: production
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: postgres:15
+            env:
+            - name: PGHOST
+              value: postgres-service
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: secret-key
+            command:
+            - /bin/bash
+            - -c
+            - |
+              BACKUP_FILE="backup-$(date +%Y%m%d-%H%M%S).sql.gz"
+              
+              # Create backup
+              pg_dump -Fc mydb | gzip > /tmp/$BACKUP_FILE
+              
+              # Upload to S3
+              apt-get update && apt-get install -y awscli
+              aws s3 cp /tmp/$BACKUP_FILE s3://my-backups/postgres/$BACKUP_FILE
+              
+              # Cleanup old backups (keep last 30 days)
+              aws s3 ls s3://my-backups/postgres/ | \
+                awk '{print $4}' | \
+                sort -r | \
+                tail -n +31 | \
+                xargs -I {} aws s3 rm s3://my-backups/postgres/{}
+              
+              echo "Backup completed: $BACKUP_FILE"
+          restartPolicy: OnFailure
+
+# Restore script
+#!/bin/bash
+# restore-postgres.sh
+
+BACKUP_FILE=$1
+
+if [ -z "$BACKUP_FILE" ]; then
+  echo "Usage: $0 <backup-file>"
+  exit 1
+fi
+
+# Download backup from S3
+aws s3 cp s3://my-backups/postgres/$BACKUP_FILE /tmp/$BACKUP_FILE
+
+# Restore to PostgreSQL
+kubectl exec -it postgres-0 -n production -- bash -c "
+  gunzip < /tmp/$BACKUP_FILE | pg_restore -d mydb -c
+"
+
+echo "Restore completed from $BACKUP_FILE"</code></pre>
+                </div>
+
+
+                <h2>💰 Cost Optimization</h2>
+
+                <h3 style="color: #667eea;">1. Right-Sizing Resources</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install metrics-server
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+# Check current resource usage
+kubectl top nodes
+kubectl top pods -n production
+
+# Analyze resource requests vs actual usage
+kubectl get pods -n production -o json | \
+  jq -r '.items[] | 
+    "\(.metadata.name),\(.spec.containers[0].resources.requests.cpu),\(.spec.containers[0].resources.requests.memory)"'
+
+# Install Vertical Pod Autoscaler for recommendations
+git clone https://github.com/kubernetes/autoscaler.git
+cd autoscaler/vertical-pod-autoscaler
+./hack/vpa-up.sh
+
+# Create VPA in recommendation mode
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: myapp-vpa
+  namespace: production
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  updatePolicy:
+    updateMode: "Off"  # Recommendation only
+
+# Get recommendations
+kubectl describe vpa myapp-vpa -n production
+
+# Output shows recommended resources:
+# Recommendation:
+#   Container Recommendations:
+#     Container Name:  myapp
+#     Lower Bound:
+#       Cpu:     100m
+#       Memory:  128Mi
+#     Target:
+#       Cpu:     250m
+#       Memory:  256Mi
+#     Upper Bound:
+#       Cpu:     500m
+#       Memory:  512Mi</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">2. Cluster Autoscaling</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># AWS EKS Cluster Autoscaler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+    spec:
+      serviceAccountName: cluster-autoscaler
+      containers:
+      - name: cluster-autoscaler
+        image: k8s.gcr.io/autoscaling/cluster-autoscaler:v1.28.0
+        command:
+        - ./cluster-autoscaler
+        - --v=4
+        - --stderrthreshold=info
+        - --cloud-provider=aws
+        - --skip-nodes-with-local-storage=false
+        - --expander=least-waste
+        - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/my-cluster
+        - --balance-similar-node-groups
+        - --skip-nodes-with-system-pods=false
+        - --scale-down-enabled=true
+        - --scale-down-delay-after-add=10m
+        - --scale-down-unneeded-time=10m
+        - --scale-down-utilization-threshold=0.5
+
+# Node affinity for cost optimization
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: batch-job
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values:
+                - t3.large  # Prefer cheaper instance types
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: eks.amazonaws.com/capacityType
+                operator: In
+                values:
+                - SPOT  # Prefer spot instances
+      tolerations:
+      - key: "spot"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">3. Spot Instances for Non-Critical Workloads</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Node pool for spot instances
+apiVersion: v1
+kind: Node
+metadata:
+  labels:
+    node.kubernetes.io/instance-type: t3.large
+    eks.amazonaws.com/capacityType: SPOT
+    workload-type: batch
+  taints:
+  - key: spot
+    value: "true"
+    effect: NoSchedule
+
+# Deploy batch workload to spot instances
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-processing
+spec:
+  template:
+    spec:
+      nodeSelector:
+        eks.amazonaws.com/capacityType: SPOT
+      tolerations:
+      - key: spot
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      containers:
+      - name: processor
+        image: data-processor:v1.0.0
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      restartPolicy: OnFailure
+
+# Spot instance handler (graceful shutdown on interruption)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: spot-interrupt-handler
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: spot-interrupt-handler
+  template:
+    metadata:
+      labels:
+        app: spot-interrupt-handler
+    spec:
+      nodeSelector:
+        eks.amazonaws.com/capacityType: SPOT
+      containers:
+      - name: handler
+        image: amazon/aws-node-termination-handler:v1.19.0
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ENABLE_SPOT_INTERRUPTION_DRAINING
+          value: "true"
+        - name: ENABLE_SCHEDULED_EVENT_DRAINING
+          value: "true"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">4. Resource Quotas and Limits</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Namespace resource quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-quota
+  namespace: team-a
+spec:
+  hard:
+    requests.cpu: "50"
+    requests.memory: 100Gi
+    limits.cpu: "100"
+    limits.memory: 200Gi
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "2"
+    pods: "100"
+
+# LimitRange for default limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: team-a
+spec:
+  limits:
+  - default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    max:
+      cpu: 2000m
+      memory: 4Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+    type: Container
+
+# Check quota usage
+kubectl describe resourcequota team-quota -n team-a
+
+# Output:
+# Name:                   team-quota
+# Namespace:              team-a
+# Resource                Used   Hard
+# --------                ----   ----
+# limits.cpu              45     100
+# limits.memory           90Gi   200Gi
+# persistentvolumeclaims  5      10
+# pods                    42     100
+# requests.cpu            22.5   50
+# requests.memory         45Gi   100Gi
+# services.loadbalancers  1      2</code></pre>
+                </div>
+
+                <h2>⚡ Performance Tuning</h2>
+
+                <h3 style="color: #667eea;">1. Pod Priority and Preemption</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Define priority classes
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: critical
+value: 1000000
+globalDefault: false
+description: "Critical production workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high
+value: 100000
+globalDefault: false
+description: "High priority workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: medium
+value: 10000
+globalDefault: true
+description: "Medium priority workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: low
+value: 1000
+globalDefault: false
+description: "Low priority batch jobs"
+
+# Use priority class in deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: critical-app
+spec:
+  template:
+    spec:
+      priorityClassName: critical
+      containers:
+      - name: app
+        image: critical-app:v1.0.0
+
+# Batch job with low priority
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-processing
+spec:
+  template:
+    spec:
+      priorityClassName: low
+      containers:
+      - name: processor
+        image: batch-processor:v1.0.0
+      restartPolicy: OnFailure</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">2. Pod Topology Spread</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Spread pods across zones for high availability
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      topologySpreadConstraints:
+      # Spread across availability zones
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: myapp
+      # Spread across nodes
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: myapp
+      containers:
+      - name: myapp
+        image: myapp:v1.0.0
+
+# Anti-affinity for database replicas
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  replicas: 3
+  template:
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - postgres
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: postgres
+        image: postgres:15</code></pre>
+                </div>
+
+
+                <h2>✅ Production Readiness Checklist</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Infrastructure</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Multi-zone or multi-region deployment</li>
+                        <li>☐ Cluster autoscaling configured</li>
+                        <li>☐ Node pools for different workload types</li>
+                        <li>☐ Network policies implemented</li>
+                        <li>☐ Ingress controller with TLS</li>
+                        <li>☐ DNS configured with health checks</li>
+                        <li>☐ Load balancer with proper timeouts</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">Application</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Health checks (readiness, liveness, startup)</li>
+                        <li>☐ Resource requests and limits set</li>
+                        <li>☐ Graceful shutdown implemented</li>
+                        <li>☐ PodDisruptionBudget configured</li>
+                        <li>☐ HorizontalPodAutoscaler configured</li>
+                        <li>☐ Multiple replicas (minimum 3)</li>
+                        <li>☐ Anti-affinity rules for HA</li>
+                        <li>☐ Rolling update strategy configured</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">Security</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ RBAC configured with least privilege</li>
+                        <li>☐ Pod Security Standards enforced</li>
+                        <li>☐ Network policies for pod isolation</li>
+                        <li>☐ Secrets encrypted at rest</li>
+                        <li>☐ Image scanning in CI/CD</li>
+                        <li>☐ Service accounts for workloads</li>
+                        <li>☐ TLS for all external endpoints</li>
+                        <li>☐ Regular security audits</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">Observability</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Metrics collection (Prometheus)</li>
+                        <li>☐ Dashboards (Grafana)</li>
+                        <li>☐ Centralized logging (EFK/Loki)</li>
+                        <li>☐ Distributed tracing (Jaeger/Tempo)</li>
+                        <li>☐ Alerting rules configured</li>
+                        <li>☐ On-call rotation established</li>
+                        <li>☐ Runbooks documented</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">Disaster Recovery</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Automated backups (Velero)</li>
+                        <li>☐ Database backup strategy</li>
+                        <li>☐ Backup restoration tested</li>
+                        <li>☐ RTO and RPO defined</li>
+                        <li>☐ Disaster recovery plan documented</li>
+                        <li>☐ Regular DR drills conducted</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">CI/CD</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ GitOps workflow implemented</li>
+                        <li>☐ Automated testing in pipeline</li>
+                        <li>☐ Canary or blue-green deployments</li>
+                        <li>☐ Automated rollback on failure</li>
+                        <li>☐ Deployment notifications</li>
+                        <li>☐ Change management process</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">Cost Management</h3>
+                    <ul style="line-height: 2;">
+                        <li>☐ Resource quotas per namespace</li>
+                        <li>☐ Right-sized resource requests</li>
+                        <li>☐ Spot instances for batch workloads</li>
+                        <li>☐ Cluster autoscaling optimized</li>
+                        <li>☐ Cost monitoring and alerts</li>
+                        <li>☐ Regular cost reviews</li>
+                    </ul>
+                </div>
+
+                <h2>🚨 Incident Response Procedures</h2>
+
+                <h3 style="color: #667eea;">Incident Response Runbook</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. DETECT - Alert received
+# Check alert details
+kubectl get events --sort-by='.lastTimestamp' -A | head -20
+
+# Check pod status
+kubectl get pods -A --field-selector=status.phase!=Running
+
+# Check node status
+kubectl get nodes
+kubectl describe node <node-name>
+
+# 2. ASSESS - Determine severity
+# Check application health
+kubectl get deployments -n production
+kubectl describe deployment <deployment-name> -n production
+
+# Check logs
+kubectl logs -n production deployment/<deployment-name> --tail=100
+
+# Check metrics
+kubectl top pods -n production
+kubectl top nodes
+
+# 3. RESPOND - Take action
+
+# Scale up if needed
+kubectl scale deployment <deployment-name> -n production --replicas=10
+
+# Rollback deployment
+kubectl rollout undo deployment/<deployment-name> -n production
+
+# Restart pods
+kubectl rollout restart deployment/<deployment-name> -n production
+
+# Drain problematic node
+kubectl drain <node-name> --ignore-daemonsets --delete-emptydir-data
+
+# 4. COMMUNICATE - Update stakeholders
+# Post to incident channel
+# Update status page
+
+# 5. RESOLVE - Fix root cause
+# Apply fix via GitOps
+git commit -m "Fix: <description>"
+git push
+
+# Monitor deployment
+kubectl rollout status deployment/<deployment-name> -n production
+
+# 6. DOCUMENT - Post-mortem
+# Create incident report
+# Document lessons learned
+# Update runbooks</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Common Issues and Solutions</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 1: High Memory Usage / OOMKilled</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check OOMKilled pods
+kubectl get pods -A | grep OOMKilled
+
+# Check memory usage
+kubectl top pods -n production --sort-by=memory
+
+# Check events
+kubectl get events -n production --field-selector reason=OOMKilling
+
+# Solutions:
+# 1. Increase memory limits
+kubectl set resources deployment <name> -n production \
+  --limits=memory=2Gi --requests=memory=1Gi
+
+# 2. Add HPA based on memory
+kubectl autoscale deployment <name> -n production \
+  --cpu-percent=70 --memory-percent=80 --min=3 --max=10
+
+# 3. Check for memory leaks in application code</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 2: Pods Stuck in Pending</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check pending pods
+kubectl get pods -A --field-selector=status.phase=Pending
+
+# Describe pod to see reason
+kubectl describe pod <pod-name> -n production
+
+# Common causes:
+# 1. Insufficient resources
+kubectl describe nodes | grep -A 5 "Allocated resources"
+
+# 2. Node selector mismatch
+kubectl get nodes --show-labels
+
+# 3. Taints and tolerations
+kubectl describe node <node-name> | grep Taints
+
+# Solutions:
+# 1. Add more nodes (cluster autoscaler)
+# 2. Reduce resource requests
+# 3. Fix node selectors/tolerations</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 3: Service Unavailable / 503 Errors</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check service endpoints
+kubectl get endpoints <service-name> -n production
+
+# Check pod readiness
+kubectl get pods -n production -l app=<app-name>
+
+# Check ingress
+kubectl describe ingress <ingress-name> -n production
+
+# Check logs
+kubectl logs -n production -l app=<app-name> --tail=50
+
+# Solutions:
+# 1. Fix readiness probe
+# 2. Scale up pods
+kubectl scale deployment <name> -n production --replicas=5
+
+# 3. Check backend health
+kubectl exec -it <pod-name> -n production -- curl localhost:8080/health</code></pre>
+                </div>
+
+                <h2>📊 Monitoring Production Deployments</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Key metrics to monitor
+# 1. Deployment health
+kubectl get deployments -n production -o wide
+
+# 2. Pod status
+kubectl get pods -n production -o wide
+
+# 3. Resource usage
+kubectl top pods -n production
+kubectl top nodes
+
+# 4. Events
+kubectl get events -n production --sort-by='.lastTimestamp'
+
+# 5. Rollout status
+kubectl rollout status deployment/<name> -n production
+
+# 6. HPA status
+kubectl get hpa -n production
+
+# Prometheus queries for monitoring
+# Request rate
+rate(http_requests_total[5m])
+
+# Error rate
+rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])
+
+# Latency (p95)
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+# Pod restarts
+rate(kube_pod_container_status_restarts_total[1h]) > 0
+
+# Memory usage
+container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.8
+
+# CPU throttling
+rate(container_cpu_cfs_throttled_seconds_total[5m]) > 0.1</code></pre>
+                </div>
+
+                <h2>✅ Best Practices Summary</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use progressive delivery:</strong> Canary or blue-green for production</li>
+                        <li>✅ <strong>Implement zero-downtime:</strong> Readiness probes, graceful shutdown, PDB</li>
+                        <li>✅ <strong>Multi-cluster for HA:</strong> Deploy across regions for disaster recovery</li>
+                        <li>✅ <strong>Automate backups:</strong> Use Velero, test restores regularly</li>
+                        <li>✅ <strong>Right-size resources:</strong> Use VPA recommendations, monitor usage</li>
+                        <li>✅ <strong>Use spot instances:</strong> For batch and non-critical workloads</li>
+                        <li>✅ <strong>Implement autoscaling:</strong> HPA for pods, cluster autoscaler for nodes</li>
+                        <li>✅ <strong>Set resource quotas:</strong> Prevent resource exhaustion per namespace</li>
+                        <li>✅ <strong>Use priority classes:</strong> Ensure critical workloads get resources</li>
+                        <li>✅ <strong>Spread pods:</strong> Use topology spread for high availability</li>
+                        <li>✅ <strong>Monitor everything:</strong> Metrics, logs, traces, alerts</li>
+                        <li>✅ <strong>Document procedures:</strong> Runbooks for common incidents</li>
+                        <li>✅ <strong>Test disaster recovery:</strong> Regular DR drills</li>
+                        <li>✅ <strong>Optimize costs:</strong> Regular reviews, right-sizing, spot instances</li>
+                        <li>✅ <strong>Security first:</strong> RBAC, network policies, pod security standards</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Deployment strategies:</strong> Choose based on risk tolerance and requirements</li>
+                        <li>✅ <strong>Blue-Green:</strong> Instant rollback, but requires 2x resources</li>
+                        <li>✅ <strong>Canary:</strong> Gradual rollout with monitoring, lowest risk</li>
+                        <li>✅ <strong>A/B Testing:</strong> Route based on user attributes for feature testing</li>
+                        <li>✅ <strong>Zero-downtime:</strong> Readiness probes, graceful shutdown, PDB essential</li>
+                        <li>✅ <strong>Multi-cluster:</strong> High availability and disaster recovery</li>
+                        <li>✅ <strong>Backups:</strong> Automate with Velero, test restores regularly</li>
+                        <li>✅ <strong>Cost optimization:</strong> Right-sizing, autoscaling, spot instances</li>
+                        <li>✅ <strong>Performance:</strong> Priority classes, topology spread, anti-affinity</li>
+                        <li>✅ <strong>Production readiness:</strong> Complete checklist before going live</li>
+                    </ul>
+                </div>
+
+                <h2>🎓 Congratulations!</h2>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0; font-size: 2rem;">🎉 You've Completed the Kubernetes Tutorial Series!</h3>
+                    <p style="font-size: 1.2rem; margin: 20px 0;">You've learned everything from basic concepts to advanced production strategies. You're now ready to deploy and manage production Kubernetes clusters!</p>
+                    
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin: 30px 0;">
+                        <h4 style="color: white; margin-top: 0;">What You've Mastered:</h4>
+                        <ul style="text-align: left; display: inline-block; line-height: 2;">
+                            <li>Kubernetes architecture and components</li>
+                            <li>Workload management (Pods, Deployments, StatefulSets)</li>
+                            <li>Networking and service discovery</li>
+                            <li>Storage and configuration management</li>
+                            <li>Security best practices</li>
+                            <li>Monitoring and logging</li>
+                            <li>GitOps and CI/CD</li>
+                            <li>Production deployment strategies</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="font-size: 1.1rem; margin: 30px 0;">Keep practicing, keep learning, and build amazing things with Kubernetes!</p>
+                    
+                    <a href="../k8s-tutorials.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        ← Back to All Tutorials
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

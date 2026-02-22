@@ -342,8 +342,10 @@ const k8sTutorials = [
             'Cost optimization techniques'
         ],
         handsOn: 'Implement advanced deployment strategy with monitoring and automated rollback',
-        readTime: '40 min',
-        difficulty: 'advanced'
+        readTime: '55 min',
+        difficulty: 'advanced',
+        url: 'tutorials/20-production-strategies.html',
+        status: 'available'
     },
     
     // Expert Level (Bonus)
