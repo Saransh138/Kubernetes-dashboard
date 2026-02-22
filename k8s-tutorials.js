@@ -117,8 +117,10 @@ const k8sTutorials = [
             'Mounting configs as files vs environment variables'
         ],
         handsOn: 'Configure an app using both ConfigMaps and Secrets',
-        readTime: '18 min',
-        difficulty: 'beginner'
+        readTime: '40 min',
+        difficulty: 'beginner',
+        url: 'tutorials/07-configmaps-secrets.html',
+        status: 'available'
     },
     
     // Intermediate Level (Posts 8-14)
