@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Networking Deep Dive | K8s Tutorial #18</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🌐</div>
+                <h1 class="post-title">Kubernetes Networking Deep Dive</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #18 of 20</span>
+                    <span><i class="fas fa-signal"></i> Advanced</span>
+                    <span><i class="far fa-clock"></i> 45 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Kubernetes networking fundamentals</li>
+                    <li>CNI (Container Network Interface) plugins</li>
+                    <li>Pod-to-Pod communication</li>
+                    <li>Service networking and kube-proxy</li>
+                    <li>DNS resolution in Kubernetes</li>
+                    <li>Network troubleshooting tools</li>
+                    <li>Service mesh introduction (Istio basics)</li>
+                    <li>Network performance optimization</li>
+                    <li>Common networking issues</li>
+                    <li>Best practices for production</li>
+                </ul>
+
+                <h2>🤔 Kubernetes Networking Requirements</h2>
+
+                <p>Kubernetes has a unique networking model with specific requirements.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">The Kubernetes Network Model</h3>
+                    <ol style="line-height: 2;">
+                        <li><strong>All pods can communicate:</strong> Every pod can reach every other pod without NAT</li>
+                        <li><strong>Nodes can reach pods:</strong> Nodes can communicate with all pods (and vice versa) without NAT</li>
+                        <li><strong>Pod sees its own IP:</strong> The IP a pod sees itself as is the same IP others see it as</li>
+                        <li><strong>Flat network:</strong> No port mapping, no NAT between pods</li>
+                    </ol>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Networking                         │
+│                                                                   │
+│  ┌────────────────────────────────────────────────────────┐     │
+│  │  Node 1 (10.0.1.0/24)                                  │     │
+│  │                                                         │     │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐            │     │
+│  │  │ Pod A    │  │ Pod B    │  │ Pod C    │            │     │
+│  │  │ 10.244.1.│  │ 10.244.1.│  │ 10.244.1.│            │     │
+│  │  │ 2        │  │ 3        │  │ 4        │            │     │
+│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘            │     │
+│  │       │             │             │                    │     │
+│  │       └─────────────┼─────────────┘                   │     │
+│  │                     │                                  │     │
+│  │              ┌──────┴──────┐                          │     │
+│  │              │  CNI Plugin │                          │     │
+│  │              │  (Calico)   │                          │     │
+│  │              └──────┬──────┘                          │     │
+│  └─────────────────────┼─────────────────────────────────┘     │
+│                        │                                        │
+│                        │  Overlay Network                       │
+│                        │  (VXLAN/BGP)                          │
+│                        │                                        │
+│  ┌─────────────────────┼─────────────────────────────────┐     │
+│  │  Node 2 (10.0.2.0/24)                                  │     │
+│  │                     │                                  │     │
+│  │              ┌──────┴──────┐                          │     │
+│  │              │  CNI Plugin │                          │     │
+│  │              │  (Calico)   │                          │     │
+│  │              └──────┬──────┘                          │     │
+│  │                     │                                  │     │
+│  │       ┌─────────────┼─────────────┐                   │     │
+│  │       │             │             │                    │     │
+│  │  ┌────┴─────┐  ┌───┴──────┐  ┌──┴───────┐           │     │
+│  │  │ Pod D    │  │ Pod E    │  │ Pod F    │           │     │
+│  │  │ 10.244.2.│  │ 10.244.2.│  │ 10.244.2.│           │     │
+│  │  │ 2        │  │ 3        │  │ 4        │           │     │
+│  │  └──────────┘  └──────────┘  └──────────┘           │     │
+│  └─────────────────────────────────────────────────────────┘     │
+│                                                                   │
+│  Pod A (10.244.1.2) can directly reach Pod D (10.244.2.2)      │
+│  No NAT, no port mapping - just direct IP communication         │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>🔌 CNI (Container Network Interface)</h2>
+
+                <p>CNI is a specification and set of libraries for configuring network interfaces in Linux containers.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Popular CNI Plugins</h3>
+                    
+                    <h4 style="color: #90cdf4;">1. Calico</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Routing:</strong> Uses BGP for routing</li>
+                        <li><strong>Network Policy:</strong> Full NetworkPolicy support</li>
+                        <li><strong>Performance:</strong> High performance, no overlay</li>
+                        <li><strong>Best for:</strong> Large clusters, network policies</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">2. Flannel</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Overlay:</strong> Uses VXLAN overlay network</li>
+                        <li><strong>Simple:</strong> Easy to set up and use</li>
+                        <li><strong>Network Policy:</strong> Limited support</li>
+                        <li><strong>Best for:</strong> Simple clusters, getting started</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">3. Cilium</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>eBPF:</strong> Uses eBPF for networking and security</li>
+                        <li><strong>Performance:</strong> Very high performance</li>
+                        <li><strong>Observability:</strong> Built-in monitoring</li>
+                        <li><strong>Best for:</strong> Advanced features, observability</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">4. Weave Net</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Mesh:</strong> Creates mesh network</li>
+                        <li><strong>Encryption:</strong> Built-in encryption</li>
+                        <li><strong>Simple:</strong> Easy setup</li>
+                        <li><strong>Best for:</strong> Multi-cloud, encryption</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check current CNI plugin
+ls /etc/cni/net.d/
+
+# Install Calico
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+# Install Flannel
+kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+# Install Cilium
+helm repo add cilium https://helm.cilium.io/
+helm install cilium cilium/cilium --namespace kube-system
+
+# Verify CNI pods
+kubectl get pods -n kube-system | grep -E 'calico|flannel|cilium'</code></pre>
+                </div>
+
+                <h2>🔄 Pod-to-Pod Communication</h2>
+
+                <p>Understanding how pods communicate is fundamental to Kubernetes networking.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>Communication Flow:
+
+1. Same Node (Pod A → Pod B on Node 1):
+   Pod A → veth pair → bridge → veth pair → Pod B
+   
+2. Different Nodes (Pod A on Node 1 → Pod D on Node 2):
+   Pod A → veth pair → bridge → Node 1 eth0 →
+   → Overlay Network (VXLAN/BGP) →
+   → Node 2 eth0 → bridge → veth pair → Pod D
+
+Key Components:
+- veth pair: Virtual ethernet device connecting pod to node
+- bridge: Virtual switch on each node
+- Overlay: Network spanning multiple nodes (VXLAN, BGP, etc.)</code></pre>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Test pod-to-pod communication
+# Create two pods
+kubectl run pod-a --image=nginx
+kubectl run pod-b --image=nginx
+
+# Get pod IPs
+kubectl get pods -o wide
+
+# Exec into pod-a and ping pod-b
+kubectl exec -it pod-a -- ping <pod-b-ip>
+
+# Test with curl
+kubectl exec -it pod-a -- curl http://<pod-b-ip>
+
+# Check network interfaces in pod
+kubectl exec -it pod-a -- ip addr
+
+# Check routes in pod
+kubectl exec -it pod-a -- ip route</code></pre>
+                </div>
+
+                <h2>🎯 Service Networking</h2>
+
+                <p>Services provide stable endpoints for accessing pods.</p>
+
+                <h3 style="color: #667eea;">How Services Work</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Service Networking                            │
+│                                                                   │
+│  Client Pod                                                      │
+│       │                                                           │
+│       │ Request to Service IP (10.96.0.10:80)                   │
+│       ▼                                                           │
+│  ┌─────────────┐                                                │
+│  │ kube-proxy  │  (iptables/IPVS rules)                        │
+│  └──────┬──────┘                                                │
+│         │                                                         │
+│         │ Load balances to one of:                              │
+│         │                                                         │
+│    ┌────┼────┬────────┐                                         │
+│    │    │    │        │                                         │
+│    ▼    ▼    ▼        ▼                                         │
+│  Pod1  Pod2  Pod3   Pod4                                        │
+│  :80   :80   :80    :80                                         │
+│                                                                   │
+│  Service IP (ClusterIP): Virtual IP, not assigned to any pod   │
+│  kube-proxy: Creates iptables/IPVS rules for load balancing    │
+│  Endpoints: List of pod IPs backing the service                │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">kube-proxy Modes</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Mode</th>
+                                <th style="padding: 15px; text-align: left;">How it Works</th>
+                                <th style="padding: 15px; text-align: left;">Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>iptables</strong></td>
+                                <td style="padding: 15px;">Creates iptables rules for each service</td>
+                                <td style="padding: 15px;">Good for < 1000 services</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>IPVS</strong></td>
+                                <td style="padding: 15px;">Uses Linux IPVS for load balancing</td>
+                                <td style="padding: 15px;">Better for large clusters</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>userspace</strong></td>
+                                <td style="padding: 15px;">Proxies traffic in userspace (legacy)</td>
+                                <td style="padding: 15px;">Slow, not recommended</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check kube-proxy mode
+kubectl logs -n kube-system kube-proxy-xxx | grep "Using"
+
+# View iptables rules for services
+sudo iptables -t nat -L -n | grep <service-name>
+
+# Check service endpoints
+kubectl get endpoints <service-name>
+
+# Describe service
+kubectl describe service <service-name>
+
+# Test service from within cluster
+kubectl run test --image=busybox -it --rm -- wget -O- http://<service-name></code></pre>
+                </div>
+
+                <h2>🔍 DNS in Kubernetes</h2>
+
+                <p>CoreDNS provides DNS-based service discovery in Kubernetes.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">DNS Resolution Patterns</h3>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Service DNS names:
+<service-name>.<namespace>.svc.cluster.local
+
+# Examples:
+nginx.default.svc.cluster.local        # Full FQDN
+nginx.default.svc                      # Short form
+nginx.default                          # Shorter
+nginx                                  # Same namespace only
+
+# Pod DNS names:
+<pod-ip-with-dashes>.<namespace>.pod.cluster.local
+
+# Example:
+10-244-1-5.default.pod.cluster.local   # Pod with IP 10.244.1.5</code></pre>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check CoreDNS pods
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+
+# View CoreDNS config
+kubectl get configmap coredns -n kube-system -o yaml
+
+# Test DNS resolution from pod
+kubectl run test --image=busybox -it --rm -- nslookup kubernetes.default
+
+# Output:
+# Server:    10.96.0.10
+# Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+# 
+# Name:      kubernetes.default
+# Address 1: 10.96.0.1 kubernetes.default.svc.cluster.local
+
+# Test service DNS
+kubectl run test --image=busybox -it --rm -- nslookup nginx.default.svc.cluster.local
+
+# Check DNS from within pod
+kubectl exec -it my-pod -- cat /etc/resolv.conf
+
+# Output:
+# nameserver 10.96.0.10
+# search default.svc.cluster.local svc.cluster.local cluster.local
+# options ndots:5
+
+# Debug DNS issues
+kubectl run dnsutils --image=gcr.io/kubernetes-e2e-test-images/dnsutils:1.3 -it --rm -- /bin/sh
+
+# Inside pod:
+nslookup kubernetes.default
+dig kubernetes.default.svc.cluster.local
+host nginx.default.svc.cluster.local</code></pre>
+                </div>
+
+                <h2>🛠️ Network Troubleshooting</h2>
+
+                <h3 style="color: #667eea;">Essential Troubleshooting Tools</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create debug pod with network tools
+kubectl run netshoot --image=nicolaka/netshoot -it --rm -- /bin/bash
+
+# Inside netshoot pod, you have:
+# - ping, traceroute, mtr
+# - curl, wget
+# - nslookup, dig, host
+# - tcpdump, netstat, ss
+# - iperf3 (performance testing)
+
+# Test connectivity
+ping 8.8.8.8                    # Internet
+ping <pod-ip>                   # Pod
+curl http://<service-name>      # Service
+
+# Check DNS
+nslookup kubernetes.default
+dig +short nginx.default.svc.cluster.local
+
+# Check routes
+ip route
+ip addr
+
+# Check listening ports
+netstat -tulpn
+ss -tulpn
+
+# Capture packets
+tcpdump -i any port 80
+
+# Test bandwidth
+iperf3 -s                       # Server
+iperf3 -c <server-ip>          # Client</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Common Network Issues</h3>
+
+                <h4 style="color: #667eea;">Issue 1: Pod Cannot Reach Service</h4>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. Check if service exists
+kubectl get svc <service-name>
+
+# 2. Check service endpoints
+kubectl get endpoints <service-name>
+
+# 3. Check if pods are ready
+kubectl get pods -l app=<app-label>
+
+# 4. Test DNS resolution
+kubectl run test --image=busybox -it --rm -- nslookup <service-name>
+
+# 5. Test direct pod IP
+kubectl run test --image=busybox -it --rm -- wget -O- http://<pod-ip>
+
+# 6. Check Network Policies
+kubectl get networkpolicies</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>No endpoints:</strong> Check pod labels match service selector</li>
+                        <li><strong>DNS fails:</strong> Check CoreDNS pods are running</li>
+                        <li><strong>Direct IP works:</strong> Service or kube-proxy issue</li>
+                        <li><strong>Network Policy:</strong> Add ingress rule to allow traffic</li>
+                    </ul>
+                </div>
+
+                <h4 style="color: #667eea;">Issue 2: DNS Resolution Fails</h4>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. Check CoreDNS pods
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+
+# 2. Check CoreDNS logs
+kubectl logs -n kube-system -l k8s-app=kube-dns
+
+# 3. Check DNS service
+kubectl get svc -n kube-system kube-dns
+
+# 4. Check pod's resolv.conf
+kubectl exec -it <pod> -- cat /etc/resolv.conf
+
+# 5. Test from dnsutils pod
+kubectl run dnsutils --image=gcr.io/kubernetes-e2e-test-images/dnsutils:1.3 -it --rm -- nslookup kubernetes.default</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>CoreDNS not running:</strong> Check kube-system namespace</li>
+                        <li><strong>Wrong nameserver:</strong> Should be kube-dns service IP</li>
+                        <li><strong>Network Policy:</strong> Allow DNS traffic (port 53 UDP)</li>
+                        <li><strong>CoreDNS errors:</strong> Check logs for configuration issues</li>
+                    </ul>
+                </div>
+
+                <h4 style="color: #667eea;">Issue 3: Slow Network Performance</h4>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. Test bandwidth with iperf3
+# Server pod
+kubectl run iperf-server --image=networkstatic/iperf3 -- -s
+
+# Client pod
+kubectl run iperf-client --image=networkstatic/iperf3 -it --rm -- -c <server-pod-ip>
+
+# 2. Check for packet loss
+kubectl exec -it <pod> -- ping -c 100 <target-ip>
+
+# 3. Check MTU settings
+kubectl exec -it <pod> -- ip link show
+
+# 4. Check CNI plugin performance
+# Different CNI plugins have different performance characteristics
+
+# 5. Monitor network metrics
+kubectl top pods --containers</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>MTU mismatch:</strong> Configure correct MTU for CNI</li>
+                        <li><strong>Overlay overhead:</strong> Consider CNI without overlay (Calico BGP)</li>
+                        <li><strong>Resource limits:</strong> Increase network bandwidth limits</li>
+                        <li><strong>Node network:</strong> Check underlying node network performance</li>
+                    </ul>
+                </div>
+
+                <h2>🕸️ Service Mesh Introduction</h2>
+
+                <p>Service mesh provides advanced networking features like traffic management, security, and observability.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">What is a Service Mesh?</h3>
+                    <ul style="line-height: 2;">
+                        <li><strong>Sidecar proxy:</strong> Envoy proxy injected into each pod</li>
+                        <li><strong>Traffic management:</strong> Advanced routing, retries, timeouts</li>
+                        <li><strong>Security:</strong> mTLS between services</li>
+                        <li><strong>Observability:</strong> Automatic metrics, traces, logs</li>
+                        <li><strong>Popular options:</strong> Istio, Linkerd, Consul</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Service Mesh Architecture                     │
+│                                                                   │
+│  ┌──────────────────┐              ┌──────────────────┐         │
+│  │  Pod A           │              │  Pod B           │         │
+│  │  ┌────────────┐  │              │  ┌────────────┐  │         │
+│  │  │ App        │  │              │  │ App        │  │         │
+│  │  │ Container  │  │              │  │ Container  │  │         │
+│  │  └─────┬──────┘  │              │  └─────▲──────┘  │         │
+│  │        │         │              │        │         │         │
+│  │  ┌─────▼──────┐  │   mTLS      │  ┌─────┴──────┐  │         │
+│  │  │ Envoy      │◄─┼──────────────┼─►│ Envoy      │  │         │
+│  │  │ Sidecar    │  │   Encrypted  │  │ Sidecar    │  │         │
+│  │  └────────────┘  │              │  └────────────┘  │         │
+│  └──────────────────┘              └──────────────────┘         │
+│                                                                   │
+│  Control Plane (Istiod):                                        │
+│  - Traffic rules                                                 │
+│  - Security policies                                             │
+│  - Telemetry collection                                         │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Istio Basics</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Istio
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-*
+export PATH=$PWD/bin:$PATH
+
+# Install Istio on cluster
+istioctl install --set profile=demo -y
+
+# Enable sidecar injection for namespace
+kubectl label namespace default istio-injection=enabled
+
+# Deploy sample app
+kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
+
+# Check sidecar injection
+kubectl get pods
+# Each pod should have 2/2 containers (app + envoy)
+
+# View Istio dashboard
+istioctl dashboard kiali
+
+# Traffic management example - 90/10 split
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: reviews
+spec:
+  hosts:
+  - reviews
+  http:
+  - match:
+    - headers:
+        end-user:
+          exact: jason
+    route:
+    - destination:
+        host: reviews
+        subset: v2
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+      weight: 90
+    - destination:
+        host: reviews
+        subset: v2
+      weight: 10</code></pre>
+                </div>
+
+                <h2>✅ Networking Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Choose right CNI:</strong> Calico for policies, Flannel for simplicity</li>
+                        <li>✅ <strong>Use Network Policies:</strong> Implement zero-trust networking</li>
+                        <li>✅ <strong>Monitor network metrics:</strong> Track bandwidth, latency, errors</li>
+                        <li>✅ <strong>Use Services:</strong> Don't hardcode pod IPs</li>
+                        <li>✅ <strong>DNS best practices:</strong> Use short names within namespace</li>
+                        <li>✅ <strong>Test network performance:</strong> Use iperf3 for baseline</li>
+                        <li>✅ <strong>Configure MTU correctly:</strong> Match underlying network</li>
+                        <li>✅ <strong>Use headless services:</strong> When you need pod IPs</li>
+                        <li>✅ <strong>Consider service mesh:</strong> For advanced features</li>
+                        <li>✅ <strong>Document network architecture:</strong> Diagram your setup</li>
+                        <li>✅ <strong>Regular network audits:</strong> Review policies and rules</li>
+                        <li>✅ <strong>Plan for scale:</strong> Test with expected load</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Flat network model:</strong> All pods can communicate without NAT</li>
+                        <li>✅ <strong>CNI plugins:</strong> Implement Kubernetes networking requirements</li>
+                        <li>✅ <strong>Popular CNIs:</strong> Calico (BGP), Flannel (VXLAN), Cilium (eBPF)</li>
+                        <li>✅ <strong>Services provide stability:</strong> Virtual IPs for pod groups</li>
+                        <li>✅ <strong>kube-proxy:</strong> Implements service load balancing (iptables/IPVS)</li>
+                        <li>✅ <strong>CoreDNS:</strong> Provides DNS-based service discovery</li>
+                        <li>✅ <strong>DNS patterns:</strong> service.namespace.svc.cluster.local</li>
+                        <li>✅ <strong>Network Policies:</strong> Control pod-to-pod traffic</li>
+                        <li>✅ <strong>Service mesh:</strong> Advanced features with sidecar proxies</li>
+                        <li>✅ <strong>Troubleshooting:</strong> Use netshoot, check DNS, test connectivity</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand Kubernetes networking in depth, you're ready to learn about <strong>GitOps and CI/CD</strong> - implementing automated deployments with ArgoCD and GitOps workflows!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about GitOps?</h3>
+                    <a href="19-gitops-cicd.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #19: GitOps and CI/CD with Kubernetes →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
