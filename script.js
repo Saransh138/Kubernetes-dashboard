@@ -393,7 +393,7 @@ backToTopButton?.addEventListener('click', () => {
 
 // Improve mobile menu close on link click
 const navLinks = document.querySelectorAll('.nav-link');
-const navMenu = document.getElementById('navMenu');
+// Reuse navMenu from line 3
 
 navLinks.forEach(link => {
     link.addEventListener('click', () => {
