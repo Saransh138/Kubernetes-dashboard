@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatefulSets - Managing Stateful Applications | K8s Tutorial #11</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🗄️</div>
+                <h1 class="post-title">StatefulSets — Managing Stateful Applications in Kubernetes</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #11 of 20</span>
+                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                    <span><i class="far fa-clock"></i> 50 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>What are StatefulSets and when to use them</li>
+                    <li>StatefulSets vs Deployments differences</li>
+                    <li>Stable network identities and DNS</li>
+                    <li>Ordered deployment and scaling</li>
+                    <li>Persistent storage with StatefulSets</li>
+                    <li>Headless Services explained</li>
+                    <li>Update strategies for StatefulSets</li>
+                    <li>Real-world examples: databases, message queues</li>
+                    <li>Troubleshooting StatefulSet issues</li>
+                    <li>Best practices for production</li>
+                </ul>
+
+                <h2>🤔 The Problem: Stateful Applications Need Special Treatment</h2>
+
+                <p>Not all applications are stateless. Some need stable identities, persistent storage, and ordered operations.</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Using Deployments for Stateful Apps:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Random Pod Names:</strong> myapp-abc123, myapp-def456 (changes on restart)</li>
+                        <li><strong>No Stable Network Identity:</strong> Can't reliably connect to specific pod</li>
+                        <li><strong>Shared Storage:</strong> All pods share same PVC (data conflicts)</li>
+                        <li><strong>Parallel Scaling:</strong> All pods start/stop simultaneously (data corruption risk)</li>
+                        <li><strong>No Ordering:</strong> Can't ensure pod-0 starts before pod-1</li>
+                        <li><strong>Lost State:</strong> Pod restart means new identity and potentially lost connections</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ Using StatefulSets:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Stable Names:</strong> myapp-0, myapp-1, myapp-2 (persistent across restarts)</li>
+                        <li><strong>Stable Network Identity:</strong> myapp-0.myapp.default.svc.cluster.local</li>
+                        <li><strong>Unique Storage:</strong> Each pod gets its own PVC</li>
+                        <li><strong>Ordered Operations:</strong> Pods created/deleted in sequence</li>
+                        <li><strong>Guaranteed Ordering:</strong> Pod-0 fully ready before pod-1 starts</li>
+                        <li><strong>Persistent Identity:</strong> Pod restart maintains same name and storage</li>
+                    </ul>
+                </div>
+
+                <h2>🗄️ What are StatefulSets?</h2>
+
+                <p>StatefulSets are Kubernetes workload controllers designed for stateful applications that require stable, unique network identifiers, stable persistent storage, and ordered deployment and scaling.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of StatefulSets like numbered parking spaces in a garage. Each car (pod) has an assigned spot (stable identity) that never changes. Car #1 always parks in spot #1, even if it leaves and comes back. This is different from a regular parking lot (Deployment) where cars park in any available spot.</p>
+                </div>
+
+                <h3 style="color: #667eea;">StatefulSet Characteristics</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>Stable, Unique Network Identifiers:</strong> Predictable pod names and DNS</li>
+                        <li><strong>Stable, Persistent Storage:</strong> Each pod has its own PVC</li>
+                        <li><strong>Ordered, Graceful Deployment:</strong> Pods created sequentially</li>
+                        <li><strong>Ordered, Graceful Scaling:</strong> Scale up/down one at a time</li>
+                        <li><strong>Ordered, Automated Rolling Updates:</strong> Update pods in reverse order</li>
+                    </ul>
+                </div>
+
+
+                <h3 style="color: #667eea;">Visual Comparison</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    DEPLOYMENT                                    │
+│                                                                  │
+│  Pods (random names):                                           │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ myapp-abc123 │  │ myapp-def456 │  │ myapp-ghi789 │         │
+│  │ IP: 10.1.1.5 │  │ IP: 10.1.1.6 │  │ IP: 10.1.1.7 │         │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
+│         │                  │                  │                  │
+│         └──────────────────┼──────────────────┘                 │
+│                            │                                     │
+│                    ┌───────▼────────┐                           │
+│                    │  Shared PVC    │                           │
+│                    │  (conflicts!)  │                           │
+│                    └────────────────┘                           │
+│                                                                  │
+│  On restart: New random names, new IPs                         │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    STATEFULSET                                   │
+│                                                                  │
+│  Pods (stable names):                                           │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  myapp-0     │  │  myapp-1     │  │  myapp-2     │         │
+│  │ IP: 10.1.1.5 │  │ IP: 10.1.1.6 │  │ IP: 10.1.1.7 │         │
+│  │ DNS: myapp-0 │  │ DNS: myapp-1 │  │ DNS: myapp-2 │         │
+│  │  .myapp.svc  │  │  .myapp.svc  │  │  .myapp.svc  │         │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
+│         │                  │                  │                  │
+│         │                  │                  │                  │
+│    ┌────▼────┐       ┌────▼────┐       ┌────▼────┐            │
+│    │ PVC-0   │       │ PVC-1   │       │ PVC-2   │            │
+│    │ (10Gi)  │       │ (10Gi)  │       │ (10Gi)  │            │
+│    └─────────┘       └─────────┘       └─────────┘            │
+│                                                                  │
+│  On restart: Same names, same DNS, same storage                │
+│  Created in order: 0 → 1 → 2                                   │
+│  Deleted in order: 2 → 1 → 0                                   │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>📊 StatefulSets vs Deployments</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Feature</th>
+                                <th style="padding: 15px; text-align: left;">Deployment</th>
+                                <th style="padding: 15px; text-align: left;">StatefulSet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Pod Names</strong></td>
+                                <td style="padding: 15px;">Random (app-abc123)</td>
+                                <td style="padding: 15px;">Ordered (app-0, app-1, app-2)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Network Identity</strong></td>
+                                <td style="padding: 15px;">No stable DNS</td>
+                                <td style="padding: 15px;">Stable DNS per pod</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Storage</strong></td>
+                                <td style="padding: 15px;">Shared PVC (optional)</td>
+                                <td style="padding: 15px;">Unique PVC per pod</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Scaling</strong></td>
+                                <td style="padding: 15px;">Parallel (all at once)</td>
+                                <td style="padding: 15px;">Sequential (one at a time)</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Pod Creation</strong></td>
+                                <td style="padding: 15px;">Any order</td>
+                                <td style="padding: 15px;">Ordered (0→1→2)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Pod Deletion</strong></td>
+                                <td style="padding: 15px;">Any order</td>
+                                <td style="padding: 15px;">Reverse order (2→1→0)</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Updates</strong></td>
+                                <td style="padding: 15px;">Rolling update (parallel)</td>
+                                <td style="padding: 15px;">Rolling update (sequential)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Use Case</strong></td>
+                                <td style="padding: 15px;">Stateless apps</td>
+                                <td style="padding: 15px;">Databases, queues, clusters</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Service Type</strong></td>
+                                <td style="padding: 15px;">Any service type</td>
+                                <td style="padding: 15px;">Requires Headless Service</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Complexity</strong></td>
+                                <td style="padding: 15px;">Simple</td>
+                                <td style="padding: 15px;">More complex</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🌐 Headless Services</h2>
+
+                <p>StatefulSets require a Headless Service to provide stable network identities for pods.</p>
+
+                <h3 style="color: #667eea;">What is a Headless Service?</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>A Headless Service is a service with <code>clusterIP: None</code>. Instead of load balancing to pods, it returns the IP addresses of individual pods.</p>
+                    
+                    <h4 style="color: #90cdf4;">Regular Service vs Headless Service:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Regular Service:</strong> DNS returns single ClusterIP → load balances to pods</li>
+                        <li><strong>Headless Service:</strong> DNS returns all pod IPs → direct pod access</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Headless Service Example:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># headless-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  clusterIP: None  # This makes it headless!
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    name: web
+
+kubectl apply -f headless-service.yaml
+
+# DNS resolution for headless service
+# Service DNS: nginx.default.svc.cluster.local
+# Returns: 10.244.1.5, 10.244.1.6, 10.244.1.7 (all pod IPs)
+
+# Individual pod DNS
+# nginx-0.nginx.default.svc.cluster.local → 10.244.1.5
+# nginx-1.nginx.default.svc.cluster.local → 10.244.1.6
+# nginx-2.nginx.default.svc.cluster.local → 10.244.1.7</code></pre>
+                </div>
+
+                <h2>🔧 Creating a StatefulSet</h2>
+
+                <h3 style="color: #667eea;">Basic StatefulSet Example</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># nginx-statefulset.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  clusterIP: None  # Headless service
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    name: web
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx
+spec:
+  serviceName: nginx  # Must match headless service name
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  
+  # VolumeClaimTemplates - creates unique PVC for each pod
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 1Gi
+
+kubectl apply -f nginx-statefulset.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Observing StatefulSet Behavior</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Watch pods being created (in order!)
+kubectl get pods -w
+
+# Output:
+# NAME      READY   STATUS              RESTARTS   AGE
+# nginx-0   0/1     ContainerCreating   0          5s
+# nginx-0   1/1     Running             0          10s
+# nginx-1   0/1     Pending             0          0s
+# nginx-1   0/1     ContainerCreating   0          2s
+# nginx-1   1/1     Running             0          8s
+# nginx-2   0/1     Pending             0          0s
+# nginx-2   0/1     ContainerCreating   0          2s
+# nginx-2   1/1     Running             0          7s
+
+# Notice: nginx-1 doesn't start until nginx-0 is Running
+# Notice: nginx-2 doesn't start until nginx-1 is Running
+
+# View StatefulSet
+kubectl get statefulset nginx
+
+# Output:
+# NAME    READY   AGE
+# nginx   3/3     2m
+
+# View PVCs (one per pod!)
+kubectl get pvc
+
+# Output:
+# NAME          STATUS   VOLUME                                     CAPACITY
+# www-nginx-0   Bound    pvc-abc123-def456-ghi789-jkl012-mno345    1Gi
+# www-nginx-1   Bound    pvc-def456-ghi789-jkl012-mno345-pqr678    1Gi
+# www-nginx-2   Bound    pvc-ghi789-jkl012-mno345-pqr678-stu901    1Gi
+
+# Test DNS resolution
+kubectl run -it --rm debug --image=busybox --restart=Never -- sh
+
+# Inside debug pod:
+nslookup nginx-0.nginx
+# Name:      nginx-0.nginx.default.svc.cluster.local
+# Address:   10.244.1.5
+
+nslookup nginx-1.nginx
+# Name:      nginx-1.nginx.default.svc.cluster.local
+# Address:   10.244.1.6
+
+nslookup nginx-2.nginx
+# Name:      nginx-2.nginx.default.svc.cluster.local
+# Address:   10.244.1.7</code></pre>
+                </div>
+
+                <h2>📦 Persistent Storage with StatefulSets</h2>
+
+                <h3 style="color: #667eea;">How VolumeClaimTemplates Work</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>VolumeClaimTemplates</strong> automatically create a PVC for each pod in the StatefulSet.</p>
+                    
+                    <h4 style="color: #90cdf4;">Naming Convention:</h4>
+                    <p><code>&lt;volumeClaimTemplate-name&gt;-&lt;statefulset-name&gt;-&lt;ordinal&gt;</code></p>
+                    <p>Example: <code>www-nginx-0</code>, <code>www-nginx-1</code>, <code>www-nginx-2</code></p>
+                    
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Key Points:</h4>
+                    <ul style="line-height: 2;">
+                        <li>Each pod gets its own unique PVC</li>
+                        <li>PVCs are created automatically when pod is created</li>
+                        <li>PVCs persist even if pod is deleted</li>
+                        <li>When pod is recreated, it binds to the same PVC</li>
+                        <li>Deleting StatefulSet does NOT delete PVCs (manual cleanup required)</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Testing Data Persistence</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Write unique data to each pod
+kubectl exec nginx-0 -- sh -c 'echo "Data from nginx-0" > /usr/share/nginx/html/index.html'
+kubectl exec nginx-1 -- sh -c 'echo "Data from nginx-1" > /usr/share/nginx/html/index.html'
+kubectl exec nginx-2 -- sh -c 'echo "Data from nginx-2" > /usr/share/nginx/html/index.html'
+
+# Verify data
+kubectl exec nginx-0 -- cat /usr/share/nginx/html/index.html
+# Output: Data from nginx-0
+
+kubectl exec nginx-1 -- cat /usr/share/nginx/html/index.html
+# Output: Data from nginx-1
+
+# Delete all pods
+kubectl delete pod nginx-0 nginx-1 nginx-2
+
+# Wait for recreation
+kubectl wait --for=condition=ready pod -l app=nginx --timeout=60s
+
+# Verify data persists
+kubectl exec nginx-0 -- cat /usr/share/nginx/html/index.html
+# Output: Data from nginx-0  ✅ Data survived!
+
+kubectl exec nginx-1 -- cat /usr/share/nginx/html/index.html
+# Output: Data from nginx-1  ✅ Data survived!
+
+kubectl exec nginx-2 -- cat /usr/share/nginx/html/index.html
+# Output: Data from nginx-2  ✅ Data survived!</code></pre>
+                </div>
+
+                <h2>📈 Scaling StatefulSets</h2>
+
+                <h3 style="color: #667eea;">Scaling Up (Sequential)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Scale from 3 to 5 replicas
+kubectl scale statefulset nginx --replicas=5
+
+# Watch the scaling process
+kubectl get pods -w
+
+# Output:
+# NAME      READY   STATUS    RESTARTS   AGE
+# nginx-0   1/1     Running   0          5m
+# nginx-1   1/1     Running   0          5m
+# nginx-2   1/1     Running   0          5m
+# nginx-3   0/1     Pending   0          0s    ← Created first
+# nginx-3   0/1     ContainerCreating   0     2s
+# nginx-3   1/1     Running   0          8s
+# nginx-4   0/1     Pending   0          0s    ← Created after nginx-3 is ready
+# nginx-4   0/1     ContainerCreating   0     2s
+# nginx-4   1/1     Running   0          7s
+
+# Notice: nginx-4 doesn't start until nginx-3 is Running
+
+# New PVCs are created automatically
+kubectl get pvc
+# NAME          STATUS   VOLUME     CAPACITY
+# www-nginx-0   Bound    pvc-...    1Gi
+# www-nginx-1   Bound    pvc-...    1Gi
+# www-nginx-2   Bound    pvc-...    1Gi
+# www-nginx-3   Bound    pvc-...    1Gi  ← New
+# www-nginx-4   Bound    pvc-...    1Gi  ← New</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Scaling Down (Reverse Order)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Scale from 5 to 2 replicas
+kubectl scale statefulset nginx --replicas=2
+
+# Watch the scaling process
+kubectl get pods -w
+
+# Output:
+# NAME      READY   STATUS        RESTARTS   AGE
+# nginx-0   1/1     Running       0          10m
+# nginx-1   1/1     Running       0          10m
+# nginx-2   1/1     Running       0          10m
+# nginx-3   1/1     Running       0          5m
+# nginx-4   1/1     Running       0          5m
+# nginx-4   1/1     Terminating   0          5m    ← Deleted first (highest ordinal)
+# nginx-4   0/1     Terminating   0          5m
+# nginx-3   1/1     Terminating   0          5m    ← Deleted after nginx-4 is gone
+# nginx-3   0/1     Terminating   0          5m
+# nginx-2   1/1     Terminating   0          10m   ← Deleted after nginx-3 is gone
+# nginx-2   0/1     Terminating   0          10m
+
+# Notice: Pods deleted in reverse order (4 → 3 → 2)
+
+# PVCs are NOT deleted!
+kubectl get pvc
+# NAME          STATUS   VOLUME     CAPACITY
+# www-nginx-0   Bound    pvc-...    1Gi
+# www-nginx-1   Bound    pvc-...    1Gi
+# www-nginx-2   Bound    pvc-...    1Gi  ← Still exists!
+# www-nginx-3   Bound    pvc-...    1Gi  ← Still exists!
+# www-nginx-4   Bound    pvc-...    1Gi  ← Still exists!
+
+# If you scale back up, pods will reuse existing PVCs
+kubectl scale statefulset nginx --replicas=3
+
+# nginx-2 will bind to www-nginx-2 (data preserved!)</code></pre>
+
+                    <div style="background: #744210; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>⚠️ Important:</strong> Scaling down does NOT delete PVCs. This is intentional to prevent data loss. You must manually delete PVCs if you want to reclaim storage.
+                    </div>
+                </div>
+
+                <h2>🔄 Update Strategies</h2>
+
+                <p>StatefulSets support two update strategies:</p>
+
+                <h3 style="color: #667eea;">1. RollingUpdate (Default)</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>Updates pods in reverse ordinal order (highest to lowest), one at a time.</p>
+                    <ul style="line-height: 2;">
+                        <li>Updates nginx-2, waits for it to be ready</li>
+                        <li>Then updates nginx-1, waits for it to be ready</li>
+                        <li>Then updates nginx-0</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># statefulset-rolling-update.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0  # Update all pods (default)
+  # ... rest of spec
+
+# Update the image
+kubectl set image statefulset/nginx nginx=nginx:1.22
+
+# Watch the update process
+kubectl rollout status statefulset/nginx
+
+# Output:
+# Waiting for partitioned roll out to finish: 2 out of 3 new pods have been updated...
+# Waiting for 1 pods to be ready...
+# Waiting for partitioned roll out to finish: 1 out of 3 new pods have been updated...
+# Waiting for 1 pods to be ready...
+# partitioned roll out complete: 3 new pods have been updated...</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">2. OnDelete</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>Pods are updated only when manually deleted. Gives you full control over update timing.</p>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># statefulset-ondelete.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx
+spec:
+  updateStrategy:
+    type: OnDelete
+  # ... rest of spec
+
+# Update the image
+kubectl set image statefulset/nginx nginx=nginx:1.22
+
+# Nothing happens automatically!
+kubectl get pods
+# NAME      READY   STATUS    RESTARTS   AGE   IMAGE
+# nginx-0   1/1     Running   0          10m   nginx:1.21  ← Still old version
+# nginx-1   1/1     Running   0          10m   nginx:1.21  ← Still old version
+# nginx-2   1/1     Running   0          10m   nginx:1.21  ← Still old version
+
+# Manually delete pods to trigger update
+kubectl delete pod nginx-2
+# nginx-2 recreated with new image (nginx:1.22)
+
+kubectl delete pod nginx-1
+# nginx-1 recreated with new image (nginx:1.22)
+
+kubectl delete pod nginx-0
+# nginx-0 recreated with new image (nginx:1.22)</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Partitioned Rolling Updates</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Canary deployment with partition:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Update only pods with ordinal >= partition
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx
+spec:
+  replicas: 5
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 3  # Only update pods 3 and 4
+
+kubectl apply -f statefulset-partition.yaml
+
+# Update image
+kubectl set image statefulset/nginx nginx=nginx:1.22
+
+# Only nginx-4 and nginx-3 are updated
+kubectl get pods -o custom-columns=NAME:.metadata.name,IMAGE:.spec.containers[0].image
+# NAME      IMAGE
+# nginx-0   nginx:1.21  ← Not updated (ordinal < 3)
+# nginx-1   nginx:1.21  ← Not updated (ordinal < 3)
+# nginx-2   nginx:1.21  ← Not updated (ordinal < 3)
+# nginx-3   nginx:1.22  ← Updated (ordinal >= 3)
+# nginx-4   nginx:1.22  ← Updated (ordinal >= 3)
+
+# Test canary pods (3 and 4)
+# If good, update partition to 0 to update all
+kubectl patch statefulset nginx -p '{"spec":{"updateStrategy":{"rollingUpdate":{"partition":0}}}}'</code></pre>
+                </div>
+
+                <h2>🗃️ Real-World Example: MongoDB Replica Set</h2>
+
+                <p>Let's deploy a production-ready MongoDB replica set using StatefulSets.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Step 1: Create StorageClass</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: kubernetes.io/aws-ebs  # Change based on your cloud
+parameters:
+  type: gp3
+  encrypted: "true"
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+kubectl apply -f storageclass.yaml</code></pre>
+
+                    <p><strong>Step 2: Create Headless Service</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># mongodb-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  labels:
+    app: mongodb
+spec:
+  clusterIP: None
+  selector:
+    app: mongodb
+  ports:
+  - port: 27017
+    name: mongodb
+
+kubectl apply -f mongodb-service.yaml</code></pre>
+
+                    <p><strong>Step 3: Create StatefulSet</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># mongodb-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  serviceName: mongodb
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:5.0
+        command:
+        - mongod
+        - "--replSet"
+        - rs0
+        - "--bind_ip_all"
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        volumeMounts:
+        - name: data
+          mountPath: /data/db
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        livenessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 10Gi
+
+kubectl apply -f mongodb-statefulset.yaml</code></pre>
+
+                    <p><strong>Step 4: Initialize Replica Set</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Wait for all pods to be ready
+kubectl wait --for=condition=ready pod -l app=mongodb --timeout=300s
+
+# Connect to mongodb-0
+kubectl exec -it mongodb-0 -- mongo
+
+# Inside mongo shell, initialize replica set
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongodb-0.mongodb.default.svc.cluster.local:27017" },
+    { _id: 1, host: "mongodb-1.mongodb.default.svc.cluster.local:27017" },
+    { _id: 2, host: "mongodb-2.mongodb.default.svc.cluster.local:27017" }
+  ]
+})
+
+# Check replica set status
+rs.status()
+
+# Output shows:
+# - mongodb-0 is PRIMARY
+# - mongodb-1 is SECONDARY
+# - mongodb-2 is SECONDARY
+
+exit</code></pre>
+
+                    <p><strong>Step 5: Test Replication</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Connect to PRIMARY (mongodb-0)
+kubectl exec -it mongodb-0 -- mongo
+
+# Create database and insert data
+use testdb
+db.users.insert({ name: "Alice", age: 30 })
+db.users.insert({ name: "Bob", age: 25 })
+db.users.find()
+
+exit
+
+# Connect to SECONDARY (mongodb-1)
+kubectl exec -it mongodb-1 -- mongo
+
+# Enable reading from secondary
+rs.slaveOk()
+
+# Verify data is replicated
+use testdb
+db.users.find()
+# Output: { name: "Alice", age: 30 }, { name: "Bob", age: 25 }
+# ✅ Data replicated successfully!
+
+exit</code></pre>
+
+                    <p><strong>Step 6: Test Failover</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Delete the PRIMARY pod
+kubectl delete pod mongodb-0
+
+# Watch replica set elect new primary
+kubectl exec -it mongodb-1 -- mongo --eval "rs.status()" | grep stateStr
+
+# One of the secondaries becomes PRIMARY
+# mongodb-0 will be recreated and join as SECONDARY
+
+# Verify data still accessible
+kubectl exec -it mongodb-1 -- mongo --eval "use testdb; db.users.find()"
+# ✅ Data still available!</code></pre>
+                </div>
+
+                <h2>📨 Real-World Example: Kafka Cluster</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># kafka-statefulset.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+spec:
+  clusterIP: None
+  selector:
+    app: kafka
+  ports:
+  - port: 9092
+    name: kafka
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+spec:
+  serviceName: kafka-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: confluentinc/cp-kafka:7.0.0
+        ports:
+        - containerPort: 9092
+          name: kafka
+        env:
+        - name: KAFKA_BROKER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: "zookeeper:2181"
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: "PLAINTEXT://$(POD_NAME).kafka-headless:9092"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/kafka/data
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+  
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 20Gi
+
+kubectl apply -f kafka-statefulset.yaml
+
+# Each Kafka broker gets:
+# - Stable name: kafka-0, kafka-1, kafka-2
+# - Stable DNS: kafka-0.kafka-headless.default.svc.cluster.local
+# - Unique storage: data-kafka-0, data-kafka-1, data-kafka-2</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting StatefulSets</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Pod Stuck in Pending</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods
+# NAME      READY   STATUS    RESTARTS   AGE
+# nginx-0   1/1     Running   0          5m
+# nginx-1   0/1     Pending   0          5m  ← Stuck!</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check pod events
+kubectl describe pod nginx-1
+
+# Common causes:
+# - PVC not bound (no available PV)
+# - Insufficient resources
+# - Node selector not matching any nodes
+# - Previous pod (nginx-0) not ready yet</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check PVC status
+kubectl get pvc
+
+# If PVC pending, check PV availability
+kubectl get pv
+
+# Check if previous pod is ready
+kubectl get pod nginx-0
+# Must be Running and Ready before nginx-1 starts
+
+# Check node resources
+kubectl describe nodes | grep -A 5 "Allocated resources"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: Pod Won't Terminate</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl delete pod nginx-2
+# Pod stuck in Terminating state for minutes</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check pod status
+kubectl describe pod nginx-2
+
+# Common causes:
+# - Finalizers preventing deletion
+# - Volume unmount issues
+# - Application not responding to SIGTERM</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Wait for graceful termination (default 30s)
+# If still stuck, force delete
+kubectl delete pod nginx-2 --grace-period=0 --force
+
+# Check for finalizers
+kubectl get pod nginx-2 -o yaml | grep finalizers
+
+# Remove finalizers if needed
+kubectl patch pod nginx-2 -p '{"metadata":{"finalizers":null}}'</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: PVC Not Binding to Pod</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pvc
+# NAME          STATUS    VOLUME   CAPACITY
+# www-nginx-0   Pending            ← Not bound!</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check PVC details
+kubectl describe pvc www-nginx-0
+
+# Common causes:
+# - No PV available
+# - StorageClass doesn't exist
+# - Insufficient storage capacity
+# - Access mode mismatch</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check StorageClass exists
+kubectl get storageclass
+
+# Check if dynamic provisioning is working
+kubectl get pv
+
+# Create PV manually if needed
+# Or fix StorageClass configuration</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 4: Data Loss After Scale Down/Up</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Scaled down StatefulSet, then scaled back up, but data is gone.</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check if PVCs still exist
+kubectl get pvc
+
+# If PVCs were deleted, data is lost
+# This happens if you deleted the StatefulSet with --cascade=orphan</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Prevention:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># PVCs are NOT deleted when scaling down
+# They ARE deleted when deleting StatefulSet (unless using --cascade=orphan)
+
+# To preserve PVCs when deleting StatefulSet:
+kubectl delete statefulset nginx --cascade=orphan
+
+# This deletes StatefulSet but keeps pods and PVCs
+
+# Or delete StatefulSet normally but keep PVCs
+kubectl delete statefulset nginx
+# PVCs remain, manually delete if needed:
+# kubectl delete pvc www-nginx-0 www-nginx-1 www-nginx-2</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 5: DNS Not Resolving</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>nslookup nginx-0.nginx
+# Server:    10.96.0.10
+# Address:   10.96.0.10:53
+# ** server can't find nginx-0.nginx: NXDOMAIN</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check if headless service exists
+kubectl get service nginx
+
+# Check if service is headless (clusterIP: None)
+kubectl get service nginx -o yaml | grep clusterIP
+
+# Check if serviceName in StatefulSet matches service name
+kubectl get statefulset nginx -o yaml | grep serviceName</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Ensure headless service exists
+kubectl get service nginx
+
+# Ensure serviceName matches
+kubectl get statefulset nginx -o jsonpath='{.spec.serviceName}'
+
+# Use full FQDN
+nslookup nginx-0.nginx.default.svc.cluster.local
+
+# Check CoreDNS is working
+kubectl get pods -n kube-system -l k8s-app=kube-dns</code></pre>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">StatefulSet Design Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Always use headless service:</strong> Required for stable network identity</li>
+                        <li>✅ <strong>Set appropriate resource limits:</strong> Prevent resource starvation</li>
+                        <li>✅ <strong>Use volumeClaimTemplates:</strong> Automatic PVC creation per pod</li>
+                        <li>✅ <strong>Implement health checks:</strong> Liveness and readiness probes</li>
+                        <li>✅ <strong>Use RollingUpdate strategy:</strong> Safer than OnDelete for most cases</li>
+                        <li>✅ <strong>Test failover scenarios:</strong> Ensure application handles pod restarts</li>
+                        <li>✅ <strong>Monitor pod ordering:</strong> Ensure sequential startup works correctly</li>
+                        <li>✅ <strong>Plan for storage growth:</strong> Use expandable StorageClasses</li>
+                        <li>✅ <strong>Document DNS names:</strong> Applications need to know pod DNS patterns</li>
+                        <li>✅ <strong>Use init containers:</strong> For setup tasks before main container starts</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Storage Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use appropriate StorageClass:</strong> Match performance requirements</li>
+                        <li>✅ <strong>Set reclaim policy to Retain:</strong> Prevent accidental data loss</li>
+                        <li>✅ <strong>Enable volume expansion:</strong> Allow growing storage without downtime</li>
+                        <li>✅ <strong>Backup regularly:</strong> Use volume snapshots or application backups</li>
+                        <li>✅ <strong>Monitor storage usage:</strong> Set up alerts for capacity</li>
+                        <li>✅ <strong>Test restore procedures:</strong> Ensure backups actually work</li>
+                        <li>✅ <strong>Clean up orphaned PVCs:</strong> After scaling down or deleting StatefulSet</li>
+                        <li>✅ <strong>Use encryption:</strong> Enable encryption at rest for sensitive data</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Operational Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Start with small replica count:</strong> Test with 1-3 replicas first</li>
+                        <li>✅ <strong>Scale gradually:</strong> Add one replica at a time</li>
+                        <li>✅ <strong>Use partition for canary:</strong> Test updates on subset of pods</li>
+                        <li>✅ <strong>Monitor during updates:</strong> Watch for issues during rolling updates</li>
+                        <li>✅ <strong>Have rollback plan:</strong> Know how to revert to previous version</li>
+                        <li>✅ <strong>Document recovery procedures:</strong> Clear runbooks for disasters</li>
+                        <li>✅ <strong>Use pod disruption budgets:</strong> Prevent too many pods down at once</li>
+                        <li>✅ <strong>Test in staging first:</strong> Never test StatefulSet changes in production</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 When to Use StatefulSets</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">✅ Use StatefulSets for:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Databases:</strong> MySQL, PostgreSQL, MongoDB, Cassandra</li>
+                        <li><strong>Message Queues:</strong> Kafka, RabbitMQ, NATS</li>
+                        <li><strong>Distributed Systems:</strong> Elasticsearch, Zookeeper, etcd</li>
+                        <li><strong>Caching:</strong> Redis cluster, Memcached</li>
+                        <li><strong>Any application requiring:</strong>
+                            <ul>
+                                <li>Stable network identity</li>
+                                <li>Persistent storage per instance</li>
+                                <li>Ordered deployment/scaling</li>
+                                <li>Unique configuration per instance</li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">❌ Don't Use StatefulSets for:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Stateless applications:</strong> Use Deployments instead</li>
+                        <li><strong>Simple web servers:</strong> Unless they need persistent storage</li>
+                        <li><strong>Batch jobs:</strong> Use Jobs or CronJobs</li>
+                        <li><strong>When you don't need:</strong>
+                            <ul>
+                                <li>Stable network identity</li>
+                                <li>Ordered operations</li>
+                                <li>Persistent storage per pod</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2>📊 Monitoring StatefulSets</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Get StatefulSet status
+kubectl get statefulset
+
+# Detailed StatefulSet info
+kubectl describe statefulset nginx
+
+# Watch pod creation/deletion
+kubectl get pods -w -l app=nginx
+
+# Check rollout status
+kubectl rollout status statefulset/nginx
+
+# View rollout history
+kubectl rollout history statefulset/nginx
+
+# Check PVC status
+kubectl get pvc -l app=nginx
+
+# Monitor resource usage (requires metrics-server)
+kubectl top pods -l app=nginx
+
+# Get events related to StatefulSet
+kubectl get events --field-selector involvedObject.name=nginx
+
+# Check pod readiness
+kubectl get pods -l app=nginx -o custom-columns=NAME:.metadata.name,READY:.status.conditions[?(@.type=="Ready")].status
+
+# Export StatefulSet configuration
+kubectl get statefulset nginx -o yaml > nginx-statefulset-backup.yaml</code></pre>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>StatefulSets provide stable identities</strong> for stateful applications</li>
+                        <li>✅ <strong>Pods have predictable names</strong> (app-0, app-1, app-2)</li>
+                        <li>✅ <strong>Each pod gets unique persistent storage</strong> via volumeClaimTemplates</li>
+                        <li>✅ <strong>Headless services enable</strong> stable DNS names per pod</li>
+                        <li>✅ <strong>Pods are created/deleted sequentially</strong> in order</li>
+                        <li>✅ <strong>Scaling is ordered</strong> - one pod at a time</li>
+                        <li>✅ <strong>Updates happen in reverse order</strong> (highest ordinal first)</li>
+                        <li>✅ <strong>PVCs persist</strong> even when pods are deleted</li>
+                        <li>✅ <strong>Use for databases, queues, and clusters</strong></li>
+                        <li>✅ <strong>Test thoroughly</strong> before using in production</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand StatefulSets, you're ready to learn about <strong>DaemonSets and Jobs</strong> - specialized workload types for running pods on every node and batch processing!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about DaemonSets and Jobs?</h3>
+                    <a href="12-daemonsets-jobs.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #12: DaemonSets and Jobs →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

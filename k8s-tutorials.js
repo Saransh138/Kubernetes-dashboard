@@ -187,8 +187,10 @@ const k8sTutorials = [
             'Persistent storage guarantees'
         ],
         handsOn: 'Deploy a MongoDB cluster using StatefulSets',
-        readTime: '28 min',
-        difficulty: 'intermediate'
+        readTime: '50 min',
+        difficulty: 'intermediate',
+        url: 'tutorials/11-statefulsets.html',
+        status: 'available'
     },
     {
         id: 12,
