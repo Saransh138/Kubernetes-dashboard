@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Best Practices in Kubernetes | K8s Tutorial #16</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🔒</div>
+                <h1 class="post-title">Security Best Practices in Kubernetes</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #16 of 20</span>
+                    <span><i class="fas fa-signal"></i> Advanced</span>
+                    <span><i class="far fa-clock"></i> 55 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Kubernetes security fundamentals</li>
+                    <li>Pod Security Standards (PSS)</li>
+                    <li>Service Accounts and RBAC basics</li>
+                    <li>Role and ClusterRole permissions</li>
+                    <li>RoleBinding and ClusterRoleBinding</li>
+                    <li>Network Policies for pod isolation</li>
+                    <li>Secrets management best practices</li>
+                    <li>Image security and scanning</li>
+                    <li>Security contexts and capabilities</li>
+                    <li>Real-world security scenarios</li>
+                </ul>
+
+                <h2>🤔 The Problem: Kubernetes Security Challenges</h2>
+
+                <p>Kubernetes is powerful but complex. Without proper security, your cluster is vulnerable to attacks.</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Without Security Best Practices:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Privilege escalation:</strong> Pods running as root with full access</li>
+                        <li><strong>Lateral movement:</strong> Compromised pod can access other pods</li>
+                        <li><strong>Data breaches:</strong> Secrets exposed in plain text</li>
+                        <li><strong>Unauthorized access:</strong> Anyone can deploy/delete resources</li>
+                        <li><strong>Container breakout:</strong> Escape to host system</li>
+                        <li><strong>Network exposure:</strong> All pods can talk to each other</li>
+                        <li><strong>Malicious images:</strong> Running untrusted container images</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ With Security Best Practices:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Least privilege:</strong> Pods run with minimal permissions</li>
+                        <li><strong>Network isolation:</strong> Pods only communicate when allowed</li>
+                        <li><strong>RBAC enforcement:</strong> Users have specific, limited permissions</li>
+                        <li><strong>Secrets encryption:</strong> Sensitive data properly protected</li>
+                        <li><strong>Image verification:</strong> Only trusted images deployed</li>
+                        <li><strong>Security policies:</strong> Automated enforcement of security standards</li>
+                        <li><strong>Audit logging:</strong> Track all cluster activities</li>
+                    </ul>
+                </div>
+
+                <h2>🔐 Security Layers in Kubernetes</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Security Layers                               │
+│                                                                   │
+│  1. Authentication                                               │
+│     ├─ Who are you?                                             │
+│     ├─ Service Accounts, Users, Groups                          │
+│     └─ Certificates, Tokens, OIDC                               │
+│                                                                   │
+│  2. Authorization (RBAC)                                         │
+│     ├─ What can you do?                                         │
+│     ├─ Roles, ClusterRoles                                      │
+│     └─ RoleBindings, ClusterRoleBindings                        │
+│                                                                   │
+│  3. Admission Control                                            │
+│     ├─ Should this be allowed?                                  │
+│     ├─ Pod Security Standards                                   │
+│     └─ Validating/Mutating Webhooks                             │
+│                                                                   │
+│  4. Pod Security                                                 │
+│     ├─ How should pods run?                                     │
+│     ├─ Security Contexts                                        │
+│     └─ Capabilities, SELinux, AppArmor                          │
+│                                                                   │
+│  5. Network Security                                             │
+│     ├─ Who can talk to whom?                                    │
+│     ├─ Network Policies                                         │
+│     └─ Service Mesh (Istio, Linkerd)                            │
+│                                                                   │
+│  6. Secrets Management                                           │
+│     ├─ How to store sensitive data?                             │
+│     ├─ Kubernetes Secrets                                       │
+│     └─ External Secrets (Vault, AWS Secrets Manager)            │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>🛡️ Pod Security Standards</h2>
+
+                <p>Pod Security Standards (PSS) define three levels of security policies for pods.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">1. Privileged (Unrestricted)</h3>
+                    <p><strong>Level:</strong> No restrictions</p>
+                    <ul style="line-height: 2;">
+                        <li>Allows all capabilities</li>
+                        <li>Can run as root</li>
+                        <li>Can access host resources</li>
+                        <li><strong>Use case:</strong> System-level workloads only</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">2. Baseline (Minimally Restrictive)</h3>
+                    <p><strong>Level:</strong> Prevents known privilege escalations</p>
+                    <ul style="line-height: 2;">
+                        <li>No privileged containers</li>
+                        <li>No host namespaces (hostNetwork, hostPID, hostIPC)</li>
+                        <li>No host paths</li>
+                        <li><strong>Use case:</strong> Most applications</li>
+                    </ul>
+
+                    <h3 style="color: #90cdf4; margin-top: 20px;">3. Restricted (Highly Restrictive)</h3>
+                    <p><strong>Level:</strong> Follows pod hardening best practices</p>
+                    <ul style="line-height: 2;">
+                        <li>Must run as non-root</li>
+                        <li>Must drop all capabilities</li>
+                        <li>Read-only root filesystem</li>
+                        <li>No privilege escalation</li>
+                        <li><strong>Use case:</strong> Security-critical applications</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Enforcing Pod Security Standards</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Label namespace with security level
+kubectl label namespace my-namespace \
+  pod-security.kubernetes.io/enforce=restricted \
+  pod-security.kubernetes.io/audit=restricted \
+  pod-security.kubernetes.io/warn=restricted
+
+# Three modes:
+# - enforce: Reject pods that violate
+# - audit: Log violations (don't reject)
+# - warn: Show warning to user (don't reject)
+
+# Check namespace labels
+kubectl get namespace my-namespace -o yaml | grep pod-security</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example: Restricted Pod</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># restricted-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: restricted-pod
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 2000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: app
+    image: nginx:1.21
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+    volumeMounts:
+    - name: cache
+      mountPath: /var/cache/nginx
+    - name: run
+      mountPath: /var/run
+  volumes:
+  - name: cache
+    emptyDir: {}
+  - name: run
+    emptyDir: {}
+
+kubectl apply -f restricted-pod.yaml</code></pre>
+                </div>
+
+                <h2>👤 Service Accounts</h2>
+
+                <p>Service Accounts provide an identity for processes running in pods.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Key Concepts</h3>
+                    <ul style="line-height: 2;">
+                        <li><strong>Default SA:</strong> Every namespace has a "default" service account</li>
+                        <li><strong>Auto-mounted:</strong> Token automatically mounted in pods</li>
+                        <li><strong>RBAC:</strong> Service accounts can be granted permissions</li>
+                        <li><strong>Namespace-scoped:</strong> Each SA belongs to one namespace</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create service account
+kubectl create serviceaccount my-app-sa
+
+# View service accounts
+kubectl get serviceaccounts
+
+# Create pod with specific service account
+# pod-with-sa.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app
+spec:
+  serviceAccountName: my-app-sa
+  containers:
+  - name: app
+    image: nginx:1.21
+
+kubectl apply -f pod-with-sa.yaml
+
+# Check which SA the pod is using
+kubectl get pod my-app -o jsonpath='{.spec.serviceAccountName}'
+
+# Disable auto-mounting of SA token (more secure)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secure-app
+spec:
+  serviceAccountName: my-app-sa
+  automountServiceAccountToken: false
+  containers:
+  - name: app
+    image: nginx:1.21</code></pre>
+                </div>
+
+                <h2>🔑 RBAC (Role-Based Access Control)</h2>
+
+                <p>RBAC controls who can do what in your cluster.</p>
+
+                <h3 style="color: #667eea;">RBAC Components</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Component</th>
+                                <th style="padding: 15px; text-align: left;">Scope</th>
+                                <th style="padding: 15px; text-align: left;">Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Role</strong></td>
+                                <td style="padding: 15px;">Namespace</td>
+                                <td style="padding: 15px;">Define permissions in a namespace</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>ClusterRole</strong></td>
+                                <td style="padding: 15px;">Cluster-wide</td>
+                                <td style="padding: 15px;">Define permissions across cluster</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>RoleBinding</strong></td>
+                                <td style="padding: 15px;">Namespace</td>
+                                <td style="padding: 15px;">Grant Role to users/SAs</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>ClusterRoleBinding</strong></td>
+                                <td style="padding: 15px;">Cluster-wide</td>
+                                <td style="padding: 15px;">Grant ClusterRole to users/SAs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Example 1: Read-Only Role</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pod-reader-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: default
+rules:
+- apiGroups: [""]  # "" indicates core API group
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+kubectl apply -f pod-reader-role.yaml
+
+# Bind role to service account
+# pod-reader-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: my-app-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+
+kubectl apply -f pod-reader-binding.yaml
+
+# Test permissions
+kubectl auth can-i list pods --as=system:serviceaccount:default:my-app-sa
+# Output: yes
+
+kubectl auth can-i delete pods --as=system:serviceaccount:default:my-app-sa
+# Output: no</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 2: Deployment Manager Role</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># deployment-manager-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployment-manager
+  namespace: production
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+
+kubectl apply -f deployment-manager-role.yaml
+
+# Bind to user
+# deployment-manager-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployment-manager-binding
+  namespace: production
+subjects:
+- kind: User
+  name: jane@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: deployment-manager
+  apiGroup: rbac.authorization.k8s.io
+
+kubectl apply -f deployment-manager-binding.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 3: ClusterRole for Cluster-Wide Access</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># cluster-viewer-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-viewer
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+
+kubectl apply -f cluster-viewer-role.yaml
+
+# Bind to service account across all namespaces
+# cluster-viewer-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-viewer-binding
+subjects:
+- kind: ServiceAccount
+  name: monitoring-sa
+  namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: cluster-viewer
+  apiGroup: rbac.authorization.k8s.io
+
+kubectl apply -f cluster-viewer-binding.yaml</code></pre>
+                </div>
+
+                <h2>🌐 Network Policies</h2>
+
+                <p>Network Policies control traffic flow between pods, acting as a firewall for your cluster.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Key Concepts</h3>
+                    <ul style="line-height: 2;">
+                        <li><strong>Default behavior:</strong> All pods can communicate with each other</li>
+                        <li><strong>Whitelist approach:</strong> Once a NetworkPolicy exists, only allowed traffic passes</li>
+                        <li><strong>Pod selector:</strong> Policies apply to pods matching labels</li>
+                        <li><strong>Ingress/Egress:</strong> Control incoming and outgoing traffic</li>
+                        <li><strong>CNI requirement:</strong> Requires CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave)</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Example 4: Deny All Traffic</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># deny-all.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+  namespace: production
+spec:
+  podSelector: {}  # Applies to all pods in namespace
+  policyTypes:
+  - Ingress
+  - Egress
+
+kubectl apply -f deny-all.yaml
+
+# Now all pods in production namespace are isolated
+# No ingress or egress traffic allowed</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 5: Allow Specific Traffic</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># allow-frontend-to-backend.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+
+kubectl apply -f allow-frontend-to-backend.yaml
+
+# Backend pods can now receive traffic from frontend pods on port 8080</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 6: Multi-Tier Application Network Policy</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Three-tier app: frontend -> backend -> database
+
+# 1. Frontend: Allow ingress from anywhere, egress to backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-policy
+spec:
+  podSelector:
+    matchLabels:
+      tier: frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - {}  # Allow all ingress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: backend
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to:  # Allow DNS
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# 2. Backend: Allow ingress from frontend, egress to database
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-policy
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          tier: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: database
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:  # Allow DNS
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# 3. Database: Allow ingress from backend only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-policy
+spec:
+  podSelector:
+    matchLabels:
+      tier: database
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          tier: backend
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  - to:  # Allow DNS
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+kubectl apply -f multi-tier-network-policy.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 7: Namespace Isolation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Allow traffic only from same namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: namespace-isolation
+  namespace: team-a
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector: {}  # All pods in same namespace
+
+kubectl apply -f namespace-isolation.yaml
+
+# Pods in team-a can only receive traffic from other pods in team-a</code></pre>
+                </div>
+
+                <h2>🔐 Secrets Management</h2>
+
+                <p>Kubernetes Secrets store sensitive information like passwords, tokens, and keys.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Security Best Practices for Secrets</h3>
+                    <ul style="line-height: 2;">
+                        <li>✅ <strong>Enable encryption at rest:</strong> Encrypt secrets in etcd</li>
+                        <li>✅ <strong>Use RBAC:</strong> Limit who can read secrets</li>
+                        <li>✅ <strong>Don't commit secrets:</strong> Never put secrets in Git</li>
+                        <li>✅ <strong>Use external secret managers:</strong> Vault, AWS Secrets Manager</li>
+                        <li>✅ <strong>Rotate secrets regularly:</strong> Change passwords periodically</li>
+                        <li>✅ <strong>Mount as volumes:</strong> Prefer volumes over environment variables</li>
+                        <li>✅ <strong>Use immutable secrets:</strong> Prevent accidental changes</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create secret from literal
+kubectl create secret generic db-credentials \
+  --from-literal=username=admin \
+  --from-literal=password=secretpass123
+
+# Create immutable secret (cannot be changed)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+immutable: true
+data:
+  username: YWRtaW4=  # base64 encoded
+  password: c2VjcmV0cGFzczEyMw==
+
+# Use secret in pod (as volume - more secure)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-with-secret
+spec:
+  containers:
+  - name: app
+    image: myapp:1.0
+    volumeMounts:
+    - name: secret-volume
+      mountPath: /etc/secrets
+      readOnly: true
+  volumes:
+  - name: secret-volume
+    secret:
+      secretName: db-credentials
+
+# Inside pod, secrets are files:
+# /etc/secrets/username
+# /etc/secrets/password
+
+# Restrict secret access with RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["db-credentials"]  # Specific secret only
+  verbs: ["get"]</code></pre>
+                </div>
+
+                <h2>🖼️ Image Security</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Image Security Best Practices</h3>
+                    <ul style="line-height: 2;">
+                        <li>✅ <strong>Use specific tags:</strong> Never use :latest in production</li>
+                        <li>✅ <strong>Scan images:</strong> Use Trivy, Clair, or Snyk</li>
+                        <li>✅ <strong>Use minimal base images:</strong> Alpine, distroless</li>
+                        <li>✅ <strong>Sign images:</strong> Use Cosign or Notary</li>
+                        <li>✅ <strong>Private registries:</strong> Don't use public images in production</li>
+                        <li>✅ <strong>Image pull policies:</strong> Use IfNotPresent or Always</li>
+                        <li>✅ <strong>Admission controllers:</strong> Validate images before deployment</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Good: Specific version
+image: nginx:1.21.6-alpine
+
+# Bad: Latest tag
+image: nginx:latest
+
+# Create image pull secret for private registry
+kubectl create secret docker-registry regcred \
+  --docker-server=myregistry.com \
+  --docker-username=myuser \
+  --docker-password=mypassword \
+  --docker-email=myemail@example.com
+
+# Use in pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: private-image-pod
+spec:
+  imagePullSecrets:
+  - name: regcred
+  containers:
+  - name: app
+    image: myregistry.com/myapp:1.0.0
+    imagePullPolicy: IfNotPresent
+
+# Scan image with Trivy
+trivy image nginx:1.21.6-alpine</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting Security Issues</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Pod Rejected by Security Policy</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Error: pods "my-pod" is forbidden: violates PodSecurity "restricted:latest"</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Add security context:</strong> Set runAsNonRoot, drop capabilities</li>
+                        <li><strong>Use read-only filesystem:</strong> Add readOnlyRootFilesystem: true</li>
+                        <li><strong>Drop all capabilities:</strong> capabilities.drop: ["ALL"]</li>
+                        <li><strong>Check namespace policy:</strong> Verify pod-security labels</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: RBAC Permission Denied</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Error: pods is forbidden: User "system:serviceaccount:default:my-sa" 
+cannot list resource "pods" in API group "" in the namespace "default"</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check what SA can do
+kubectl auth can-i list pods --as=system:serviceaccount:default:my-sa
+
+# Check role bindings
+kubectl get rolebindings -n default
+kubectl describe rolebinding my-binding</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Create Role:</strong> Define required permissions</li>
+                        <li><strong>Create RoleBinding:</strong> Bind role to service account</li>
+                        <li><strong>Check namespace:</strong> Ensure role is in correct namespace</li>
+                        <li><strong>Use ClusterRole:</strong> If cluster-wide access needed</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: Network Policy Blocking Traffic</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Pods cannot communicate even though they should</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># List network policies
+kubectl get networkpolicies -n my-namespace
+
+# Describe policy
+kubectl describe networkpolicy my-policy
+
+# Test connectivity
+kubectl run test --image=busybox -it --rm -- wget -O- http://my-service
+
+# Check pod labels
+kubectl get pods --show-labels</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Check pod selectors:</strong> Ensure labels match</li>
+                        <li><strong>Allow DNS:</strong> Add egress rule for kube-dns</li>
+                        <li><strong>Check ports:</strong> Verify correct ports in policy</li>
+                        <li><strong>Namespace selectors:</strong> Use for cross-namespace traffic</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 4: Secret Not Found</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Error: secret "my-secret" not found</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check if secret exists
+kubectl get secrets -n my-namespace
+
+# Check secret details
+kubectl describe secret my-secret
+
+# Check RBAC permissions
+kubectl auth can-i get secrets --as=system:serviceaccount:default:my-sa</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Create secret:</strong> Ensure secret exists in correct namespace</li>
+                        <li><strong>Check name:</strong> Verify secret name matches exactly</li>
+                        <li><strong>Check namespace:</strong> Secret must be in same namespace as pod</li>
+                        <li><strong>Grant permissions:</strong> Add RBAC rules if needed</li>
+                    </ul>
+                </div>
+
+                <h2>✅ Security Best Practices Checklist</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Pod Security</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Run as non-root:</strong> Set runAsNonRoot: true</li>
+                        <li>✅ <strong>Drop capabilities:</strong> Drop all, add only what's needed</li>
+                        <li>✅ <strong>Read-only filesystem:</strong> Use readOnlyRootFilesystem</li>
+                        <li>✅ <strong>No privilege escalation:</strong> allowPrivilegeEscalation: false</li>
+                        <li>✅ <strong>Use security contexts:</strong> Set at pod and container level</li>
+                        <li>✅ <strong>Enforce Pod Security Standards:</strong> Use restricted level</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 20px;">RBAC</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Least privilege:</strong> Grant minimum permissions needed</li>
+                        <li>✅ <strong>Use service accounts:</strong> Don't use default SA</li>
+                        <li>✅ <strong>Namespace isolation:</strong> Use Roles instead of ClusterRoles</li>
+                        <li>✅ <strong>Audit regularly:</strong> Review who has what access</li>
+                        <li>✅ <strong>Disable auto-mount:</strong> Set automountServiceAccountToken: false</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 20px;">Network Security</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Default deny:</strong> Start with deny-all policy</li>
+                        <li>✅ <strong>Whitelist approach:</strong> Explicitly allow required traffic</li>
+                        <li>✅ <strong>Namespace isolation:</strong> Isolate environments</li>
+                        <li>✅ <strong>Egress control:</strong> Limit outbound connections</li>
+                        <li>✅ <strong>Allow DNS:</strong> Don't forget kube-dns access</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 20px;">Secrets & Images</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Encrypt at rest:</strong> Enable etcd encryption</li>
+                        <li>✅ <strong>Use external secrets:</strong> Vault, AWS Secrets Manager</li>
+                        <li>✅ <strong>Scan images:</strong> Use Trivy or similar tools</li>
+                        <li>✅ <strong>Specific tags:</strong> Never use :latest</li>
+                        <li>✅ <strong>Private registry:</strong> Use authenticated registries</li>
+                        <li>✅ <strong>Minimal images:</strong> Use Alpine or distroless</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 20px;">Cluster Security</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Enable audit logging:</strong> Track all API calls</li>
+                        <li>✅ <strong>Update regularly:</strong> Keep Kubernetes up to date</li>
+                        <li>✅ <strong>Secure API server:</strong> Use TLS, authentication</li>
+                        <li>✅ <strong>Network policies:</strong> Enable CNI with NetworkPolicy support</li>
+                        <li>✅ <strong>Monitor security:</strong> Use Falco, Prometheus</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Defense in depth:</strong> Multiple security layers protect cluster</li>
+                        <li>✅ <strong>Pod Security Standards:</strong> Privileged, Baseline, Restricted</li>
+                        <li>✅ <strong>RBAC controls access:</strong> Roles define permissions, bindings grant them</li>
+                        <li>✅ <strong>Service accounts for pods:</strong> Identity for processes in cluster</li>
+                        <li>✅ <strong>Network Policies isolate:</strong> Control pod-to-pod communication</li>
+                        <li>✅ <strong>Secrets need protection:</strong> Encrypt, restrict access, rotate</li>
+                        <li>✅ <strong>Image security matters:</strong> Scan, sign, use specific tags</li>
+                        <li>✅ <strong>Least privilege principle:</strong> Grant minimum permissions needed</li>
+                        <li>✅ <strong>Security is ongoing:</strong> Regular audits and updates required</li>
+                        <li>✅ <strong>Essential for production:</strong> Security cannot be an afterthought</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand Kubernetes security best practices, you're ready to learn about <strong>Monitoring and Logging</strong> - setting up comprehensive observability for your cluster!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Monitoring?</h3>
+                    <a href="17-monitoring-logging.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #17: Monitoring and Logging →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

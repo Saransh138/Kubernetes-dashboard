@@ -274,8 +274,10 @@ const k8sTutorials = [
             'Image scanning and admission controllers'
         ],
         handsOn: 'Secure a multi-tier application with proper RBAC and network policies',
-        readTime: '35 min',
-        difficulty: 'advanced'
+        readTime: '55 min',
+        difficulty: 'advanced',
+        url: 'tutorials/16-security-best-practices.html',
+        status: 'available'
     },
     {
         id: 17,
