@@ -363,7 +363,9 @@ const k8sTutorials = [
         ],
         handsOn: 'Create namespace-limited user + read-only global access',
         readTime: '50 min',
-        difficulty: 'expert'
+        difficulty: 'expert',
+        url: 'tutorials/21-rbac-deep-dive.html',
+        status: 'available'
     }
 ];
 

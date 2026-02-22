@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RBAC Deep Dive | K8s Tutorial #21</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🔐</div>
+                <h1 class="post-title">RBAC Deep Dive — Roles, ClusterRoles, and Permissions</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #21 (Bonus Expert)</span>
+                    <span><i class="fas fa-signal"></i> Expert</span>
+                    <span><i class="far fa-clock"></i> 50 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>RBAC fundamentals and architecture</li>
+                    <li>Role vs ClusterRole differences</li>
+                    <li>RoleBinding vs ClusterRoleBinding</li>
+                    <li>Service accounts and authentication</li>
+                    <li>Least privilege principle implementation</li>
+                    <li>Aggregated ClusterRoles</li>
+                    <li>Testing and auditing permissions</li>
+                    <li>Real enterprise scenarios</li>
+                    <li>Common RBAC patterns</li>
+                    <li>Troubleshooting permission issues</li>
+                </ul>
+
+                <h2>🤔 What is RBAC?</h2>
+
+                <p>Role-Based Access Control (RBAC) is a method of regulating access to resources based on the roles of individual users within an organization. In Kubernetes, RBAC determines who can perform what actions on which resources.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">RBAC Core Concepts</h3>
+                    <ol style="line-height: 2;">
+                        <li><strong>Subject:</strong> User, Group, or ServiceAccount that wants to access resources</li>
+                        <li><strong>Resource:</strong> Kubernetes objects (pods, services, deployments, etc.)</li>
+                        <li><strong>Verb:</strong> Action to perform (get, list, create, update, delete, etc.)</li>
+                        <li><strong>Role/ClusterRole:</strong> Set of permissions (rules)</li>
+                        <li><strong>RoleBinding/ClusterRoleBinding:</strong> Grants permissions to subjects</li>
+                    </ol>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    RBAC Architecture                             │
+│                                                                   │
+│  ┌──────────┐                                                    │
+│  │ Subject  │  (Who?)                                            │
+│  │          │                                                     │
+│  │ • User   │                                                     │
+│  │ • Group  │                                                     │
+│  │ • SA     │                                                     │
+│  └────┬─────┘                                                    │
+│       │                                                           │
+│       │ bound to                                                 │
+│       ▼                                                           │
+│  ┌──────────────────┐                                           │
+│  │ RoleBinding /    │  (Grants)                                 │
+│  │ ClusterRole-     │                                           │
+│  │ Binding          │                                           │
+│  └────┬─────────────┘                                           │
+│       │                                                           │
+│       │ references                                               │
+│       ▼                                                           │
+│  ┌──────────────────┐                                           │
+│  │ Role /           │  (What permissions?)                      │
+│  │ ClusterRole      │                                           │
+│  │                  │                                           │
+│  │ Rules:           │                                           │
+│  │ • apiGroups      │                                           │
+│  │ • resources      │                                           │
+│  │ • verbs          │                                           │
+│  └────┬─────────────┘                                           │
+│       │                                                           │
+│       │ applies to                                               │
+│       ▼                                                           │
+│  ┌──────────────────┐                                           │
+│  │ Resources        │  (Where?)                                 │
+│  │                  │                                           │
+│  │ • Pods           │                                           │
+│  │ • Services       │                                           │
+│  │ • Deployments    │                                           │
+│  │ • etc.           │                                           │
+│  └──────────────────┘                                           │
+│                                                                   │
+│  Example: Developer (Subject) → RoleBinding → Developer Role    │
+│           → Can create/update Pods in 'dev' namespace           │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>📋 Role vs ClusterRole</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Key Differences</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Aspect</th>
+                                <th style="padding: 15px; text-align: left;">Role</th>
+                                <th style="padding: 15px; text-align: left;">ClusterRole</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Scope</strong></td>
+                                <td style="padding: 15px;">Namespace-scoped</td>
+                                <td style="padding: 15px;">Cluster-wide</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Resources</strong></td>
+                                <td style="padding: 15px;">Namespaced resources only</td>
+                                <td style="padding: 15px;">All resources (including cluster-scoped)</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Use Case</strong></td>
+                                <td style="padding: 15px;">Team/project permissions</td>
+                                <td style="padding: 15px;">Admin, cross-namespace, cluster resources</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Examples</strong></td>
+                                <td style="padding: 15px;">Developer in 'dev' namespace</td>
+                                <td style="padding: 15px;">Cluster admin, node viewer</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Creating a Role</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># role-developer.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+  namespace: dev
+rules:
+# Allow all operations on pods
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Allow reading pod logs
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list"]
+
+# Allow exec into pods
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+
+# Allow all operations on deployments
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Allow reading services
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+
+# Allow reading configmaps and secrets
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+
+# Apply the role
+kubectl apply -f role-developer.yaml
+
+# View the role
+kubectl describe role developer -n dev</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Creating a ClusterRole</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># clusterrole-node-reader.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-reader
+rules:
+# Allow reading nodes (cluster-scoped resource)
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+# Allow reading node metrics
+- apiGroups: [""]
+  resources: ["nodes/status"]
+  verbs: ["get"]
+
+# Allow reading persistent volumes (cluster-scoped)
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["get", "list", "watch"]
+
+# Apply the cluster role
+kubectl apply -f clusterrole-node-reader.yaml
+
+# View the cluster role
+kubectl describe clusterrole node-reader</code></pre>
+                </div>
+
+
+                <h2>🔗 RoleBinding vs ClusterRoleBinding</h2>
+
+                <p>Bindings grant the permissions defined in a Role or ClusterRole to subjects (users, groups, or service accounts).</p>
+
+                <h3 style="color: #667eea;">RoleBinding Examples</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># rolebinding-developer.yaml
+# Bind Role to a User
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-binding
+  namespace: dev
+subjects:
+- kind: User
+  name: john@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Bind Role to a Group
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developers-group-binding
+  namespace: dev
+subjects:
+- kind: Group
+  name: developers
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Bind Role to a ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-sa-binding
+  namespace: dev
+subjects:
+- kind: ServiceAccount
+  name: myapp-sa
+  namespace: dev
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+# Apply bindings
+kubectl apply -f rolebinding-developer.yaml
+
+# View role bindings
+kubectl get rolebindings -n dev
+kubectl describe rolebinding developer-binding -n dev</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">ClusterRoleBinding Examples</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># clusterrolebinding-node-reader.yaml
+# Grant cluster-wide permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-reader-binding
+subjects:
+- kind: User
+  name: monitoring@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-reader
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Grant ClusterRole to ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-binding
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: cluster-monitoring
+  apiGroup: rbac.authorization.k8s.io
+
+# Apply cluster role bindings
+kubectl apply -f clusterrolebinding-node-reader.yaml
+
+# View cluster role bindings
+kubectl get clusterrolebindings
+kubectl describe clusterrolebinding node-reader-binding</code></pre>
+                </div>
+
+                <div style="background: #744210; color: #feebc8; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fbd38d; margin-top: 0;">⚠️ Important: RoleBinding with ClusterRole</h4>
+                    <p style="margin: 0;">You can bind a ClusterRole using a RoleBinding to grant permissions only within that namespace. This is useful for reusing common ClusterRoles across namespaces.</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code># Use ClusterRole 'view' but limit to 'dev' namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: dev
+subjects:
+- kind: User
+  name: jane@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole  # Note: ClusterRole, not Role
+  name: view         # Built-in ClusterRole
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+
+                <h2>👤 Service Accounts</h2>
+
+                <p>Service accounts provide an identity for processes running in pods.</p>
+
+                <h3 style="color: #667eea;">Creating and Using Service Accounts</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create service account
+kubectl create serviceaccount myapp-sa -n production
+
+# Or using YAML
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myapp-sa
+  namespace: production
+
+# Create Role for the service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: myapp-role
+  namespace: production
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+# Bind Role to ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: myapp-binding
+  namespace: production
+subjects:
+- kind: ServiceAccount
+  name: myapp-sa
+  namespace: production
+roleRef:
+  kind: Role
+  name: myapp-role
+  apiGroup: rbac.authorization.k8s.io
+
+# Use ServiceAccount in Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+  namespace: production
+spec:
+  serviceAccountName: myapp-sa
+  containers:
+  - name: myapp
+    image: myapp:v1.0.0
+
+# View service account
+kubectl get serviceaccount myapp-sa -n production -o yaml
+
+# Get service account token (for external access)
+kubectl create token myapp-sa -n production --duration=24h</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Service Account Token Projection</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Modern approach: Projected service account tokens
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+  namespace: production
+spec:
+  serviceAccountName: myapp-sa
+  containers:
+  - name: myapp
+    image: myapp:v1.0.0
+    volumeMounts:
+    - name: token
+      mountPath: /var/run/secrets/tokens
+      readOnly: true
+  volumes:
+  - name: token
+    projected:
+      sources:
+      - serviceAccountToken:
+          path: token
+          expirationSeconds: 3600  # 1 hour
+          audience: api
+
+# Access token from within pod
+cat /var/run/secrets/tokens/token
+
+# Use token to access Kubernetes API
+TOKEN=$(cat /var/run/secrets/tokens/token)
+curl -H "Authorization: Bearer $TOKEN" \
+  --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+  https://kubernetes.default.svc/api/v1/namespaces/production/pods</code></pre>
+                </div>
+
+                <h2>🎯 Common RBAC Patterns</h2>
+
+                <h3 style="color: #667eea;">Pattern 1: Read-Only Access</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ClusterRole for read-only access to all resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: read-only
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+
+# Bind to user
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-only-binding
+subjects:
+- kind: User
+  name: auditor@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: read-only
+  apiGroup: rbac.authorization.k8s.io
+
+# Or use built-in 'view' ClusterRole
+kubectl create clusterrolebinding view-all \
+  --clusterrole=view \
+  --user=viewer@example.com</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 2: Namespace Admin</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Full admin access to a specific namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-admin
+  namespace: dev
+subjects:
+- kind: User
+  name: dev-lead@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin  # Built-in admin ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+
+# Or create custom namespace admin role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: namespace-admin
+  namespace: dev
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+
+# Bind custom role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: namespace-admin-binding
+  namespace: dev
+subjects:
+- kind: User
+  name: dev-lead@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: namespace-admin
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 3: CI/CD Pipeline Access</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ServiceAccount for CI/CD
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cicd-deployer
+  namespace: production
+
+---
+# Role for deployment
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployer
+  namespace: production
+rules:
+# Manage deployments
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+# Manage services
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+# Manage configmaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+# Read secrets (but not create/delete)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+
+# View pods and logs
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Bind role to service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cicd-deployer-binding
+  namespace: production
+subjects:
+- kind: ServiceAccount
+  name: cicd-deployer
+  namespace: production
+roleRef:
+  kind: Role
+  name: deployer
+  apiGroup: rbac.authorization.k8s.io
+
+# Get token for CI/CD
+kubectl create token cicd-deployer -n production --duration=8760h  # 1 year</code></pre>
+                </div>
+
+
+                <h3 style="color: #667eea;">Pattern 4: Multi-Tenant Isolation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Team A - Full access to team-a namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: team-a-admin
+  namespace: team-a
+subjects:
+- kind: Group
+  name: team-a
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Team B - Full access to team-b namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: team-b-admin
+  namespace: team-b
+subjects:
+- kind: Group
+  name: team-b
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Both teams can view nodes (read-only cluster resources)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: teams-node-viewer
+subjects:
+- kind: Group
+  name: team-a
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: team-b
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+
+                <h2>🔍 Testing and Auditing Permissions</h2>
+
+                <h3 style="color: #667eea;">Using kubectl auth can-i</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check if current user can create pods
+kubectl auth can-i create pods -n production
+
+# Check if current user can delete deployments
+kubectl auth can-i delete deployments -n production
+
+# Check all permissions for current user
+kubectl auth can-i --list -n production
+
+# Check permissions for specific user
+kubectl auth can-i create pods -n production --as john@example.com
+
+# Check permissions for service account
+kubectl auth can-i list secrets -n production \
+  --as system:serviceaccount:production:myapp-sa
+
+# Check permissions for group
+kubectl auth can-i delete pods -n production --as-group=developers
+
+# Check all verbs for a resource
+kubectl auth can-i '*' pods -n production
+
+# Output examples:
+# yes - permission granted
+# no - permission denied
+# no - no RBAC policy matched</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Auditing RBAC Policies</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># List all roles in a namespace
+kubectl get roles -n production
+
+# List all cluster roles
+kubectl get clusterroles
+
+# List all role bindings in a namespace
+kubectl get rolebindings -n production
+
+# List all cluster role bindings
+kubectl get clusterrolebindings
+
+# Find all bindings for a specific user
+kubectl get rolebindings,clusterrolebindings -A -o json | \
+  jq -r '.items[] | select(.subjects[]?.name=="john@example.com") | 
+    "\(.metadata.namespace // "cluster"):\(.metadata.name)"'
+
+# Find all bindings for a service account
+kubectl get rolebindings,clusterrolebindings -A -o json | \
+  jq -r '.items[] | select(.subjects[]?.name=="myapp-sa") | 
+    "\(.metadata.namespace // "cluster"):\(.metadata.name)"'
+
+# Find who has cluster-admin access
+kubectl get clusterrolebindings -o json | \
+  jq -r '.items[] | select(.roleRef.name=="cluster-admin") | 
+    .subjects[]?.name'
+
+# Describe specific role
+kubectl describe role developer -n dev
+
+# Describe specific cluster role
+kubectl describe clusterrole admin
+
+# Export all RBAC policies
+kubectl get roles,rolebindings,clusterroles,clusterrolebindings -A -o yaml > rbac-backup.yaml</code></pre>
+                </div>
+
+                <h2>🏢 Enterprise Scenarios</h2>
+
+                <h3 style="color: #667eea;">Scenario 1: Developer with Limited Production Access</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Full access to dev namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-dev-admin
+  namespace: dev
+subjects:
+- kind: User
+  name: developer@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Read-only access to production
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-prod-viewer
+  namespace: production
+subjects:
+- kind: User
+  name: developer@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Can view logs in production
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: log-reader
+  namespace: production
+rules:
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-prod-logs
+  namespace: production
+subjects:
+- kind: User
+  name: developer@example.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: log-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Scenario 2: SRE with Elevated Privileges</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># SRE ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sre
+rules:
+# Full access to all namespaced resources
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+
+# Can view and manage nodes
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+
+# Can drain and cordon nodes
+- apiGroups: [""]
+  resources: ["nodes/status"]
+  verbs: ["update", "patch"]
+
+# Can manage persistent volumes
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["*"]
+
+# Can view and manage cluster-level resources
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]
+
+# Cannot delete namespaces (safety)
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Bind to SRE group
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sre-binding
+subjects:
+- kind: Group
+  name: sre-team
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: sre
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Scenario 3: Monitoring System Access</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Prometheus ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+
+---
+# ClusterRole for Prometheus
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+# Read all pods, services, endpoints
+- apiGroups: [""]
+  resources: ["nodes", "nodes/metrics", "services", "endpoints", "pods"]
+  verbs: ["get", "list", "watch"]
+
+# Read all deployments, statefulsets, daemonsets
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+
+# Read ingresses
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+
+# Read config maps (for service discovery)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get"]
+
+# Access metrics endpoints
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+
+---
+# Bind ClusterRole to ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: prometheus
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+
+                <h2>🔧 Aggregated ClusterRoles</h2>
+
+                <p>Aggregated ClusterRoles combine multiple ClusterRoles using label selectors.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Parent aggregated ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-aggregate
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      rbac.example.com/aggregate-to-monitoring: "true"
+rules: []  # Rules are automatically filled
+
+---
+# Child ClusterRole 1: Pod monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-pods
+  labels:
+    rbac.example.com/aggregate-to-monitoring: "true"
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Child ClusterRole 2: Node monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-nodes
+  labels:
+    rbac.example.com/aggregate-to-monitoring: "true"
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "nodes/metrics"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Child ClusterRole 3: Service monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-services
+  labels:
+    rbac.example.com/aggregate-to-monitoring: "true"
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+
+# The monitoring-aggregate ClusterRole now includes all rules
+# from the child ClusterRoles
+
+# Bind aggregated role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: monitoring-binding
+subjects:
+- kind: ServiceAccount
+  name: monitoring-sa
+  namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: monitoring-aggregate
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+
+
+                <h2>🛡️ Least Privilege Principle</h2>
+
+                <p>Always grant the minimum permissions necessary for a task.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Best Practices</h3>
+                    <ol style="line-height: 2;">
+                        <li><strong>Start with no permissions:</strong> Grant only what's needed</li>
+                        <li><strong>Use specific resources:</strong> Avoid wildcards (*) when possible</li>
+                        <li><strong>Limit verbs:</strong> Don't grant 'delete' unless necessary</li>
+                        <li><strong>Namespace scope:</strong> Use Roles instead of ClusterRoles when possible</li>
+                        <li><strong>Regular audits:</strong> Review and remove unused permissions</li>
+                        <li><strong>Separate concerns:</strong> Different roles for different tasks</li>
+                    </ol>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># ❌ BAD: Too permissive
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bad-role
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+
+# ✅ GOOD: Specific permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: good-role
+  namespace: production
+rules:
+# Only what's needed for the application
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["app-config"]  # Specific resource
+  verbs: ["get"]
+
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["app-secret"]
+  verbs: ["get"]
+
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]  # No create/delete
+
+# ❌ BAD: Wildcard verbs
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["*"]
+
+# ✅ GOOD: Specific verbs
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "update", "patch"]  # No delete
+
+# ❌ BAD: Cluster-wide when namespace would work
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bad-binding
+subjects:
+- kind: User
+  name: developer@example.com
+roleRef:
+  kind: ClusterRole
+  name: admin
+
+# ✅ GOOD: Namespace-scoped
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: good-binding
+  namespace: dev
+subjects:
+- kind: User
+  name: developer@example.com
+roleRef:
+  kind: ClusterRole
+  name: edit</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting RBAC Issues</h2>
+
+                <h3 style="color: #667eea;">Common Issues and Solutions</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 1: "Forbidden" Error</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Error message:
+# Error from server (Forbidden): pods is forbidden: 
+# User "john@example.com" cannot list resource "pods" in API group "" in the namespace "production"
+
+# Diagnosis:
+# 1. Check if user has any permissions
+kubectl auth can-i list pods -n production --as john@example.com
+
+# 2. Check existing role bindings
+kubectl get rolebindings -n production -o wide
+kubectl get clusterrolebindings -o wide
+
+# 3. Check what permissions user has
+kubectl auth can-i --list -n production --as john@example.com
+
+# Solution:
+# Create appropriate role and binding
+kubectl create role pod-reader --verb=get,list,watch --resource=pods -n production
+kubectl create rolebinding john-pod-reader \
+  --role=pod-reader \
+  --user=john@example.com \
+  -n production</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 2: ServiceAccount Not Working</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Pod can't access Kubernetes API
+
+# Diagnosis:
+# 1. Check if ServiceAccount exists
+kubectl get serviceaccount myapp-sa -n production
+
+# 2. Check if pod is using the ServiceAccount
+kubectl get pod myapp -n production -o jsonpath='{.spec.serviceAccountName}'
+
+# 3. Check if ServiceAccount has permissions
+kubectl auth can-i list pods -n production \
+  --as system:serviceaccount:production:myapp-sa
+
+# 4. Check role bindings
+kubectl get rolebindings,clusterrolebindings -A -o json | \
+  jq -r '.items[] | select(.subjects[]?.name=="myapp-sa")'
+
+# Solution:
+# Ensure ServiceAccount is bound to a role
+kubectl create rolebinding myapp-sa-binding \
+  --role=myapp-role \
+  --serviceaccount=production:myapp-sa \
+  -n production</code></pre>
+                </div>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">Issue 3: Permissions Work in One Namespace But Not Another</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># User can access dev but not production
+
+# Diagnosis:
+# 1. Check RoleBindings in both namespaces
+kubectl get rolebindings -n dev
+kubectl get rolebindings -n production
+
+# 2. Check if using ClusterRoleBinding (applies everywhere)
+kubectl get clusterrolebindings
+
+# 3. Verify permissions in each namespace
+kubectl auth can-i list pods -n dev --as john@example.com
+kubectl auth can-i list pods -n production --as john@example.com
+
+# Solution:
+# RoleBindings are namespace-scoped, create one for production
+kubectl create rolebinding john-production \
+  --clusterrole=view \
+  --user=john@example.com \
+  -n production</code></pre>
+                </div>
+
+                <h2>📊 Built-in ClusterRoles</h2>
+
+                <p>Kubernetes provides several built-in ClusterRoles for common use cases.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">ClusterRole</th>
+                                <th style="padding: 15px; text-align: left;">Description</th>
+                                <th style="padding: 15px; text-align: left;">Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>cluster-admin</strong></td>
+                                <td style="padding: 15px;">Full cluster access</td>
+                                <td style="padding: 15px;">Cluster administrators</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>admin</strong></td>
+                                <td style="padding: 15px;">Full namespace access</td>
+                                <td style="padding: 15px;">Namespace administrators</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>edit</strong></td>
+                                <td style="padding: 15px;">Read/write in namespace</td>
+                                <td style="padding: 15px;">Developers</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>view</strong></td>
+                                <td style="padding: 15px;">Read-only in namespace</td>
+                                <td style="padding: 15px;">Viewers, auditors</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>system:*</strong></td>
+                                <td style="padding: 15px;">System components</td>
+                                <td style="padding: 15px;">Internal use only</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># View built-in ClusterRoles
+kubectl get clusterroles
+
+# Describe a built-in ClusterRole
+kubectl describe clusterrole view
+kubectl describe clusterrole edit
+kubectl describe clusterrole admin
+kubectl describe clusterrole cluster-admin
+
+# Use built-in ClusterRoles
+# Grant cluster-admin to user (full access)
+kubectl create clusterrolebinding admin-user \
+  --clusterrole=cluster-admin \
+  --user=admin@example.com
+
+# Grant namespace admin
+kubectl create rolebinding namespace-admin \
+  --clusterrole=admin \
+  --user=lead@example.com \
+  -n production
+
+# Grant edit access (can modify resources)
+kubectl create rolebinding developer \
+  --clusterrole=edit \
+  --user=dev@example.com \
+  -n dev
+
+# Grant view access (read-only)
+kubectl create rolebinding viewer \
+  --clusterrole=view \
+  --user=viewer@example.com \
+  -n production</code></pre>
+                </div>
+
+                <h2>✅ RBAC Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Least privilege:</strong> Grant minimum permissions necessary</li>
+                        <li>✅ <strong>Use namespaces:</strong> Isolate teams and projects</li>
+                        <li>✅ <strong>Prefer Roles over ClusterRoles:</strong> Limit scope when possible</li>
+                        <li>✅ <strong>Use built-in roles:</strong> Leverage view, edit, admin ClusterRoles</li>
+                        <li>✅ <strong>Service accounts for apps:</strong> Don't use default SA</li>
+                        <li>✅ <strong>Groups over users:</strong> Manage teams, not individuals</li>
+                        <li>✅ <strong>Avoid wildcards:</strong> Be specific with resources and verbs</li>
+                        <li>✅ <strong>Regular audits:</strong> Review permissions quarterly</li>
+                        <li>✅ <strong>Test permissions:</strong> Use kubectl auth can-i</li>
+                        <li>✅ <strong>Document roles:</strong> Clear descriptions and use cases</li>
+                        <li>✅ <strong>Separate concerns:</strong> Different roles for different tasks</li>
+                        <li>✅ <strong>Version control:</strong> Store RBAC configs in Git</li>
+                        <li>✅ <strong>Automate with GitOps:</strong> Manage RBAC declaratively</li>
+                        <li>✅ <strong>Monitor access:</strong> Enable audit logging</li>
+                        <li>✅ <strong>Rotate credentials:</strong> Regular token rotation for SAs</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>RBAC components:</strong> Subject, Resource, Verb, Role, Binding</li>
+                        <li>✅ <strong>Role:</strong> Namespace-scoped permissions</li>
+                        <li>✅ <strong>ClusterRole:</strong> Cluster-wide permissions</li>
+                        <li>✅ <strong>RoleBinding:</strong> Grants Role/ClusterRole in a namespace</li>
+                        <li>✅ <strong>ClusterRoleBinding:</strong> Grants ClusterRole cluster-wide</li>
+                        <li>✅ <strong>ServiceAccounts:</strong> Identity for pods and applications</li>
+                        <li>✅ <strong>Built-in roles:</strong> cluster-admin, admin, edit, view</li>
+                        <li>✅ <strong>Testing:</strong> kubectl auth can-i for permission checks</li>
+                        <li>✅ <strong>Least privilege:</strong> Grant minimum necessary permissions</li>
+                        <li>✅ <strong>Aggregation:</strong> Combine ClusterRoles with labels</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Congratulations on completing this expert-level RBAC deep dive! You now have the knowledge to implement enterprise-grade access control in Kubernetes.</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Continue Your Kubernetes Journey</h3>
+                    <p style="font-size: 1.1rem; margin: 20px 0;">Explore more advanced topics and keep building your Kubernetes expertise!</p>
+                    <a href="../k8s-tutorials.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        ← Back to All Tutorials
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
