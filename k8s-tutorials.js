@@ -153,8 +153,10 @@ const k8sTutorials = [
             'Network policies basics'
         ],
         handsOn: 'Create multi-tenant environment with resource boundaries',
-        readTime: '20 min',
-        difficulty: 'intermediate'
+        readTime: '45 min',
+        difficulty: 'intermediate',
+        url: 'tutorials/09-namespaces-quotas.html',
+        status: 'available'
     },
     {
         id: 10,

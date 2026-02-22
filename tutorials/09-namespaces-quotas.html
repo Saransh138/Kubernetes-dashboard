@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namespaces and Resource Quotas - Organizing Your Cluster | K8s Tutorial #9</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🏢</div>
+                <h1 class="post-title">Namespaces and Resource Quotas — Organizing Your Kubernetes Cluster</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #9 of 20</span>
+                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                    <span><i class="far fa-clock"></i> 45 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>What are Namespaces and why they matter</li>
+                    <li>Default Kubernetes namespaces explained</li>
+                    <li>Creating and managing namespaces</li>
+                    <li>Resource Quotas for limiting resource consumption</li>
+                    <li>LimitRanges for default resource constraints</li>
+                    <li>Multi-tenancy patterns and isolation</li>
+                    <li>Namespace-scoped vs cluster-scoped resources</li>
+                    <li>Best practices for organizing large clusters</li>
+                    <li>Network Policies for namespace isolation</li>
+                    <li>Real-world multi-environment setup</li>
+                </ul>
+
+                <h2>🤔 The Problem: Cluster Organization and Resource Management</h2>
+
+                <p>As your Kubernetes cluster grows, you face several challenges:</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Without Namespaces:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Name Conflicts:</strong> Two teams can't create a service named "api"</li>
+                        <li><strong>No Isolation:</strong> All resources visible to everyone</li>
+                        <li><strong>Resource Chaos:</strong> One team can consume all cluster resources</li>
+                        <li><strong>No Organization:</strong> Hundreds of pods mixed together</li>
+                        <li><strong>Difficult Management:</strong> Can't apply policies to specific groups</li>
+                        <li><strong>Security Issues:</strong> No way to restrict access by team/project</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ With Namespaces:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Logical Separation:</strong> Organize resources by team, project, or environment</li>
+                        <li><strong>Name Scoping:</strong> Same names in different namespaces</li>
+                        <li><strong>Resource Quotas:</strong> Limit CPU, memory, storage per namespace</li>
+                        <li><strong>Access Control:</strong> RBAC policies per namespace</li>
+                        <li><strong>Network Isolation:</strong> Control traffic between namespaces</li>
+                        <li><strong>Easy Management:</strong> Delete entire environment with one command</li>
+                    </ul>
+                </div>
+
+                <h2>📦 What are Namespaces?</h2>
+
+                <p>Namespaces are virtual clusters within a physical Kubernetes cluster. They provide a scope for names and a way to divide cluster resources.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of namespaces like folders on your computer. Just as folders organize files, namespaces organize Kubernetes resources. You can have a file named "config.yaml" in multiple folders, and similarly, you can have a pod named "api" in multiple namespaces.</p>
+                </div>
+
+
+                <h3 style="color: #667eea;">Visual Representation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.9rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster                            │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Namespace: production                                  │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐            │    │
+│  │  │ Pod: api │  │ Pod: web │  │ Pod: db  │            │    │
+│  │  └──────────┘  └──────────┘  └──────────┘            │    │
+│  │  Service: api-service                                  │    │
+│  │  Quota: 10 CPU, 20Gi Memory                           │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Namespace: staging                                     │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐            │    │
+│  │  │ Pod: api │  │ Pod: web │  │ Pod: db  │            │    │
+│  │  └──────────┘  └──────────┘  └──────────┘            │    │
+│  │  Service: api-service  (same name, different NS!)     │    │
+│  │  Quota: 5 CPU, 10Gi Memory                            │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Namespace: development                                 │    │
+│  │  ┌──────────┐  ┌──────────┐                           │    │
+│  │  │ Pod: api │  │ Pod: web │                           │    │
+│  │  └──────────┘  └──────────┘                           │    │
+│  │  Service: api-service                                  │    │
+│  │  Quota: 2 CPU, 5Gi Memory                             │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Namespace: kube-system (System components)             │    │
+│  │  ┌──────────────┐  ┌──────────────┐                   │    │
+│  │  │ kube-dns     │  │ metrics-srv  │                   │    │
+│  │  └──────────────┘  └──────────────┘                   │    │
+│  └────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>🏠 Default Kubernetes Namespaces</h2>
+
+                <p>Every Kubernetes cluster comes with several pre-created namespaces:</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">1. default</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Purpose:</strong> Default namespace for resources without a specified namespace</li>
+                        <li><strong>Usage:</strong> When you create resources without specifying namespace</li>
+                        <li><strong>Best Practice:</strong> Don't use for production - create specific namespaces</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">2. kube-system</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Purpose:</strong> System components created by Kubernetes</li>
+                        <li><strong>Contains:</strong> kube-dns, kube-proxy, metrics-server, etc.</li>
+                        <li><strong>Warning:</strong> ⚠️ Don't deploy your apps here!</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">3. kube-public</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Purpose:</strong> Publicly readable resources (even without authentication)</li>
+                        <li><strong>Usage:</strong> Cluster information, public ConfigMaps</li>
+                        <li><strong>Rarely Used:</strong> Most clusters don't use this much</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">4. kube-node-lease</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Purpose:</strong> Node heartbeat information (Kubernetes 1.14+)</li>
+                        <li><strong>Contains:</strong> Lease objects for node health checks</li>
+                        <li><strong>Performance:</strong> Improves node heartbeat performance</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">View Default Namespaces</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># List all namespaces
+kubectl get namespaces
+# or short form
+kubectl get ns
+
+# Output:
+# NAME              STATUS   AGE
+# default           Active   10d
+# kube-node-lease   Active   10d
+# kube-public       Active   10d
+# kube-system       Active   10d
+
+# Get detailed information
+kubectl describe namespace default
+
+# View resources in a specific namespace
+kubectl get all -n kube-system
+
+# View resources in all namespaces
+kubectl get pods --all-namespaces
+# or short form
+kubectl get pods -A</code></pre>
+                </div>
+
+                <h2>🔧 Creating and Managing Namespaces</h2>
+
+                <h3 style="color: #667eea;">Method 1: Using kubectl</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create a namespace
+kubectl create namespace development
+
+# Or shorter
+kubectl create ns staging
+
+# Verify creation
+kubectl get ns
+
+# Output:
+# NAME              STATUS   AGE
+# default           Active   10d
+# development       Active   5s
+# staging           Active   2s
+# kube-system       Active   10d</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Method 2: Using YAML</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># namespace-production.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    environment: production
+    team: platform
+  annotations:
+    description: "Production environment for customer-facing applications"
+    contact: "platform-team@company.com"
+
+kubectl apply -f namespace-production.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Working with Namespaces</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create a pod in a specific namespace
+kubectl run nginx --image=nginx -n development
+
+# Get pods in a namespace
+kubectl get pods -n development
+
+# Get all resources in a namespace
+kubectl get all -n development
+
+# Describe a namespace
+kubectl describe ns development
+
+# Delete a namespace (deletes all resources in it!)
+kubectl delete namespace development
+
+# Set default namespace for current context
+kubectl config set-context --current --namespace=staging
+
+# Now all commands use staging namespace by default
+kubectl get pods  # Gets pods from staging
+
+# Switch back to default
+kubectl config set-context --current --namespace=default</code></pre>
+                </div>
+
+                <h2>📊 Resource Quotas</h2>
+
+                <p>Resource Quotas limit the total amount of resources that can be consumed in a namespace. This prevents one team or application from monopolizing cluster resources.</p>
+
+                <h3 style="color: #667eea;">What Can Be Limited?</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Compute Resources</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>CPU:</strong> Total CPU requests and limits</li>
+                        <li><strong>Memory:</strong> Total memory requests and limits</li>
+                        <li><strong>Ephemeral Storage:</strong> Total ephemeral storage requests and limits</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Storage Resources</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>PersistentVolumeClaims:</strong> Total storage requests</li>
+                        <li><strong>Storage Classes:</strong> Limit per storage class</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Object Count</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Pods:</strong> Maximum number of pods</li>
+                        <li><strong>Services:</strong> Maximum number of services</li>
+                        <li><strong>ConfigMaps:</strong> Maximum number of ConfigMaps</li>
+                        <li><strong>Secrets:</strong> Maximum number of Secrets</li>
+                        <li><strong>PVCs:</strong> Maximum number of PersistentVolumeClaims</li>
+                        <li><strong>LoadBalancers:</strong> Maximum number of LoadBalancer services</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Creating Resource Quotas</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Example 1: Basic Compute Quota</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># quota-compute.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quota
+  namespace: development
+spec:
+  hard:
+    # CPU limits
+    requests.cpu: "10"      # Total CPU requests: 10 cores
+    limits.cpu: "20"        # Total CPU limits: 20 cores
+    
+    # Memory limits
+    requests.memory: 20Gi   # Total memory requests: 20Gi
+    limits.memory: 40Gi     # Total memory limits: 40Gi
+
+kubectl apply -f quota-compute.yaml
+
+# View quota
+kubectl get resourcequota -n development
+# NAME            AGE   REQUEST                                      LIMIT
+# compute-quota   5s    requests.cpu: 0/10, requests.memory: 0/20Gi  limits.cpu: 0/20, limits.memory: 0/40Gi
+
+# Detailed view
+kubectl describe resourcequota compute-quota -n development</code></pre>
+
+                    <p><strong>Example 2: Object Count Quota</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># quota-objects.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: object-quota
+  namespace: development
+spec:
+  hard:
+    # Object counts
+    pods: "50"                          # Max 50 pods
+    services: "10"                      # Max 10 services
+    services.loadbalancers: "2"         # Max 2 LoadBalancer services
+    services.nodeports: "5"             # Max 5 NodePort services
+    configmaps: "20"                    # Max 20 ConfigMaps
+    secrets: "20"                       # Max 20 Secrets
+    persistentvolumeclaims: "10"        # Max 10 PVCs
+    replicationcontrollers: "10"        # Max 10 ReplicationControllers
+    deployments.apps: "15"              # Max 15 Deployments
+    statefulsets.apps: "5"              # Max 5 StatefulSets
+
+kubectl apply -f quota-objects.yaml</code></pre>
+
+                    <p><strong>Example 3: Storage Quota</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># quota-storage.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: storage-quota
+  namespace: development
+spec:
+  hard:
+    # Total storage across all PVCs
+    requests.storage: "100Gi"
+    
+    # Limit by storage class
+    fast-ssd.storageclass.storage.k8s.io/requests.storage: "50Gi"
+    standard.storageclass.storage.k8s.io/requests.storage: "200Gi"
+    
+    # Number of PVCs
+    persistentvolumeclaims: "20"
+
+kubectl apply -f quota-storage.yaml</code></pre>
+
+                    <p><strong>Example 4: Comprehensive Production Quota</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># quota-production.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: production-quota
+  namespace: production
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "50"
+    requests.memory: 100Gi
+    limits.cpu: "100"
+    limits.memory: 200Gi
+    
+    # Storage
+    requests.storage: "500Gi"
+    persistentvolumeclaims: "50"
+    
+    # Object counts
+    pods: "200"
+    services: "50"
+    services.loadbalancers: "10"
+    configmaps: "100"
+    secrets: "100"
+    
+    # Workload controllers
+    deployments.apps: "50"
+    statefulsets.apps: "20"
+    jobs.batch: "100"
+    cronjobs.batch: "20"
+
+kubectl apply -f quota-production.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Testing Resource Quotas</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create a namespace with quota
+kubectl create namespace test-quota
+
+# Apply compute quota
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: test-quota
+  namespace: test-quota
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    pods: "5"
+EOF
+
+# Try to create a pod WITHOUT resource requests (will fail!)
+kubectl run nginx --image=nginx -n test-quota
+
+# Error: failed quota: test-quota: must specify requests.cpu,requests.memory
+
+# Create pod WITH resource requests (will succeed)
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: test-quota
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+EOF
+
+# Check quota usage
+kubectl describe resourcequota test-quota -n test-quota
+
+# Output:
+# Name:            test-quota
+# Namespace:       test-quota
+# Resource         Used   Hard
+# --------         ----   ----
+# limits.cpu       1      4
+# limits.memory    1Gi    4Gi
+# pods             1      5
+# requests.cpu     500m   2
+# requests.memory  512Mi  2Gi</code></pre>
+                </div>
+
+                <h2>📏 LimitRanges</h2>
+
+                <p>LimitRanges set default resource requests/limits and enforce min/max constraints for containers and pods in a namespace.</p>
+
+                <h3 style="color: #667eea;">Why LimitRanges?</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Problem:</strong> With ResourceQuotas, users must specify resource requests/limits. But what if they forget or don't know what values to use?</p>
+                    <p><strong>Solution:</strong> LimitRanges provide:</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Default values:</strong> Automatic requests/limits if not specified</li>
+                        <li><strong>Min/Max constraints:</strong> Prevent too small or too large requests</li>
+                        <li><strong>Ratio enforcement:</strong> Ensure limits aren't too far from requests</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Creating LimitRanges</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Example 1: Container Limits</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># limitrange-container.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: container-limits
+  namespace: development
+spec:
+  limits:
+  - type: Container
+    # Default values (if not specified)
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    
+    # Maximum values
+    max:
+      cpu: "2"
+      memory: "2Gi"
+    
+    # Minimum values
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+    
+    # Max limit/request ratio
+    maxLimitRequestRatio:
+      cpu: "4"      # Limit can be max 4x the request
+      memory: "2"   # Limit can be max 2x the request
+
+kubectl apply -f limitrange-container.yaml</code></pre>
+
+                    <p><strong>Example 2: Pod Limits</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># limitrange-pod.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: pod-limits
+  namespace: development
+spec:
+  limits:
+  - type: Pod
+    # Maximum total resources for a pod
+    max:
+      cpu: "4"
+      memory: "8Gi"
+    
+    # Minimum total resources for a pod
+    min:
+      cpu: "200m"
+      memory: "256Mi"
+
+kubectl apply -f limitrange-pod.yaml</code></pre>
+
+                    <p><strong>Example 3: PVC Limits</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># limitrange-pvc.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: pvc-limits
+  namespace: development
+spec:
+  limits:
+  - type: PersistentVolumeClaim
+    max:
+      storage: "50Gi"   # Max PVC size
+    min:
+      storage: "1Gi"    # Min PVC size
+
+kubectl apply -f limitrange-pvc.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Testing LimitRanges</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create namespace with LimitRange
+kubectl create namespace test-limits
+
+# Apply LimitRange
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: test-limits
+  namespace: test-limits
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    max:
+      cpu: "2"
+      memory: "2Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+EOF
+
+# Create pod WITHOUT specifying resources
+kubectl run nginx --image=nginx -n test-limits
+
+# Check the pod - it will have default values!
+kubectl get pod nginx -n test-limits -o yaml | grep -A 10 resources:
+
+# Output:
+#   resources:
+#     limits:
+#       cpu: 500m
+#       memory: 512Mi
+#     requests:
+#       cpu: 250m
+#       memory: 256Mi
+
+# Try to create pod with too much CPU (will fail!)
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: big-pod
+  namespace: test-limits
+spec:
+  containers:
+  - name: app
+    image: nginx
+    resources:
+      requests:
+        cpu: "3"  # Exceeds max of 2!
+EOF
+
+# Error: Pod "big-pod" is invalid: spec.containers[0].resources.requests: Invalid value: "3": must be less than or equal to cpu limit</code></pre>
+                </div>
+
+                <h2>🏗️ Complete Multi-Environment Setup</h2>
+
+                <p>Let's create a realistic multi-environment setup with proper resource management.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Step 1: Create Namespaces</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># namespaces.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    environment: production
+    tier: critical
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+  labels:
+    environment: staging
+    tier: non-critical
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+  labels:
+    environment: development
+    tier: non-critical
+
+kubectl apply -f namespaces.yaml</code></pre>
+
+                    <p><strong>Step 2: Apply Resource Quotas</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># quotas.yaml
+---
+# Production: Generous resources
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: production-quota
+  namespace: production
+spec:
+  hard:
+    requests.cpu: "50"
+    requests.memory: 100Gi
+    limits.cpu: "100"
+    limits.memory: 200Gi
+    pods: "200"
+    services: "50"
+    persistentvolumeclaims: "50"
+    requests.storage: "500Gi"
+---
+# Staging: Moderate resources
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: staging-quota
+  namespace: staging
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "100"
+    services: "25"
+    persistentvolumeclaims: "25"
+    requests.storage: "200Gi"
+---
+# Development: Limited resources
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: development-quota
+  namespace: development
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"
+    services: "15"
+    persistentvolumeclaims: "15"
+    requests.storage: "100Gi"
+
+kubectl apply -f quotas.yaml</code></pre>
+
+                    <p><strong>Step 3: Apply LimitRanges</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># limitranges.yaml
+---
+# Production: Higher defaults
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: production-limits
+  namespace: production
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "1"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "500m"
+      memory: "512Mi"
+    max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+---
+# Staging: Moderate defaults
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: staging-limits
+  namespace: staging
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    max:
+      cpu: "2"
+      memory: "4Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+---
+# Development: Lower defaults
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: development-limits
+  namespace: development
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "250m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    max:
+      cpu: "1"
+      memory: "2Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+
+kubectl apply -f limitranges.yaml</code></pre>
+
+                    <p><strong>Step 4: Deploy Application to Each Environment</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># app-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: production  # Change for each environment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.21
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+  namespace: production
+spec:
+  selector:
+    app: myapp
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+
+# Deploy to all environments
+kubectl apply -f app-deployment.yaml
+kubectl apply -f app-deployment.yaml -n staging
+kubectl apply -f app-deployment.yaml -n development</code></pre>
+
+                    <p><strong>Step 5: Verify Resource Usage</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check quota usage in all environments
+kubectl get resourcequota -A
+
+# Detailed view for production
+kubectl describe resourcequota production-quota -n production
+
+# Output:
+# Name:                   production-quota
+# Namespace:              production
+# Resource                Used    Hard
+# --------                ----    ----
+# limits.cpu              3       100
+# limits.memory           3Gi     200Gi
+# persistentvolumeclaims  0       50
+# pods                    3       200
+# requests.cpu            1500m   50
+# requests.memory         1536Mi  100Gi
+# requests.storage        0       500Gi
+# services                1       50
+
+# Check all pods across environments
+kubectl get pods -A | grep myapp</code></pre>
+                </div>
+
+                <h2>🔒 Namespace Isolation with Network Policies</h2>
+
+                <p>By default, pods in different namespaces can communicate. Network Policies provide isolation.</p>
+
+                <h3 style="color: #667eea;">Default Deny All Traffic</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># networkpolicy-deny-all.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+  namespace: production
+spec:
+  podSelector: {}  # Applies to all pods in namespace
+  policyTypes:
+  - Ingress
+  - Egress
+
+kubectl apply -f networkpolicy-deny-all.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Allow Traffic Within Namespace</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># networkpolicy-allow-same-namespace.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {}  # Allow from any pod in same namespace
+  egress:
+  - to:
+    - podSelector: {}  # Allow to any pod in same namespace
+
+kubectl apply -f networkpolicy-allow-same-namespace.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Allow Specific Cross-Namespace Communication</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># networkpolicy-allow-from-staging.yaml
+# Allow production pods to receive traffic from staging namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-staging
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: api  # Only for api pods
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          environment: staging
+    ports:
+    - protocol: TCP
+      port: 8080
+
+kubectl apply -f networkpolicy-allow-from-staging.yaml</code></pre>
+                </div>
+
+                <h2>🎯 Namespace-Scoped vs Cluster-Scoped Resources</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Namespace-Scoped Resources</h4>
+                    <p>These resources belong to a namespace:</p>
+                    <ul style="line-height: 2;">
+                        <li>Pods, Deployments, StatefulSets, DaemonSets</li>
+                        <li>Services, Endpoints</li>
+                        <li>ConfigMaps, Secrets</li>
+                        <li>PersistentVolumeClaims</li>
+                        <li>ServiceAccounts</li>
+                        <li>Roles, RoleBindings</li>
+                        <li>NetworkPolicies</li>
+                        <li>ResourceQuotas, LimitRanges</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Cluster-Scoped Resources</h4>
+                    <p>These resources are cluster-wide (no namespace):</p>
+                    <ul style="line-height: 2;">
+                        <li>Nodes</li>
+                        <li>Namespaces</li>
+                        <li>PersistentVolumes</li>
+                        <li>StorageClasses</li>
+                        <li>ClusterRoles, ClusterRoleBindings</li>
+                        <li>CustomResourceDefinitions (CRDs)</li>
+                        <li>IngressClasses</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Check Resource Scope</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># List all API resources with their scope
+kubectl api-resources
+
+# Output (partial):
+# NAME                    SHORTNAMES   NAMESPACED   KIND
+# pods                    po           true         Pod
+# services                svc          true         Service
+# deployments             deploy       true         Deployment
+# nodes                   no           false        Node
+# namespaces              ns           false        Namespace
+# persistentvolumes       pv           false        PersistentVolume
+# storageclasses          sc           false        StorageClass
+
+# List only namespaced resources
+kubectl api-resources --namespaced=true
+
+# List only cluster-scoped resources
+kubectl api-resources --namespaced=false</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting Namespaces and Quotas</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Pod Creation Fails Due to Quota</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl run nginx --image=nginx -n development
+# Error: failed quota: compute-quota: must specify requests.cpu,requests.memory</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check if ResourceQuota exists
+kubectl get resourcequota -n development
+
+# Check quota details
+kubectl describe resourcequota -n development</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Option 1:</strong> Add LimitRange to provide defaults</li>
+                        <li><strong>Option 2:</strong> Specify resources in pod spec</li>
+                        <li><strong>Option 3:</strong> Remove or adjust quota</li>
+                    </ul>
+
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Solution 1: Add LimitRange
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+  namespace: development
+spec:
+  limits:
+  - type: Container
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    default:
+      cpu: "200m"
+      memory: "256Mi"
+EOF
+
+# Now pod creation works
+kubectl run nginx --image=nginx -n development</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: Quota Exceeded</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl scale deployment myapp --replicas=10 -n development
+# Error: exceeded quota: compute-quota, requested: pods=10, used: pods=5, limited: pods=5</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check current usage
+kubectl describe resourcequota compute-quota -n development
+
+# Output:
+# Resource  Used  Hard
+# --------  ----  ----
+# pods      5     5     # At limit!</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Option 1: Increase quota
+kubectl edit resourcequota compute-quota -n development
+# Change pods: "5" to pods: "15"
+
+# Option 2: Delete unused resources
+kubectl delete pod <unused-pod> -n development
+
+# Option 3: Request more resources from cluster admin</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: Can't Access Resources in Another Namespace</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods
+# Shows pods in current namespace only
+
+# Can't see production pods
+kubectl get pods | grep production
+# No results</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Specify namespace explicitly
+kubectl get pods -n production
+
+# View all namespaces
+kubectl get pods --all-namespaces
+# or
+kubectl get pods -A
+
+# Check current namespace context
+kubectl config view --minify | grep namespace:
+
+# Change default namespace
+kubectl config set-context --current --namespace=production</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 4: Service DNS Not Working Across Namespaces</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># From development namespace, trying to reach production service
+curl http://api-service
+# Error: Could not resolve host</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solution:</h4>
+                    <p>Use fully qualified domain name (FQDN):</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Service DNS format:
+# <service-name>.<namespace>.svc.cluster.local
+
+# Correct way to access service in another namespace
+curl http://api-service.production.svc.cluster.local
+
+# Short form (if in same cluster)
+curl http://api-service.production
+
+# Within same namespace, short name works
+curl http://api-service</code></pre>
+
+                    <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>💡 DNS Resolution Rules:</strong>
+                        <ul style="margin-top: 10px;">
+                            <li><strong>Same namespace:</strong> service-name</li>
+                            <li><strong>Different namespace:</strong> service-name.namespace</li>
+                            <li><strong>Full FQDN:</strong> service-name.namespace.svc.cluster.local</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 5: Can't Delete Namespace</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl delete namespace development
+# Namespace stuck in "Terminating" state</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check namespace status
+kubectl get namespace development -o yaml
+
+# Look for finalizers
+kubectl get namespace development -o jsonpath='{.spec.finalizers}'</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check for resources still in namespace
+kubectl api-resources --verbs=list --namespaced -o name | \
+  xargs -n 1 kubectl get --show-kind --ignore-not-found -n development
+
+# Force delete by removing finalizers (use with caution!)
+kubectl get namespace development -o json | \
+  jq '.spec.finalizers = []' | \
+  kubectl replace --raw "/api/v1/namespaces/development/finalize" -f -
+
+# Or edit directly
+kubectl edit namespace development
+# Remove the finalizers section and save</code></pre>
+                </div>
+
+                <h2>📊 Monitoring and Reporting</h2>
+
+                <h3 style="color: #667eea;">Useful Commands for Monitoring</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># View all namespaces with labels
+kubectl get namespaces --show-labels
+
+# Get resource usage across all namespaces (requires metrics-server)
+kubectl top pods -A
+kubectl top nodes
+
+# View quota usage for all namespaces
+kubectl get resourcequota -A
+
+# Detailed quota report
+for ns in $(kubectl get ns -o jsonpath='{.items[*].metadata.name}'); do
+  echo "=== Namespace: $ns ==="
+  kubectl describe resourcequota -n $ns 2>/dev/null
+  echo ""
+done
+
+# Count resources per namespace
+kubectl get pods -A --no-headers | awk '{print $1}' | sort | uniq -c
+
+# Find namespaces without quotas
+kubectl get namespaces -o json | \
+  jq -r '.items[] | select(.metadata.name != "kube-system" and .metadata.name != "kube-public") | .metadata.name' | \
+  while read ns; do
+    if ! kubectl get resourcequota -n $ns 2>/dev/null | grep -q .; then
+      echo "No quota in namespace: $ns"
+    fi
+  done
+
+# Export namespace configuration
+kubectl get namespace production -o yaml > production-namespace.yaml
+kubectl get resourcequota -n production -o yaml > production-quota.yaml
+kubectl get limitrange -n production -o yaml > production-limits.yaml</code></pre>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Namespace Organization</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use namespaces for logical separation:</strong> By environment, team, or project</li>
+                        <li>✅ <strong>Don't use 'default' namespace:</strong> Create specific namespaces</li>
+                        <li>✅ <strong>Use consistent naming:</strong> production, staging, development</li>
+                        <li>✅ <strong>Add labels and annotations:</strong> Document purpose and ownership</li>
+                        <li>✅ <strong>One namespace per environment:</strong> Separate prod, staging, dev</li>
+                        <li>✅ <strong>Consider team-based namespaces:</strong> For large organizations</li>
+                        <li>✅ <strong>Use namespace prefixes:</strong> team-frontend, team-backend</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Resource Quota Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Always set quotas:</strong> Prevent resource exhaustion</li>
+                        <li>✅ <strong>Set both requests and limits:</strong> Control min and max usage</li>
+                        <li>✅ <strong>Monitor quota usage:</strong> Set up alerts at 80% usage</li>
+                        <li>✅ <strong>Review quotas regularly:</strong> Adjust based on actual usage</li>
+                        <li>✅ <strong>Document quota decisions:</strong> Why these specific values</li>
+                        <li>✅ <strong>Use different quotas per environment:</strong> Prod gets more resources</li>
+                        <li>✅ <strong>Include object count limits:</strong> Not just compute resources</li>
+                        <li>✅ <strong>Plan for growth:</strong> Leave headroom for scaling</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">LimitRange Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Always use with ResourceQuotas:</strong> They work together</li>
+                        <li>✅ <strong>Set sensible defaults:</strong> Based on typical workload</li>
+                        <li>✅ <strong>Set min/max constraints:</strong> Prevent extreme values</li>
+                        <li>✅ <strong>Use ratio limits:</strong> Prevent limits too far from requests</li>
+                        <li>✅ <strong>Different limits per environment:</strong> Prod vs dev</li>
+                        <li>✅ <strong>Document the reasoning:</strong> Why these specific values</li>
+                        <li>✅ <strong>Test before applying:</strong> Ensure existing workloads fit</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Security Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use RBAC with namespaces:</strong> Restrict who can access what</li>
+                        <li>✅ <strong>Implement Network Policies:</strong> Isolate namespace traffic</li>
+                        <li>✅ <strong>Separate sensitive workloads:</strong> Different namespaces</li>
+                        <li>✅ <strong>Use Pod Security Standards:</strong> Per namespace policies</li>
+                        <li>✅ <strong>Audit namespace access:</strong> Regular security reviews</li>
+                        <li>✅ <strong>Limit service account permissions:</strong> Namespace-scoped</li>
+                    </ol>
+                </div>
+
+                <h2>🏢 Real-World Patterns</h2>
+
+                <h3 style="color: #667eea;">Pattern 1: Environment-Based Namespaces</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Separate production, staging, and development</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Namespaces:
+- production      (50 CPU, 100Gi RAM)
+- staging         (20 CPU, 40Gi RAM)
+- development     (10 CPU, 20Gi RAM)
+
+Benefits:
+✅ Clear separation of environments
+✅ Different resource allocations
+✅ Easy to manage lifecycle
+✅ Simple RBAC policies</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 2: Team-Based Namespaces</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Multiple teams sharing a cluster</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Namespaces:
+- team-frontend
+- team-backend
+- team-data
+- team-ml
+
+Benefits:
+✅ Team autonomy
+✅ Resource isolation per team
+✅ Clear ownership
+✅ Independent deployments</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 3: Application-Based Namespaces</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Large applications with multiple components</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Namespaces:
+- ecommerce-frontend
+- ecommerce-backend
+- ecommerce-database
+- ecommerce-analytics
+
+Benefits:
+✅ Logical component separation
+✅ Independent scaling
+✅ Easier troubleshooting
+✅ Granular access control</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Pattern 4: Hybrid Approach</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Combine environment and team/app separation</p>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Namespaces:
+- prod-frontend
+- prod-backend
+- staging-frontend
+- staging-backend
+- dev-frontend
+- dev-backend
+
+Benefits:
+✅ Clear environment separation
+✅ Component isolation
+✅ Flexible resource allocation
+✅ Scalable for growth</code></pre>
+                </div>
+
+                <h2>📋 Complete Example: Multi-Tenant Cluster</h2>
+
+                <p>Let's set up a complete multi-tenant cluster with proper isolation.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Scenario:</strong> Three teams (frontend, backend, data) sharing a cluster</p>
+
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># multi-tenant-setup.yaml
+---
+# Team Frontend Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-frontend
+  labels:
+    team: frontend
+    tier: application
+---
+# Team Frontend Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: frontend-quota
+  namespace: team-frontend
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "100"
+    services: "20"
+    persistentvolumeclaims: "20"
+---
+# Team Frontend LimitRange
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: frontend-limits
+  namespace: team-frontend
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    max:
+      cpu: "2"
+      memory: "4Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+---
+# Team Frontend Network Policy (deny all by default)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: team-frontend
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Allow within namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: team-frontend
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {}
+  egress:
+  - to:
+    - podSelector: {}
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# Allow frontend to call backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-backend
+  namespace: team-frontend
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          team: backend
+    ports:
+    - protocol: TCP
+      port: 8080
+
+# Repeat similar configuration for team-backend and team-data
+
+kubectl apply -f multi-tenant-setup.yaml</code></pre>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Namespaces provide logical separation</strong> within a cluster</li>
+                        <li>✅ <strong>ResourceQuotas limit total resource consumption</strong> per namespace</li>
+                        <li>✅ <strong>LimitRanges set defaults and constraints</strong> for individual resources</li>
+                        <li>✅ <strong>Use namespaces for environments, teams, or applications</strong></li>
+                        <li>✅ <strong>Always set quotas and limits</strong> to prevent resource exhaustion</li>
+                        <li>✅ <strong>Network Policies provide namespace isolation</strong></li>
+                        <li>✅ <strong>Some resources are namespace-scoped, others cluster-scoped</strong></li>
+                        <li>✅ <strong>Use FQDN for cross-namespace service communication</strong></li>
+                        <li>✅ <strong>Monitor quota usage and adjust as needed</strong></li>
+                        <li>✅ <strong>Combine with RBAC for complete multi-tenancy</strong></li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand namespaces and resource management, you're ready to learn about <strong>Labels, Selectors, and Annotations</strong> - powerful tools for organizing and querying your Kubernetes resources!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Labels and Selectors?</h3>
+                    <a href="10-labels-selectors.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #10: Labels, Selectors, and Annotations →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
