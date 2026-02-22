@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingress - External Access to Services | K8s Tutorial #13</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🌐</div>
+                <h1 class="post-title">Ingress — External Access to Your Services</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #13 of 20</span>
+                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                    <span><i class="far fa-clock"></i> 50 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>What is Ingress and why it's needed</li>
+                    <li>Ingress vs LoadBalancer vs NodePort</li>
+                    <li>Ingress Controllers (NGINX, Traefik, HAProxy)</li>
+                    <li>Path-based and host-based routing</li>
+                    <li>TLS/SSL termination and certificates</li>
+                    <li>Ingress annotations for advanced features</li>
+                    <li>Multiple Ingress resources and rules</li>
+                    <li>Real-world examples with SSL</li>
+                    <li>Troubleshooting Ingress issues</li>
+                    <li>Best practices for production</li>
+                </ul>
+
+                <h2>🤔 The Problem: Exposing Multiple Services</h2>
+
+                <p>You have multiple services in your cluster and need to expose them to the internet. What are your options?</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Without Ingress:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>LoadBalancer per Service:</strong> Expensive! Each service needs its own cloud load balancer</li>
+                        <li><strong>NodePort:</strong> Exposes random high ports (30000-32767), not user-friendly</li>
+                        <li><strong>No SSL Termination:</strong> Each service handles SSL separately</li>
+                        <li><strong>No Path Routing:</strong> Can't route /api to one service and /web to another</li>
+                        <li><strong>No Host Routing:</strong> Can't route api.example.com and web.example.com differently</li>
+                        <li><strong>Cost:</strong> 10 services = 10 load balancers = $$$$</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ With Ingress:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Single Entry Point:</strong> One load balancer for all services</li>
+                        <li><strong>Smart Routing:</strong> Route by path (/api, /web) or host (api.example.com)</li>
+                        <li><strong>SSL Termination:</strong> Handle SSL at ingress, services use HTTP</li>
+                        <li><strong>Cost Effective:</strong> One load balancer for entire cluster</li>
+                        <li><strong>Advanced Features:</strong> Redirects, rewrites, authentication, rate limiting</li>
+                        <li><strong>Standard Ports:</strong> Use 80/443 like normal websites</li>
+                    </ul>
+                </div>
+
+                <h2>🌐 What is Ingress?</h2>
+
+                <p>Ingress is an API object that manages external access to services in a cluster, typically HTTP/HTTPS. It provides load balancing, SSL termination, and name-based virtual hosting.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of Ingress like a receptionist at a large office building. Instead of having a separate entrance for each company (service), there's one main entrance (Ingress) where the receptionist (Ingress Controller) directs visitors to the right company based on who they're looking for.</p>
+                </div>
+
+                <h3 style="color: #667eea;">Ingress Components</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>Ingress Resource:</strong> YAML definition of routing rules</li>
+                        <li><strong>Ingress Controller:</strong> Pod that implements the rules (NGINX, Traefik, etc.)</li>
+                        <li><strong>Load Balancer:</strong> Cloud LB that routes traffic to Ingress Controller</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Visual Representation</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                         Internet                                 │
+│                            │                                     │
+│                            ▼                                     │
+│                  ┌──────────────────┐                           │
+│                  │  Load Balancer   │                           │
+│                  │  (Cloud LB)      │                           │
+│                  │  IP: 1.2.3.4     │                           │
+│                  └────────┬─────────┘                           │
+│                           │                                      │
+│                           ▼                                      │
+│              ┌────────────────────────┐                         │
+│              │  Ingress Controller    │                         │
+│              │  (NGINX Pod)           │                         │
+│              └────────────┬───────────┘                         │
+│                           │                                      │
+│         ┌─────────────────┼─────────────────┐                  │
+│         │                 │                 │                  │
+│         ▼                 ▼                 ▼                  │
+│  ┌──────────┐      ┌──────────┐     ┌──────────┐             │
+│  │ Service  │      │ Service  │     │ Service  │             │
+│  │ frontend │      │ backend  │     │ api      │             │
+│  └────┬─────┘      └────┬─────┘     └────┬─────┘             │
+│       │                 │                 │                    │
+│       ▼                 ▼                 ▼                    │
+│  ┌────────┐        ┌────────┐       ┌────────┐               │
+│  │ Pods   │        │ Pods   │       │ Pods   │               │
+│  └────────┘        └────────┘       └────────┘               │
+│                                                                 │
+│  Routing Rules (Ingress Resource):                            │
+│  - example.com/          → frontend service                   │
+│  - example.com/api       → api service                        │
+│  - api.example.com       → backend service                    │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+
+                <h2>📊 Ingress vs LoadBalancer vs NodePort</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Feature</th>
+                                <th style="padding: 15px; text-align: left;">NodePort</th>
+                                <th style="padding: 15px; text-align: left;">LoadBalancer</th>
+                                <th style="padding: 15px; text-align: left;">Ingress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Port</strong></td>
+                                <td style="padding: 15px;">30000-32767</td>
+                                <td style="padding: 15px;">80, 443</td>
+                                <td style="padding: 15px;">80, 443</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Cost</strong></td>
+                                <td style="padding: 15px;">Free</td>
+                                <td style="padding: 15px;">$$ per service</td>
+                                <td style="padding: 15px;">$ (one LB)</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>SSL</strong></td>
+                                <td style="padding: 15px;">Manual</td>
+                                <td style="padding: 15px;">Manual</td>
+                                <td style="padding: 15px;">Built-in</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Routing</strong></td>
+                                <td style="padding: 15px;">None</td>
+                                <td style="padding: 15px;">None</td>
+                                <td style="padding: 15px;">Path/Host</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Use Case</strong></td>
+                                <td style="padding: 15px;">Development</td>
+                                <td style="padding: 15px;">Single service</td>
+                                <td style="padding: 15px;">Multiple services</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Production</strong></td>
+                                <td style="padding: 15px;">❌ No</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🔧 Ingress Controllers</h2>
+
+                <p>Ingress resources don't work by themselves. You need an Ingress Controller to implement the rules.</p>
+
+                <h3 style="color: #667eea;">Popular Ingress Controllers</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">1. NGINX Ingress Controller</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Most Popular:</strong> Widely used and well-documented</li>
+                        <li><strong>Features:</strong> Load balancing, SSL, rewrites, rate limiting</li>
+                        <li><strong>Performance:</strong> High performance, battle-tested</li>
+                        <li><strong>Best For:</strong> General purpose, production workloads</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">2. Traefik</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Cloud Native:</strong> Built for Kubernetes</li>
+                        <li><strong>Features:</strong> Auto SSL (Let's Encrypt), dashboard, middleware</li>
+                        <li><strong>Configuration:</strong> Dynamic, no reload needed</li>
+                        <li><strong>Best For:</strong> Microservices, automatic SSL</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">3. HAProxy Ingress</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Performance:</strong> Extremely fast</li>
+                        <li><strong>Features:</strong> Advanced load balancing algorithms</li>
+                        <li><strong>Best For:</strong> High traffic, complex routing</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">4. Cloud Provider Ingress</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>AWS ALB Ingress:</strong> Uses AWS Application Load Balancer</li>
+                        <li><strong>GCE Ingress:</strong> Uses Google Cloud Load Balancer</li>
+                        <li><strong>Azure Application Gateway:</strong> Uses Azure App Gateway</li>
+                        <li><strong>Best For:</strong> Cloud-native integration</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Installing NGINX Ingress Controller</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Using Helm (recommended)
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace
+
+# Or using kubectl
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
+
+# Wait for controller to be ready
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=120s
+
+# Get external IP
+kubectl get service -n ingress-nginx
+
+# Output:
+# NAME                                 TYPE           EXTERNAL-IP
+# ingress-nginx-controller             LoadBalancer   34.123.45.67</code></pre>
+                </div>
+
+                <h2>📝 Creating Ingress Resources</h2>
+
+                <h3 style="color: #667eea;">Example 1: Simple Path-Based Routing</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># First, create services
+kubectl create deployment web --image=nginx --port=80
+kubectl expose deployment web --port=80
+
+kubectl create deployment api --image=hashicorp/http-echo --port=5678 -- -text="API Response"
+kubectl expose deployment api --port=5678
+
+# Create Ingress
+# simple-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simple-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /web
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api
+            port:
+              number: 5678
+
+kubectl apply -f simple-ingress.yaml
+
+# Test
+INGRESS_IP=$(kubectl get ingress simple-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl http://$INGRESS_IP/web  # Returns nginx page
+curl http://$INGRESS_IP/api  # Returns "API Response"</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 2: Host-Based Routing</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># host-based-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: host-based-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: web.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
+  - host: api.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api
+            port:
+              number: 5678
+
+kubectl apply -f host-based-ingress.yaml
+
+# Test (add to /etc/hosts first)
+# 34.123.45.67 web.example.com api.example.com
+
+curl http://web.example.com  # Routes to web service
+curl http://api.example.com  # Routes to api service</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 3: Combined Path and Host Routing</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># combined-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: combined-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+  - host: admin.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: admin-panel
+            port:
+              number: 3000
+
+# Routes:
+# example.com/         → frontend service
+# example.com/api      → backend service
+# admin.example.com/   → admin-panel service</code></pre>
+                </div>
+
+                <h2>🔒 TLS/SSL Configuration</h2>
+
+                <h3 style="color: #667eea;">Creating TLS Secret</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Generate self-signed certificate (for testing)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout tls.key -out tls.crt \
+  -subj "/CN=example.com/O=example.com"
+
+# Create TLS secret
+kubectl create secret tls example-tls \
+  --cert=tls.crt \
+  --key=tls.key
+
+# Or from existing files
+kubectl create secret tls example-tls \
+  --cert=/path/to/cert.pem \
+  --key=/path/to/key.pem</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Ingress with TLS</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># tls-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - example.com
+    - www.example.com
+    secretName: example-tls
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
+
+kubectl apply -f tls-ingress.yaml
+
+# Test HTTPS
+curl https://example.com  # SSL termination at ingress
+# Traffic from ingress to service is HTTP</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Automatic SSL with Cert-Manager</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+# Create ClusterIssuer for Let's Encrypt
+# letsencrypt-issuer.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+
+kubectl apply -f letsencrypt-issuer.yaml
+
+# Ingress with automatic SSL
+# auto-ssl-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auto-ssl-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - example.com
+    secretName: example-tls-auto  # Created automatically!
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
+
+kubectl apply -f auto-ssl-ingress.yaml
+
+# Cert-manager automatically:
+# 1. Requests certificate from Let's Encrypt
+# 2. Completes HTTP-01 challenge
+# 3. Creates TLS secret
+# 4. Renews certificate before expiry</code></pre>
+
+                <h2>⚙️ Ingress Annotations</h2>
+
+                <p>Annotations add advanced features to your Ingress resources.</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Common NGINX Ingress Annotations:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: annotated-ingress
+  annotations:
+    # SSL/TLS
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    
+    # Rewrites
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    
+    # Rate Limiting
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    
+    # Authentication
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+    
+    # Custom Headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Custom-Header: value";
+    
+    # Whitelist IPs
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12"</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting Ingress</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Ingress Not Getting External IP</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get ingress
+# NAME      CLASS   HOSTS           ADDRESS   PORTS   AGE
+# my-ingress nginx  example.com     <pending> 80      5m</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li>Check Ingress Controller is running</li>
+                        <li>Verify LoadBalancer service has external IP</li>
+                        <li>Check cloud provider supports LoadBalancer</li>
+                    </ul>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods -n ingress-nginx
+kubectl get svc -n ingress-nginx</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: 404 Not Found</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li>Verify service exists and has endpoints</li>
+                        <li>Check path matches exactly</li>
+                        <li>Verify host header matches</li>
+                    </ul>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl describe ingress my-ingress
+kubectl get endpoints my-service</code></pre>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use TLS everywhere:</strong> Always enable HTTPS in production</li>
+                        <li>✅ <strong>Automate certificates:</strong> Use cert-manager for Let's Encrypt</li>
+                        <li>✅ <strong>Set resource limits:</strong> On Ingress Controller pods</li>
+                        <li>✅ <strong>Use specific hosts:</strong> Don't use wildcards in production</li>
+                        <li>✅ <strong>Monitor Ingress:</strong> Track request rates and errors</li>
+                        <li>✅ <strong>Rate limit:</strong> Protect against abuse</li>
+                        <li>✅ <strong>Use path prefixes:</strong> For better routing control</li>
+                        <li>✅ <strong>Test before deploying:</strong> Verify routing rules work</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Ingress provides single entry point</strong> for multiple services</li>
+                        <li>✅ <strong>Ingress Controller implements</strong> the routing rules</li>
+                        <li>✅ <strong>Route by path or host</strong> to different services</li>
+                        <li>✅ <strong>SSL termination at ingress</strong> simplifies service configuration</li>
+                        <li>✅ <strong>Annotations add advanced features</strong> like rate limiting</li>
+                        <li>✅ <strong>Cert-manager automates SSL</strong> certificate management</li>
+                        <li>✅ <strong>Cost effective</strong> - one load balancer for all services</li>
+                        <li>✅ <strong>Production ready</strong> with proper configuration</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand Ingress, you're ready to learn about <strong>Health Checks</strong> - implementing liveness, readiness, and startup probes to keep your applications healthy!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Health Checks?</h3>
+                    <a href="14-health-checks.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #14: Health Checks - Keeping Apps Healthy →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

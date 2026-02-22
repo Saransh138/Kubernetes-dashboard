@@ -221,8 +221,10 @@ const k8sTutorials = [
             'TLS termination'
         ],
         handsOn: 'Set up ingress with SSL certificates for multiple services',
-        readTime: '30 min',
-        difficulty: 'intermediate'
+        readTime: '50 min',
+        difficulty: 'intermediate',
+        url: 'tutorials/13-ingress.html',
+        status: 'available'
     },
     {
         id: 14,
