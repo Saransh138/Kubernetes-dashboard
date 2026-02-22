@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persistent Storage - Volumes, PVs, and PVCs | Complete Guide | K8s Tutorial #8</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">💾</div>
+                <h1 class="post-title">Persistent Storage — Volumes, PersistentVolumes, and PersistentVolumeClaims</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #8 of 20</span>
+                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                    <span><i class="far fa-clock"></i> 50 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Stateless vs Stateful applications in Kubernetes</li>
+                    <li>Container filesystem and why data is ephemeral</li>
+                    <li>Volume types and their use cases</li>
+                    <li>PersistentVolumes (PV) and PersistentVolumeClaims (PVC)</li>
+                    <li>Storage Classes and dynamic provisioning</li>
+                    <li>Access modes and reclaim policies</li>
+                    <li>Volume lifecycle and binding</li>
+                    <li>StatefulSets and persistent storage</li>
+                    <li>Backup and disaster recovery strategies</li>
+                    <li>Best practices for production storage</li>
+                </ul>
+
+                <h2>🤔 The Problem: Ephemeral Container Storage</h2>
+
+                <p>By default, containers have ephemeral (temporary) storage. When a container restarts or a pod is deleted, all data is lost.</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ What Happens Without Persistent Storage:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Deploy a database without persistent storage
+kubectl run postgres --image=postgres:14 --env="POSTGRES_PASSWORD=secret"
+
+# Create some data
+kubectl exec postgres -- psql -U postgres -c "CREATE TABLE users (id INT, name TEXT);"
+kubectl exec postgres -- psql -U postgres -c "INSERT INTO users VALUES (1, 'Alice');"
+
+# Verify data exists
+kubectl exec postgres -- psql -U postgres -c "SELECT * FROM users;"
+# Output: 1 | Alice
+
+# Pod crashes or gets deleted
+kubectl delete pod postgres
+
+# Recreate pod
+kubectl run postgres --image=postgres:14 --env="POSTGRES_PASSWORD=secret"
+
+# Try to query data
+kubectl exec postgres -- psql -U postgres -c "SELECT * FROM users;"
+# ERROR: relation "users" does not exist
+# 😱 All data is GONE!</code></pre>
+                </div>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Why Container Storage is Ephemeral:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Container Filesystem:</strong> Each container has its own writable layer</li>
+                        <li><strong>Pod Lifecycle:</strong> When pod dies, container filesystem is deleted</li>
+                        <li><strong>No Sharing:</strong> Containers in same pod can't share filesystem by default</li>
+                        <li><strong>Immutability:</strong> Containers are designed to be stateless and replaceable</li>
+                    </ul>
+                </div>
+
+                <h2>💡 Stateless vs Stateful Applications</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Stateless Applications</h4>
+                    <p>Don't store data locally. Each request is independent.</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Examples:</strong> Web servers, API gateways, load balancers</li>
+                        <li><strong>Characteristics:</strong> Can be killed and recreated without data loss</li>
+                        <li><strong>Storage Needs:</strong> Minimal - logs, temporary files</li>
+                        <li><strong>Scaling:</strong> Easy - just add more replicas</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Stateful Applications</h4>
+                    <p>Store data that must persist across restarts.</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Examples:</strong> Databases, message queues, file servers</li>
+                        <li><strong>Characteristics:</strong> Data must survive pod restarts</li>
+                        <li><strong>Storage Needs:</strong> Persistent volumes required</li>
+                        <li><strong>Scaling:</strong> Complex - data consistency matters</li>
+                    </ul>
+                </div>
+
+                <h2>📦 Kubernetes Storage Solutions</h2>
+
+                <p>Kubernetes provides multiple layers of storage abstraction:</p>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.9rem;"><code>┌─────────────────────────────────────────────────────────────┐
+│                    Storage Hierarchy                         │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │                    POD                              │    │
+│  │                                                     │    │
+│  │  ┌──────────────┐         ┌──────────────┐        │    │
+│  │  │ Container 1  │         │ Container 2  │        │    │
+│  │  │              │         │              │        │    │
+│  │  │ /data ───────┼─────────┼──────► Volume Mount  │    │
+│  │  └──────────────┘         └──────────────┘        │    │
+│  │                                  │                 │    │
+│  │                                  ▼                 │    │
+│  │                          ┌──────────────┐         │    │
+│  │                          │   Volume     │         │    │
+│  │                          │  (emptyDir,  │         │    │
+│  │                          │   hostPath,  │         │    │
+│  │                          │     PVC)     │         │    │
+│  │                          └──────┬───────┘         │    │
+│  └─────────────────────────────────┼─────────────────┘    │
+│                                    │                       │
+│                                    ▼                       │
+│                    ┌───────────────────────────┐          │
+│                    │ PersistentVolumeClaim     │          │
+│                    │ (PVC)                     │          │
+│                    │ "I need 10GB storage"     │          │
+│                    └───────────┬───────────────┘          │
+│                                │                           │
+│                                │ Binds to                  │
+│                                ▼                           │
+│                    ┌───────────────────────────┐          │
+│                    │ PersistentVolume (PV)     │          │
+│                    │ "I am 10GB on AWS EBS"    │          │
+│                    └───────────┬───────────────┘          │
+│                                │                           │
+│                                ▼                           │
+│                    ┌───────────────────────────┐          │
+│                    │ Physical Storage          │          │
+│                    │ (AWS EBS, NFS, etc.)      │          │
+│                    └───────────────────────────┘          │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>📁 Volume Types</h2>
+
+                <p>Kubernetes supports many volume types. Let's explore the most common ones:</p>
+
+                <h3 style="color: #667eea;">1. emptyDir - Temporary Storage</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Temporary storage shared between containers in a pod</p>
+                    <p><strong>Lifetime:</strong> Exists as long as pod exists (deleted when pod is deleted)</p>
+                    <p><strong>Location:</strong> Node's disk or memory (if medium: Memory)</p>
+                    
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: emptydir-pod
+spec:
+  containers:
+  - name: writer
+    image: busybox
+    command: ['sh', '-c', 'echo "Hello from writer" > /data/message.txt; sleep 3600']
+    volumeMounts:
+    - name: shared-data
+      mountPath: /data
+  
+  - name: reader
+    image: busybox
+    command: ['sh', '-c', 'while true; do cat /data/message.txt; sleep 5; done']
+    volumeMounts:
+    - name: shared-data
+      mountPath: /data
+  
+  volumes:
+  - name: shared-data
+    emptyDir: {}  # Creates empty directory on node</code></pre>
+
+                    <p style="margin-top: 15px;"><strong>Good for:</strong> Cache, temporary files, sharing data between containers</p>
+                    <p><strong>Not good for:</strong> Data that must survive pod restarts</p>
+                </div>
+
+
+                <h3 style="color: #667eea;">2. hostPath - Node's Filesystem</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Access node's filesystem (for system-level pods)</p>
+                    <p><strong>Lifetime:</strong> Survives pod restarts (data on node's disk)</p>
+                    <p><strong>Warning:</strong> ⚠️ Security risk! Pod can access node's files</p>
+                    
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 15px;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: hostpath-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - name: host-volume
+      mountPath: /usr/share/nginx/html
+  
+  volumes:
+  - name: host-volume
+    hostPath:
+      path: /data/nginx  # Path on the node
+      type: DirectoryOrCreate  # Create if doesn't exist</code></pre>
+
+                    <div style="background: #744210; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>⚠️ Warning:</strong> hostPath is tied to a specific node. If pod moves to another node, it won't see the same data. Use only for system pods (monitoring, logging agents).
+                    </div>
+                </div>
+
+                <h3 style="color: #667eea;">3. ConfigMap and Secret Volumes</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Mount configuration files and secrets</p>
+                    <p>Covered in detail in Tutorial #7 - ConfigMaps and Secrets</p>
+                </div>
+
+                <h3 style="color: #667eea;">4. PersistentVolumeClaim (PVC) - Production Storage</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use Case:</strong> Production-grade persistent storage</p>
+                    <p><strong>Lifetime:</strong> Independent of pod lifecycle</p>
+                    <p><strong>Best Practice:</strong> ✅ Use this for stateful applications!</p>
+                    <p style="margin-top: 15px;">We'll cover PVCs in detail in the next sections.</p>
+                </div>
+
+                <h2>🗄️ PersistentVolumes (PV) and PersistentVolumeClaims (PVC)</h2>
+
+                <p>The PV/PVC model separates storage provisioning from storage consumption.</p>
+
+                <h3 style="color: #667eea;">The Concept</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">PersistentVolume (PV)</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>What:</strong> A piece of storage in the cluster</li>
+                        <li><strong>Created by:</strong> Cluster administrator or dynamically provisioned</li>
+                        <li><strong>Lifecycle:</strong> Independent of any pod</li>
+                        <li><strong>Analogy:</strong> Like a hard drive in a data center</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">PersistentVolumeClaim (PVC)</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>What:</strong> A request for storage by a user</li>
+                        <li><strong>Created by:</strong> Application developer</li>
+                        <li><strong>Binds to:</strong> A PV that matches the requirements</li>
+                        <li><strong>Analogy:</strong> Like a purchase order for a hard drive</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">The Workflow</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>Step 1: Admin creates PersistentVolume
+┌─────────────────────────────────────┐
+│ PersistentVolume (PV)               │
+│ - Size: 10GB                        │
+│ - Type: AWS EBS                     │
+│ - Access: ReadWriteOnce             │
+│ - Status: Available                 │
+└─────────────────────────────────────┘
+
+Step 2: Developer creates PersistentVolumeClaim
+┌─────────────────────────────────────┐
+│ PersistentVolumeClaim (PVC)         │
+│ - Request: 5GB                      │
+│ - Access: ReadWriteOnce             │
+│ - Status: Pending                   │
+└─────────────────────────────────────┘
+
+Step 3: Kubernetes binds PVC to PV
+┌─────────────────────────────────────┐
+│ PersistentVolume (PV)               │
+│ - Size: 10GB                        │
+│ - Status: Bound ──────┐             │
+└───────────────────────┼─────────────┘
+                        │
+                        │ Binding
+                        │
+┌───────────────────────▼─────────────┐
+│ PersistentVolumeClaim (PVC)         │
+│ - Request: 5GB                      │
+│ - Status: Bound                     │
+└─────────────────────────────────────┘
+
+Step 4: Pod uses PVC
+┌─────────────────────────────────────┐
+│ Pod                                 │
+│ - Volume: my-pvc                    │
+│ - MountPath: /data                  │
+└───────────────────────────────────┬─┘
+                                    │
+                                    │ Uses
+                                    │
+┌───────────────────────────────────▼─┐
+│ PersistentVolumeClaim (PVC)         │
+│ - Bound to PV                       │
+└─────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>📝 Creating PersistentVolumes</h2>
+
+                <h3 style="color: #667eea;">Manual PV Creation (Static Provisioning)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Example 1: Local Storage PV</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pv-local.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-local
+spec:
+  capacity:
+    storage: 10Gi
+  
+  # Access modes
+  accessModes:
+    - ReadWriteOnce  # Can be mounted read-write by single node
+  
+  # What happens when PVC is deleted
+  persistentVolumeReclaimPolicy: Retain
+  
+  # Storage class (optional)
+  storageClassName: local-storage
+  
+  # Volume type and configuration
+  hostPath:
+    path: /mnt/data
+    type: DirectoryOrCreate
+
+kubectl apply -f pv-local.yaml</code></pre>
+
+                    <p><strong>Example 2: NFS PV</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pv-nfs.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-nfs
+spec:
+  capacity:
+    storage: 100Gi
+  
+  accessModes:
+    - ReadWriteMany  # Can be mounted read-write by multiple nodes
+  
+  persistentVolumeReclaimPolicy: Retain
+  
+  storageClassName: nfs
+  
+  nfs:
+    server: nfs-server.example.com
+    path: /exports/data
+
+kubectl apply -f pv-nfs.yaml</code></pre>
+
+                    <p><strong>Example 3: AWS EBS PV</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pv-aws-ebs.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-aws-ebs
+spec:
+  capacity:
+    storage: 50Gi
+  
+  accessModes:
+    - ReadWriteOnce
+  
+  persistentVolumeReclaimPolicy: Delete
+  
+  storageClassName: aws-ebs
+  
+  awsElasticBlockStore:
+    volumeID: vol-0123456789abcdef0
+    fsType: ext4
+
+kubectl apply -f pv-aws-ebs.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Access Modes Explained</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Mode</th>
+                                <th style="padding: 15px; text-align: left;">Short</th>
+                                <th style="padding: 15px; text-align: left;">Description</th>
+                                <th style="padding: 15px; text-align: left;">Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>ReadWriteOnce</strong></td>
+                                <td style="padding: 15px;"><code>RWO</code></td>
+                                <td style="padding: 15px;">Read-write by single node</td>
+                                <td style="padding: 15px;">Databases, single-instance apps</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>ReadOnlyMany</strong></td>
+                                <td style="padding: 15px;"><code>ROX</code></td>
+                                <td style="padding: 15px;">Read-only by multiple nodes</td>
+                                <td style="padding: 15px;">Shared configuration, static content</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>ReadWriteMany</strong></td>
+                                <td style="padding: 15px;"><code>RWX</code></td>
+                                <td style="padding: 15px;">Read-write by multiple nodes</td>
+                                <td style="padding: 15px;">Shared file systems, CMS</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>ReadWriteOncePod</strong></td>
+                                <td style="padding: 15px;"><code>RWOP</code></td>
+                                <td style="padding: 15px;">Read-write by single pod</td>
+                                <td style="padding: 15px;">Strict single-pod access (K8s 1.22+)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Reclaim Policies</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>What happens to PV when PVC is deleted:</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Retain:</strong> PV remains, data preserved, manual cleanup required</li>
+                        <li><strong>Delete:</strong> PV and underlying storage deleted automatically</li>
+                        <li><strong>Recycle:</strong> (Deprecated) Basic scrub (rm -rf), PV available for new claim</li>
+                    </ul>
+                </div>
+
+                <h2>📋 Creating PersistentVolumeClaims</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Basic PVC</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  # Access mode (must match PV)
+  accessModes:
+    - ReadWriteOnce
+  
+  # Storage request
+  resources:
+    requests:
+      storage: 5Gi
+  
+  # Optional: Specific storage class
+  storageClassName: local-storage
+
+kubectl apply -f pvc.yaml
+
+# Check PVC status
+kubectl get pvc
+# NAME     STATUS   VOLUME     CAPACITY   ACCESS MODES   STORAGECLASS
+# my-pvc   Bound    pv-local   10Gi       RWO            local-storage</code></pre>
+                </div>
+
+
+                <h2>🚀 Using PVCs in Pods</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Pod with PVC</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-pvc
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - name: persistent-storage
+      mountPath: /usr/share/nginx/html
+  
+  volumes:
+  - name: persistent-storage
+    persistentVolumeClaim:
+      claimName: my-pvc  # Reference to PVC
+
+kubectl apply -f pod-with-pvc.yaml
+
+# Test persistence
+kubectl exec pod-with-pvc -- sh -c 'echo "Hello Persistent World" > /usr/share/nginx/html/index.html'
+
+# Delete and recreate pod
+kubectl delete pod pod-with-pvc
+kubectl apply -f pod-with-pvc.yaml
+
+# Data still there!
+kubectl exec pod-with-pvc -- cat /usr/share/nginx/html/index.html
+# Output: Hello Persistent World</code></pre>
+                </div>
+
+                <h2>⚡ Dynamic Provisioning with StorageClasses</h2>
+
+                <p>Instead of manually creating PVs, use StorageClasses for automatic provisioning.</p>
+
+                <h3 style="color: #667eea;">What is a StorageClass?</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>A StorageClass defines:</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Provisioner:</strong> Which storage system to use (AWS EBS, GCE PD, Azure Disk, etc.)</li>
+                        <li><strong>Parameters:</strong> Storage-specific settings (type, IOPS, replication)</li>
+                        <li><strong>Reclaim Policy:</strong> What happens when PVC is deleted</li>
+                        <li><strong>Volume Binding Mode:</strong> When to provision storage</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Creating StorageClasses</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Example 1: AWS EBS StorageClass</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># storageclass-aws.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3  # General Purpose SSD
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer  # Provision when pod is scheduled
+allowVolumeExpansion: true  # Allow resizing
+
+kubectl apply -f storageclass-aws.yaml</code></pre>
+
+                    <p><strong>Example 2: GCE Persistent Disk StorageClass</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># storageclass-gce.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd  # SSD persistent disk
+  replication-type: regional-pd  # Regional replication
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+kubectl apply -f storageclass-gce.yaml</code></pre>
+
+                    <p><strong>Example 3: Azure Disk StorageClass</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># storageclass-azure.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: kubernetes.io/azure-disk
+parameters:
+  storageaccounttype: Premium_LRS  # Premium SSD
+  kind: Managed
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+kubectl apply -f storageclass-azure.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Using StorageClass with PVC</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pvc-dynamic.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd  # Use this StorageClass
+  resources:
+    requests:
+      storage: 20Gi
+
+kubectl apply -f pvc-dynamic.yaml
+
+# Kubernetes automatically:
+# 1. Creates a PV using the StorageClass provisioner
+# 2. Binds the PVC to the new PV
+# 3. No manual PV creation needed!
+
+kubectl get pvc dynamic-pvc
+# NAME          STATUS   VOLUME                                     CAPACITY
+# dynamic-pvc   Bound    pvc-abc123-def456-ghi789-jkl012-mno345    20Gi</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Default StorageClass</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Mark a StorageClass as default
+kubectl patch storageclass fast-ssd -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+# Now PVCs without storageClassName will use this
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: auto-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # No storageClassName specified - uses default
+
+# Check default StorageClass
+kubectl get storageclass
+# NAME                 PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE
+# fast-ssd (default)   kubernetes.io/aws-ebs   Delete          WaitForFirstConsumer</code></pre>
+                </div>
+
+                <h2>🔄 Volume Lifecycle</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>PersistentVolume Lifecycle:
+
+1. Provisioning
+   ├─ Static: Admin creates PV manually
+   └─ Dynamic: StorageClass creates PV automatically
+
+2. Binding
+   ├─ PVC requests storage
+   ├─ Kubernetes finds matching PV
+   └─ PVC and PV are bound (1:1 relationship)
+
+3. Using
+   ├─ Pod references PVC in volume spec
+   ├─ Kubelet mounts volume to pod
+   └─ Application reads/writes data
+
+4. Reclaiming
+   ├─ PVC is deleted
+   ├─ PV reclaim policy determines what happens:
+   │  ├─ Retain: PV remains, manual cleanup needed
+   │  ├─ Delete: PV and storage deleted automatically
+   │  └─ Recycle: (Deprecated) Data scrubbed, PV available again
+   └─ PV status changes to Released or Deleted
+
+PVC States:
+- Pending: Waiting for PV to bind
+- Bound: Successfully bound to PV
+- Lost: PV no longer exists
+
+PV States:
+- Available: Ready to be claimed
+- Bound: Bound to a PVC
+- Released: PVC deleted, but not yet reclaimed
+- Failed: Automatic reclamation failed</code></pre>
+                </div>
+
+                <h2>🗃️ Complete Example: MySQL with Persistent Storage</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Step 1: Create StorageClass (if not exists)</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mysql-storage
+provisioner: kubernetes.io/aws-ebs  # Change based on your cloud
+parameters:
+  type: gp3
+  encrypted: "true"
+reclaimPolicy: Retain  # Keep data even if PVC is deleted
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+kubectl apply -f storageclass.yaml</code></pre>
+
+                    <p><strong>Step 2: Create PVC</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># mysql-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: mysql-storage
+  resources:
+    requests:
+      storage: 20Gi
+
+kubectl apply -f mysql-pvc.yaml
+kubectl get pvc mysql-pvc</code></pre>
+
+                    <p><strong>Step 3: Create Secret for MySQL password</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl create secret generic mysql-secret \
+  --from-literal=password=MySecurePassword123!</code></pre>
+
+                    <p><strong>Step 4: Create Deployment</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># mysql-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1  # MySQL typically runs as single instance
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate  # Important for stateful apps
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        - name: MYSQL_DATABASE
+          value: myapp
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql  # MySQL data directory
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+
+kubectl apply -f mysql-deployment.yaml</code></pre>
+
+                    <p><strong>Step 5: Create Service</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># mysql-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+  clusterIP: None  # Headless service
+
+kubectl apply -f mysql-service.yaml</code></pre>
+
+                    <p><strong>Step 6: Test Persistence</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create some data
+kubectl exec -it deployment/mysql -- mysql -uroot -pMySecurePassword123! -e "
+CREATE DATABASE testdb;
+USE testdb;
+CREATE TABLE users (id INT, name VARCHAR(50));
+INSERT INTO users VALUES (1, 'Alice'), (2, 'Bob');
+SELECT * FROM users;
+"
+
+# Delete the pod
+kubectl delete pod -l app=mysql
+
+# Wait for new pod to start
+kubectl wait --for=condition=ready pod -l app=mysql --timeout=60s
+
+# Verify data persists
+kubectl exec -it deployment/mysql -- mysql -uroot -pMySecurePassword123! -e "
+USE testdb;
+SELECT * FROM users;
+"
+# Output: 1 | Alice
+#         2 | Bob
+# ✅ Data survived pod restart!</code></pre>
+                </div>
+
+
+                <h2>📊 Volume Expansion and Resizing</h2>
+
+                <p>Kubernetes supports expanding PVCs without downtime (if the StorageClass allows it).</p>
+
+                <h3 style="color: #667eea;">Enabling Volume Expansion</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>StorageClass with expansion enabled:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: expandable-storage
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+allowVolumeExpansion: true  # Enable expansion
+
+kubectl apply -f storageclass.yaml</code></pre>
+
+                    <p><strong>Expand a PVC:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Original PVC with 10Gi
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: expandable-storage
+  resources:
+    requests:
+      storage: 10Gi
+
+# Edit the PVC to increase size
+kubectl edit pvc my-pvc
+
+# Change storage: 10Gi to storage: 20Gi
+# Save and exit
+
+# Or use patch
+kubectl patch pvc my-pvc -p '{"spec":{"resources":{"requests":{"storage":"20Gi"}}}}'
+
+# Check expansion status
+kubectl get pvc my-pvc
+# NAME     STATUS   VOLUME                                     CAPACITY   ACCESS MODES
+# my-pvc   Bound    pvc-abc123-def456-ghi789-jkl012-mno345    20Gi       RWO
+
+# Check events
+kubectl describe pvc my-pvc
+# Events:
+#   Type    Reason                      Message
+#   ----    ------                      -------
+#   Normal  FileSystemResizeSuccessful  MountVolume.NodeExpandVolume succeeded</code></pre>
+
+                    <div style="background: #744210; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>⚠️ Important Notes:</strong>
+                        <ul style="margin-top: 10px;">
+                            <li>You can only <strong>increase</strong> volume size, not decrease</li>
+                            <li>Some volume types require pod restart for expansion to take effect</li>
+                            <li>Online expansion (without restart) is supported for most cloud providers</li>
+                            <li>Check StorageClass capabilities before attempting expansion</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h2>🎭 StatefulSets with Persistent Storage</h2>
+
+                <p>StatefulSets are designed for stateful applications that need stable network identities and persistent storage.</p>
+
+                <h3 style="color: #667eea;">StatefulSet vs Deployment</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Feature</th>
+                                <th style="padding: 15px; text-align: left;">Deployment</th>
+                                <th style="padding: 15px; text-align: left;">StatefulSet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Pod Names</strong></td>
+                                <td style="padding: 15px;">Random (app-abc123)</td>
+                                <td style="padding: 15px;">Ordered (app-0, app-1, app-2)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Network Identity</strong></td>
+                                <td style="padding: 15px;">No stable identity</td>
+                                <td style="padding: 15px;">Stable DNS names</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Storage</strong></td>
+                                <td style="padding: 15px;">Shared PVC</td>
+                                <td style="padding: 15px;">Unique PVC per pod</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Scaling</strong></td>
+                                <td style="padding: 15px;">Parallel</td>
+                                <td style="padding: 15px;">Ordered (one at a time)</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Updates</strong></td>
+                                <td style="padding: 15px;">Rolling update</td>
+                                <td style="padding: 15px;">Ordered rolling update</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Use Case</strong></td>
+                                <td style="padding: 15px;">Stateless apps</td>
+                                <td style="padding: 15px;">Databases, queues, clusters</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">StatefulSet Example</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># statefulset-nginx.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-headless
+spec:
+  clusterIP: None  # Headless service
+  selector:
+    app: nginx-stateful
+  ports:
+  - port: 80
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-stateful
+spec:
+  serviceName: nginx-headless  # Required for stable network identity
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-stateful
+  template:
+    metadata:
+      labels:
+        app: nginx-stateful
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  
+  # VolumeClaimTemplates - creates unique PVC for each pod
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 1Gi
+
+kubectl apply -f statefulset-nginx.yaml</code></pre>
+
+                    <p><strong>Observe pod creation:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Pods are created in order
+kubectl get pods -w
+# NAME               READY   STATUS    RESTARTS   AGE
+# nginx-stateful-0   1/1     Running   0          10s
+# nginx-stateful-1   1/1     Running   0          20s
+# nginx-stateful-2   1/1     Running   0          30s
+
+# Each pod has its own PVC
+kubectl get pvc
+# NAME                    STATUS   VOLUME                                     CAPACITY
+# www-nginx-stateful-0    Bound    pvc-abc123-def456-ghi789-jkl012-mno345    1Gi
+# www-nginx-stateful-1    Bound    pvc-def456-ghi789-jkl012-mno345-pqr678    1Gi
+# www-nginx-stateful-2    Bound    pvc-ghi789-jkl012-mno345-pqr678-stu901    1Gi
+
+# Stable DNS names
+kubectl run -it --rm debug --image=busybox --restart=Never -- sh
+# Inside debug pod:
+nslookup nginx-stateful-0.nginx-headless
+# Name:      nginx-stateful-0.nginx-headless.default.svc.cluster.local
+# Address:   10.244.1.5
+
+nslookup nginx-stateful-1.nginx-headless
+# Name:      nginx-stateful-1.nginx-headless.default.svc.cluster.local
+# Address:   10.244.1.6</code></pre>
+
+                    <p><strong>Test data persistence:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Write unique data to each pod
+kubectl exec nginx-stateful-0 -- sh -c 'echo "Pod 0 data" > /usr/share/nginx/html/index.html'
+kubectl exec nginx-stateful-1 -- sh -c 'echo "Pod 1 data" > /usr/share/nginx/html/index.html'
+kubectl exec nginx-stateful-2 -- sh -c 'echo "Pod 2 data" > /usr/share/nginx/html/index.html'
+
+# Delete all pods
+kubectl delete pod nginx-stateful-0 nginx-stateful-1 nginx-stateful-2
+
+# Wait for recreation
+kubectl wait --for=condition=ready pod -l app=nginx-stateful --timeout=60s
+
+# Verify data persists
+kubectl exec nginx-stateful-0 -- cat /usr/share/nginx/html/index.html
+# Output: Pod 0 data
+
+kubectl exec nginx-stateful-1 -- cat /usr/share/nginx/html/index.html
+# Output: Pod 1 data
+
+kubectl exec nginx-stateful-2 -- cat /usr/share/nginx/html/index.html
+# Output: Pod 2 data
+
+# ✅ Each pod retained its own data!</code></pre>
+                </div>
+
+                <h2>📸 Volume Snapshots and Cloning</h2>
+
+                <p>Kubernetes supports volume snapshots for backup and cloning operations.</p>
+
+                <h3 style="color: #667eea;">Volume Snapshots</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Create VolumeSnapshotClass:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># volumesnapshotclass.yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-snapclass
+driver: ebs.csi.aws.com  # CSI driver
+deletionPolicy: Delete
+
+kubectl apply -f volumesnapshotclass.yaml</code></pre>
+
+                    <p><strong>Create a snapshot:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># volumesnapshot.yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: mysql-snapshot
+spec:
+  volumeSnapshotClassName: csi-snapclass
+  source:
+    persistentVolumeClaimName: mysql-pvc
+
+kubectl apply -f volumesnapshot.yaml
+
+# Check snapshot status
+kubectl get volumesnapshot
+# NAME             READYTOUSE   SOURCEPVC    RESTORESIZE   SNAPSHOTCLASS
+# mysql-snapshot   true         mysql-pvc    20Gi          csi-snapclass</code></pre>
+
+                    <p><strong>Restore from snapshot:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pvc-from-snapshot.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc-restored
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: mysql-storage
+  resources:
+    requests:
+      storage: 20Gi
+  dataSource:
+    name: mysql-snapshot
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+
+kubectl apply -f pvc-from-snapshot.yaml
+
+# New PVC is created with data from snapshot
+kubectl get pvc mysql-pvc-restored
+# NAME                  STATUS   VOLUME                                     CAPACITY
+# mysql-pvc-restored    Bound    pvc-xyz789-abc123-def456-ghi789-jkl012    20Gi</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Volume Cloning</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Clone a PVC:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pvc-clone.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc-clone
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: mysql-storage
+  resources:
+    requests:
+      storage: 20Gi
+  dataSource:
+    name: mysql-pvc  # Source PVC
+    kind: PersistentVolumeClaim
+
+kubectl apply -f pvc-clone.yaml
+
+# Clone is created with same data as source
+kubectl get pvc mysql-pvc-clone
+# NAME              STATUS   VOLUME                                     CAPACITY
+# mysql-pvc-clone   Bound    pvc-mno345-pqr678-stu901-vwx234-yza567    20Gi</code></pre>
+
+                    <div style="background: #1c4532; color: #9ae6b4; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>💡 Use Cases for Snapshots and Cloning:</strong>
+                        <ul style="margin-top: 10px;">
+                            <li><strong>Backup:</strong> Regular snapshots for disaster recovery</li>
+                            <li><strong>Testing:</strong> Clone production data for testing</li>
+                            <li><strong>Development:</strong> Create dev environments from prod snapshots</li>
+                            <li><strong>Migration:</strong> Move data between clusters</li>
+                            <li><strong>Rollback:</strong> Restore to previous state after failed update</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h2>💾 Backup and Disaster Recovery</h2>
+
+                <h3 style="color: #667eea;">Backup Strategies</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">1. Volume Snapshots (Recommended)</h4>
+                    <p>Use Kubernetes VolumeSnapshots for cloud-native backups:</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Pros:</strong> Fast, incremental, cloud-native, automated</li>
+                        <li><strong>Cons:</strong> Requires CSI driver support</li>
+                        <li><strong>Best for:</strong> Cloud environments (AWS, GCP, Azure)</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">2. Application-Level Backups</h4>
+                    <p>Use database-specific backup tools:</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>MySQL:</strong> mysqldump, Percona XtraBackup</li>
+                        <li><strong>PostgreSQL:</strong> pg_dump, pg_basebackup</li>
+                        <li><strong>MongoDB:</strong> mongodump, MongoDB Atlas backups</li>
+                        <li><strong>Pros:</strong> Application-consistent, portable</li>
+                        <li><strong>Cons:</strong> Slower, requires downtime or special setup</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">3. Velero (Cluster Backup)</h4>
+                    <p>Backup entire Kubernetes resources and volumes:</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Backs up:</strong> Kubernetes resources + persistent volumes</li>
+                        <li><strong>Supports:</strong> Scheduled backups, disaster recovery</li>
+                        <li><strong>Best for:</strong> Full cluster backup and migration</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">4. File-Level Backups</h4>
+                    <p>Copy files from volumes to external storage:</p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Tools:</strong> rsync, rclone, restic</li>
+                        <li><strong>Pros:</strong> Simple, works everywhere</li>
+                        <li><strong>Cons:</strong> Manual, not application-aware</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Automated Backup Example with CronJob</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># mysql-backup-cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: mysql:8.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              mysqldump -h mysql -u root -p$MYSQL_ROOT_PASSWORD --all-databases > /backup/backup-$(date +%Y%m%d-%H%M%S).sql
+              # Upload to S3 or other storage
+              # aws s3 cp /backup/backup-*.sql s3://my-backups/
+            env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-pvc
+          restartPolicy: OnFailure
+
+kubectl apply -f mysql-backup-cronjob.yaml</code></pre>
+                </div>
+
+                <h2>⚡ Performance Considerations</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #90cdf4;">Storage Performance Factors</h4>
+                    
+                    <h5 style="color: #90cdf4; margin-top: 20px;">1. Storage Type</h5>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 12px; text-align: left;">Type</th>
+                                <th style="padding: 12px; text-align: left;">IOPS</th>
+                                <th style="padding: 12px; text-align: left;">Throughput</th>
+                                <th style="padding: 12px; text-align: left;">Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 12px;"><strong>HDD (gp2)</strong></td>
+                                <td style="padding: 12px;">100-16,000</td>
+                                <td style="padding: 12px;">128-250 MB/s</td>
+                                <td style="padding: 12px;">General purpose</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 12px;"><strong>SSD (gp3)</strong></td>
+                                <td style="padding: 12px;">3,000-16,000</td>
+                                <td style="padding: 12px;">125-1,000 MB/s</td>
+                                <td style="padding: 12px;">Databases, apps</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 12px;"><strong>Provisioned IOPS (io2)</strong></td>
+                                <td style="padding: 12px;">Up to 64,000</td>
+                                <td style="padding: 12px;">Up to 1,000 MB/s</td>
+                                <td style="padding: 12px;">High-performance DBs</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 12px;"><strong>NVMe (local)</strong></td>
+                                <td style="padding: 12px;">100,000+</td>
+                                <td style="padding: 12px;">3,000+ MB/s</td>
+                                <td style="padding: 12px;">Ultra-low latency</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h5 style="color: #90cdf4; margin-top: 20px;">2. Access Patterns</h5>
+                    <ul style="line-height: 2;">
+                        <li><strong>Sequential:</strong> Better throughput (logs, backups)</li>
+                        <li><strong>Random:</strong> Needs high IOPS (databases)</li>
+                        <li><strong>Read-heavy:</strong> Consider caching layers</li>
+                        <li><strong>Write-heavy:</strong> Use write-optimized storage</li>
+                    </ul>
+
+                    <h5 style="color: #90cdf4; margin-top: 20px;">3. Volume Size</h5>
+                    <ul style="line-height: 2;">
+                        <li>Larger volumes often get better performance</li>
+                        <li>AWS EBS: IOPS scales with volume size (gp2/gp3)</li>
+                        <li>Consider over-provisioning for performance</li>
+                    </ul>
+
+                    <h5 style="color: #90cdf4; margin-top: 20px;">4. Network Latency</h5>
+                    <ul style="line-height: 2;">
+                        <li><strong>Local storage:</strong> Lowest latency (hostPath, local PV)</li>
+                        <li><strong>Network storage:</strong> Higher latency (EBS, NFS)</li>
+                        <li><strong>Multi-AZ:</strong> Additional latency for replication</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Performance Optimization Tips</h3>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Choose the right storage class:</strong> Match workload requirements</li>
+                        <li>✅ <strong>Use local storage for temporary data:</strong> emptyDir for cache</li>
+                        <li>✅ <strong>Enable volume expansion:</strong> Plan for growth</li>
+                        <li>✅ <strong>Monitor I/O metrics:</strong> Watch for bottlenecks</li>
+                        <li>✅ <strong>Use ReadWriteMany sparingly:</strong> Performance overhead</li>
+                        <li>✅ <strong>Consider StatefulSets:</strong> For databases and stateful apps</li>
+                        <li>✅ <strong>Implement caching:</strong> Reduce storage I/O</li>
+                        <li>✅ <strong>Use appropriate filesystem:</strong> ext4, xfs based on workload</li>
+                    </ol>
+                </div>
+
+                <h2>🔍 Troubleshooting Common Storage Issues</h2>
+
+                <h3 style="color: #667eea;">Issue 1: PVC Stuck in Pending</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pvc
+# NAME     STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS
+# my-pvc   Pending                                      fast-ssd</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl describe pvc my-pvc
+# Events:
+#   Type     Reason              Message
+#   ----     ------              -------
+#   Warning  ProvisioningFailed  Failed to provision volume: no available PV</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>No matching PV:</strong> Create PV or use dynamic provisioning</li>
+                        <li><strong>StorageClass not found:</strong> Check StorageClass exists</li>
+                        <li><strong>Insufficient capacity:</strong> No PV with enough space</li>
+                        <li><strong>Access mode mismatch:</strong> PVC and PV access modes don't match</li>
+                        <li><strong>Provisioner error:</strong> Check cloud provider permissions</li>
+                    </ul>
+
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check StorageClass
+kubectl get storageclass
+
+# Check available PVs
+kubectl get pv
+
+# Check provisioner logs (if using CSI)
+kubectl logs -n kube-system -l app=ebs-csi-controller</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: Pod Can't Mount Volume</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods
+# NAME      READY   STATUS              RESTARTS   AGE
+# my-pod    0/1     ContainerCreating   0          2m</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl describe pod my-pod
+# Events:
+#   Warning  FailedMount  Unable to attach or mount volumes: timeout expired waiting for volumes to attach</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Volume already attached:</strong> Another pod using RWO volume</li>
+                        <li><strong>Node affinity:</strong> Volume in different zone than pod</li>
+                        <li><strong>Permission denied:</strong> Check security context and fsGroup</li>
+                        <li><strong>Volume not ready:</strong> Wait for volume provisioning</li>
+                    </ul>
+
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check which pod is using the volume
+kubectl get pods -o json | jq '.items[] | select(.spec.volumes[]?.persistentVolumeClaim.claimName=="my-pvc") | .metadata.name'
+
+# Check volume attachment
+kubectl get volumeattachment
+
+# Force delete stuck pod
+kubectl delete pod my-pod --grace-period=0 --force</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: Data Loss After Pod Restart</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Data disappears when pod restarts</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <ul style="line-height: 2;">
+                        <li>Using emptyDir instead of PVC</li>
+                        <li>Writing to wrong path (not mounted volume)</li>
+                        <li>Volume not properly mounted</li>
+                    </ul>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check volume mounts
+kubectl describe pod my-pod | grep -A 5 "Mounts:"
+
+# Verify data is in mounted path
+kubectl exec my-pod -- ls -la /data
+
+# Check if using emptyDir (ephemeral)
+kubectl get pod my-pod -o yaml | grep -A 5 "volumes:"
+
+# Replace emptyDir with PVC
+# volumes:
+# - name: data
+#   emptyDir: {}  # ❌ This is ephemeral!
+# 
+# Replace with:
+# volumes:
+# - name: data
+#   persistentVolumeClaim:
+#     claimName: my-pvc  # ✅ This persists!</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 4: Out of Disk Space</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl logs my-pod
+# Error: No space left on device</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check disk usage
+kubectl exec my-pod -- df -h
+
+# Expand PVC (if StorageClass allows)
+kubectl patch pvc my-pvc -p '{"spec":{"resources":{"requests":{"storage":"50Gi"}}}}'
+
+# Clean up old data
+kubectl exec my-pod -- sh -c 'find /data -type f -mtime +30 -delete'
+
+# Add volume cleanup job
+# Or implement log rotation</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 5: Slow I/O Performance</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <p>Application slow, high I/O wait times</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check I/O metrics (requires metrics-server)
+kubectl top pod my-pod
+
+# Check storage class performance tier
+kubectl get storageclass -o yaml
+
+# Monitor disk I/O in pod
+kubectl exec my-pod -- iostat -x 1</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Upgrade storage class:</strong> Switch to higher IOPS tier</li>
+                        <li><strong>Increase volume size:</strong> More IOPS with larger volumes</li>
+                        <li><strong>Use local storage:</strong> For temporary/cache data</li>
+                        <li><strong>Optimize application:</strong> Reduce I/O operations</li>
+                        <li><strong>Add caching layer:</strong> Redis, Memcached</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Useful Debugging Commands</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># List all storage resources
+kubectl get pv,pvc,storageclass
+
+# Describe PVC with events
+kubectl describe pvc <pvc-name>
+
+# Check PV details
+kubectl describe pv <pv-name>
+
+# Get PVC usage
+kubectl get pvc -o custom-columns=NAME:.metadata.name,CAPACITY:.status.capacity.storage,USED:.status.allocatedResources.storage
+
+# Check volume attachments
+kubectl get volumeattachment
+
+# View CSI driver logs
+kubectl logs -n kube-system -l app=csi-driver
+
+# Check node disk space
+kubectl get nodes -o custom-columns=NAME:.metadata.name,DISK:.status.allocatable.ephemeral-storage
+
+# Force delete PVC (if stuck)
+kubectl patch pvc <pvc-name> -p '{"metadata":{"finalizers":null}}'
+
+# Get all pods using a specific PVC
+kubectl get pods --all-namespaces -o json | \
+  jq -r '.items[] | select(.spec.volumes[]?.persistentVolumeClaim.claimName=="<pvc-name>") | .metadata.name'</code></pre>
+                </div>
+
+                <h2>✅ Best Practices for Production Storage</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Storage Design Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use dynamic provisioning:</strong> Let StorageClasses handle PV creation</li>
+                        <li>✅ <strong>Set appropriate reclaim policies:</strong> Retain for production data</li>
+                        <li>✅ <strong>Enable volume expansion:</strong> Plan for growth without downtime</li>
+                        <li>✅ <strong>Use StatefulSets for stateful apps:</strong> Stable identities and storage</li>
+                        <li>✅ <strong>Implement backup strategy:</strong> Regular snapshots or application backups</li>
+                        <li>✅ <strong>Monitor storage usage:</strong> Set up alerts for capacity</li>
+                        <li>✅ <strong>Choose right access mode:</strong> RWO for most databases</li>
+                        <li>✅ <strong>Use appropriate storage class:</strong> Match performance requirements</li>
+                        <li>✅ <strong>Set resource quotas:</strong> Prevent storage exhaustion</li>
+                        <li>✅ <strong>Test disaster recovery:</strong> Regularly test restore procedures</li>
+                        <li>✅ <strong>Use encryption:</strong> Enable encryption at rest and in transit</li>
+                        <li>✅ <strong>Document storage architecture:</strong> Clear documentation for team</li>
+                    </ol>
+                </div>
+
+                <h3 style="color: #667eea;">Security Best Practices</h3>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use RBAC:</strong> Restrict who can create/delete PVCs</li>
+                        <li>✅ <strong>Enable encryption:</strong> Encrypt volumes at rest</li>
+                        <li>✅ <strong>Set fsGroup:</strong> Control file ownership in volumes</li>
+                        <li>✅ <strong>Use read-only mounts:</strong> When data doesn't need modification</li>
+                        <li>✅ <strong>Avoid hostPath:</strong> Security risk, use only for system pods</li>
+                        <li>✅ <strong>Implement Pod Security Standards:</strong> Restrict privileged containers</li>
+                        <li>✅ <strong>Use secrets for credentials:</strong> Never hardcode passwords</li>
+                        <li>✅ <strong>Regular security audits:</strong> Review storage permissions</li>
+                    </ol>
+                </div>
+
+                <h3 style="color: #667eea;">Cost Optimization</h3>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Right-size volumes:</strong> Don't over-provision storage</li>
+                        <li>✅ <strong>Use appropriate storage tiers:</strong> HDD for cold data, SSD for hot</li>
+                        <li>✅ <strong>Clean up unused PVCs:</strong> Delete orphaned volumes</li>
+                        <li>✅ <strong>Implement lifecycle policies:</strong> Move old data to cheaper storage</li>
+                        <li>✅ <strong>Use compression:</strong> Reduce storage footprint</li>
+                        <li>✅ <strong>Monitor costs:</strong> Track storage spending</li>
+                        <li>✅ <strong>Delete old snapshots:</strong> Snapshots cost money</li>
+                        <li>✅ <strong>Use spot instances carefully:</strong> With local storage considerations</li>
+                    </ol>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Container storage is ephemeral</strong> by default - data lost on restart</li>
+                        <li>✅ <strong>Volumes provide persistent storage</strong> that survives pod restarts</li>
+                        <li>✅ <strong>PV/PVC model separates</strong> storage provisioning from consumption</li>
+                        <li>✅ <strong>StorageClasses enable dynamic provisioning</strong> - no manual PV creation</li>
+                        <li>✅ <strong>Access modes control</strong> how volumes can be mounted (RWO, ROX, RWX)</li>
+                        <li>✅ <strong>Reclaim policies determine</strong> what happens when PVC is deleted</li>
+                        <li>✅ <strong>StatefulSets provide</strong> stable storage for stateful applications</li>
+                        <li>✅ <strong>Volume snapshots enable</strong> backup and disaster recovery</li>
+                        <li>✅ <strong>Performance depends on</strong> storage type, size, and access patterns</li>
+                        <li>✅ <strong>Best practices include</strong> backups, monitoring, and security</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand persistent storage in Kubernetes, you're ready to learn about <strong>Namespaces and Resource Quotas</strong> - how to organize your cluster and manage resources effectively!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Namespaces?</h3>
+                    <a href="09-namespaces-quotas.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #9: Namespaces and Resource Quotas →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

@@ -136,8 +136,10 @@ const k8sTutorials = [
             'StorageClasses and dynamic provisioning'
         ],
         handsOn: 'Deploy a database with persistent storage',
-        readTime: '25 min',
-        difficulty: 'intermediate'
+        readTime: '50 min',
+        difficulty: 'intermediate',
+        url: 'tutorials/08-persistent-storage.html',
+        status: 'available'
     },
     {
         id: 9,
