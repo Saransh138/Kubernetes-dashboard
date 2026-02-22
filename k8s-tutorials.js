@@ -170,8 +170,10 @@ const k8sTutorials = [
             'Using labels for deployments and services'
         ],
         handsOn: 'Implement a labeling strategy for a multi-tier application',
-        readTime: '18 min',
-        difficulty: 'intermediate'
+        readTime: '40 min',
+        difficulty: 'intermediate',
+        url: 'tutorials/10-labels-selectors.html',
+        status: 'available'
     },
     {
         id: 11,

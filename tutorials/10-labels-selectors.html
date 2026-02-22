@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labels, Selectors, and Annotations - Organizing Resources | K8s Tutorial #10</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">🏷️</div>
+                <h1 class="post-title">Labels, Selectors, and Annotations — Organizing Your Kubernetes Resources</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #10 of 20</span>
+                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                    <span><i class="far fa-clock"></i> 40 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>What are Labels and why they're essential</li>
+                    <li>Label syntax, naming conventions, and best practices</li>
+                    <li>Equality-based and set-based selectors</li>
+                    <li>Using labels with Deployments, Services, and more</li>
+                    <li>What are Annotations and when to use them</li>
+                    <li>Labels vs Annotations differences</li>
+                    <li>Recommended label patterns for production</li>
+                    <li>Advanced selector techniques</li>
+                    <li>Real-world labeling strategies</li>
+                    <li>Querying and filtering resources efficiently</li>
+                </ul>
+
+                <h2>🤔 The Problem: Managing Hundreds of Resources</h2>
+
+                <p>As your Kubernetes cluster grows, you face organizational challenges:</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Without Labels:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>No Organization:</strong> 200 pods with no way to group them</li>
+                        <li><strong>Difficult Queries:</strong> Can't find "all frontend pods in production"</li>
+                        <li><strong>Manual Management:</strong> Must track resources individually</li>
+                        <li><strong>No Relationships:</strong> Can't see which pods belong to which app</li>
+                        <li><strong>Deployment Issues:</strong> Services can't find their pods</li>
+                        <li><strong>Monitoring Chaos:</strong> Can't group metrics by application or team</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ With Labels:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Logical Grouping:</strong> Organize resources by app, tier, environment</li>
+                        <li><strong>Powerful Queries:</strong> Find resources matching multiple criteria</li>
+                        <li><strong>Automatic Selection:</strong> Services find pods automatically</li>
+                        <li><strong>Bulk Operations:</strong> Update/delete multiple resources at once</li>
+                        <li><strong>Clear Relationships:</strong> See which resources belong together</li>
+                        <li><strong>Better Monitoring:</strong> Group metrics by meaningful dimensions</li>
+                    </ul>
+                </div>
+
+                <h2>🏷️ What are Labels?</h2>
+
+                <p>Labels are key-value pairs attached to Kubernetes objects. They're used to organize and select subsets of objects.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">🎯 Key Concept</h3>
+                    <p style="font-size: 1.1rem; line-height: 1.8;">Think of labels like tags on blog posts or products in an online store. Just as you might tag a blog post with "kubernetes", "tutorial", and "beginner", you can label a pod with "app=frontend", "tier=web", and "environment=production". This makes it easy to find and group related resources.</p>
+                </div>
+
+                <h3 style="color: #667eea;">Label Characteristics</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <ul style="line-height: 2;">
+                        <li><strong>Key-Value Pairs:</strong> Each label has a key and a value</li>
+                        <li><strong>Multiple Labels:</strong> Objects can have many labels</li>
+                        <li><strong>Non-Unique:</strong> Multiple objects can have the same labels</li>
+                        <li><strong>Queryable:</strong> Use selectors to find objects by labels</li>
+                        <li><strong>Mutable:</strong> Can be added, modified, or removed</li>
+                        <li><strong>Identifying:</strong> Used to identify and select objects</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Visual Example</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster                            │
+│                                                                  │
+│  Pod: frontend-web-1                                            │
+│  Labels:                                                         │
+│    app: frontend          ◄─── Application name                │
+│    tier: web              ◄─── Application tier                │
+│    environment: production ◄─── Environment                     │
+│    version: v1.2.0        ◄─── Version                          │
+│    team: platform         ◄─── Owning team                      │
+│                                                                  │
+│  Pod: frontend-web-2                                            │
+│  Labels:                                                         │
+│    app: frontend          ◄─── Same app                         │
+│    tier: web              ◄─── Same tier                        │
+│    environment: production ◄─── Same environment                │
+│    version: v1.2.0        ◄─── Same version                     │
+│    team: platform         ◄─── Same team                        │
+│                                                                  │
+│  Pod: backend-api-1                                             │
+│  Labels:                                                         │
+│    app: backend           ◄─── Different app                    │
+│    tier: api              ◄─── Different tier                   │
+│    environment: production ◄─── Same environment                │
+│    version: v2.1.0        ◄─── Different version                │
+│    team: backend          ◄─── Different team                   │
+│                                                                  │
+│  Service: frontend-service                                      │
+│  Selector:                                                       │
+│    app: frontend          ◄─── Selects pods with app=frontend  │
+│    tier: web              ◄─── AND tier=web                     │
+│  ┌────────────────────────────────────────────────────┐        │
+│  │  Routes traffic to:                                 │        │
+│  │  - frontend-web-1 ✓                                │        │
+│  │  - frontend-web-2 ✓                                │        │
+│  │  - backend-api-1  ✗ (doesn't match selector)      │        │
+│  └────────────────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+
+                <h2>📝 Label Syntax and Rules</h2>
+
+                <h3 style="color: #667eea;">Label Format</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Format:</strong> <code>[prefix/]name: value</code></p>
+                    
+                    <h4 style="color: #90cdf4;">Key Rules:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Prefix (optional):</strong> DNS subdomain (max 253 chars)</li>
+                        <li><strong>Name (required):</strong> Max 63 characters</li>
+                        <li><strong>Characters:</strong> Alphanumeric, dash (-), underscore (_), dot (.)</li>
+                        <li><strong>Start/End:</strong> Must start and end with alphanumeric</li>
+                        <li><strong>Value:</strong> Max 63 characters (can be empty)</li>
+                    </ul>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Valid Examples:</h4>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>app: frontend
+tier: web
+environment: production
+version: v1.2.0
+release: stable
+kubernetes.io/cluster-service: "true"
+app.kubernetes.io/name: mysql
+app.kubernetes.io/version: "5.7.21"
+company.com/team: platform
+company.com/cost-center: engineering</code></pre>
+
+                    <h4 style="color: #90cdf4; margin-top: 20px;">Invalid Examples:</h4>
+                    <pre style="background: #742a2a; color: #fed7d7; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>-app: frontend              # ❌ Can't start with dash
+app_name: frontend          # ❌ Underscore not allowed in key
+app: my frontend app        # ❌ Spaces not allowed in value
+app: very-long-value-that-exceeds-sixty-three-characters-limit  # ❌ Too long
+app@version: v1             # ❌ @ not allowed</code></pre>
+                </div>
+
+                <h2>🔧 Working with Labels</h2>
+
+                <h3 style="color: #667eea;">Adding Labels to Resources</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Method 1: In YAML Definition</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pod-with-labels.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend-pod
+  labels:
+    app: frontend
+    tier: web
+    environment: production
+    version: v1.2.0
+    team: platform
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.21
+
+kubectl apply -f pod-with-labels.yaml</code></pre>
+
+                    <p><strong>Method 2: Using kubectl</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Add label to existing pod
+kubectl label pod frontend-pod release=stable
+
+# Add multiple labels
+kubectl label pod frontend-pod owner=john region=us-west
+
+# Overwrite existing label
+kubectl label pod frontend-pod version=v1.3.0 --overwrite
+
+# Add label to all pods
+kubectl label pods --all monitored=true
+
+# Add label to pods matching a selector
+kubectl label pods -l app=frontend tier=web</code></pre>
+
+                    <p><strong>Method 3: During Creation</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create pod with labels
+kubectl run nginx --image=nginx --labels="app=web,tier=frontend,env=prod"
+
+# Create deployment with labels
+kubectl create deployment myapp --image=myapp:v1 --replicas=3
+kubectl label deployment myapp app=myapp tier=backend</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Viewing Labels</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Show labels in column format
+kubectl get pods --show-labels
+
+# Output:
+# NAME            READY   STATUS    RESTARTS   AGE   LABELS
+# frontend-pod    1/1     Running   0          5m    app=frontend,tier=web,environment=production
+
+# Show specific labels as columns
+kubectl get pods -L app,tier,environment
+
+# Output:
+# NAME            READY   STATUS    RESTARTS   AGE   APP        TIER   ENVIRONMENT
+# frontend-pod    1/1     Running   0          5m    frontend   web    production
+
+# Get labels in YAML format
+kubectl get pod frontend-pod -o yaml | grep -A 10 labels:
+
+# Get labels in JSON format
+kubectl get pod frontend-pod -o jsonpath='{.metadata.labels}'</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Removing Labels</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Remove a label (note the minus sign)
+kubectl label pod frontend-pod version-
+
+# Remove multiple labels
+kubectl label pod frontend-pod version- release-
+
+# Remove label from all pods
+kubectl label pods --all monitored-
+
+# Remove label from pods matching selector
+kubectl label pods -l app=frontend tier-</code></pre>
+                </div>
+
+                <h2>🔍 Label Selectors</h2>
+
+                <p>Selectors allow you to query and filter resources based on their labels. There are two types:</p>
+
+                <h3 style="color: #667eea;">1. Equality-Based Selectors</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>Use <code>=</code>, <code>==</code>, or <code>!=</code> operators</p>
+                    
+                    <h4 style="color: #90cdf4;">Operators:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>=</strong> or <strong>==</strong>: Equals (both are equivalent)</li>
+                        <li><strong>!=</strong>: Not equals</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Examples:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Get pods where app equals frontend
+kubectl get pods -l app=frontend
+
+# Get pods where environment equals production
+kubectl get pods -l environment=production
+
+# Get pods where tier is NOT web
+kubectl get pods -l tier!=web
+
+# Multiple conditions (AND logic)
+kubectl get pods -l app=frontend,environment=production
+
+# This means: app=frontend AND environment=production
+
+# Get all resources with a specific label
+kubectl get all -l app=frontend
+
+# Get pods in specific namespace with label
+kubectl get pods -n production -l app=frontend</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">2. Set-Based Selectors</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p>Use <code>in</code>, <code>notin</code>, and <code>exists</code> operators</p>
+                    
+                    <h4 style="color: #90cdf4;">Operators:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>in:</strong> Value is in the set</li>
+                        <li><strong>notin:</strong> Value is not in the set</li>
+                        <li><strong>exists:</strong> Key exists (regardless of value)</li>
+                        <li><strong>!exists:</strong> Key does not exist</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>Examples:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Get pods where environment is production OR staging
+kubectl get pods -l 'environment in (production,staging)'
+
+# Get pods where tier is NOT web or api
+kubectl get pods -l 'tier notin (web,api)'
+
+# Get pods that have the 'release' label (any value)
+kubectl get pods -l release
+
+# Get pods that DON'T have the 'beta' label
+kubectl get pods -l '!beta'
+
+# Complex query: app=frontend AND environment in (prod,staging) AND has release label
+kubectl get pods -l 'app=frontend,environment in (production,staging),release'
+
+# Get pods where version is v1.0 or v1.1 AND environment is production
+kubectl get pods -l 'version in (v1.0,v1.1),environment=production'</code></pre>
+
+                    <div style="background: #744210; color: #fed7d7; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>⚠️ Note:</strong> When using set-based selectors in shell, wrap them in quotes to prevent shell interpretation of special characters like parentheses and commas.
+                    </div>
+                </div>
+
+                <h3 style="color: #667eea;">Selector Comparison Table</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Query</th>
+                                <th style="padding: 15px; text-align: left;">Equality-Based</th>
+                                <th style="padding: 15px; text-align: left;">Set-Based</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;">app is frontend</td>
+                                <td style="padding: 15px;"><code>app=frontend</code></td>
+                                <td style="padding: 15px;"><code>app in (frontend)</code></td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;">tier is NOT web</td>
+                                <td style="padding: 15px;"><code>tier!=web</code></td>
+                                <td style="padding: 15px;"><code>tier notin (web)</code></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;">env is prod OR staging</td>
+                                <td style="padding: 15px;">❌ Not possible</td>
+                                <td style="padding: 15px;"><code>env in (prod,staging)</code></td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;">Has 'release' label</td>
+                                <td style="padding: 15px;">❌ Not possible</td>
+                                <td style="padding: 15px;"><code>release</code></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;">Doesn't have 'beta' label</td>
+                                <td style="padding: 15px;">❌ Not possible</td>
+                                <td style="padding: 15px;"><code>!beta</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🚀 Labels in Action: Real Examples</h2>
+
+                <h3 style="color: #667eea;">Example 1: Deployment with Labels</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># deployment-frontend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+    tier: web
+    environment: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+      tier: web
+  template:
+    metadata:
+      labels:
+        app: frontend
+        tier: web
+        environment: production
+        version: v1.2.0
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+
+kubectl apply -f deployment-frontend.yaml
+
+# View deployment and its pods
+kubectl get deployment -l app=frontend
+kubectl get pods -l app=frontend
+
+# Scale deployment
+kubectl scale deployment -l app=frontend --replicas=5</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 2: Service with Selector</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># service-frontend.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels:
+    app: frontend
+    tier: web
+spec:
+  selector:
+    app: frontend    # Service routes to pods with these labels
+    tier: web
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+
+kubectl apply -f service-frontend.yaml
+
+# Check which pods the service is routing to
+kubectl get endpoints frontend-service
+
+# Output shows IPs of pods matching the selector
+# NAME               ENDPOINTS                           AGE
+# frontend-service   10.244.1.5:80,10.244.1.6:80,...    5m</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 3: Multi-Tier Application</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># multi-tier-app.yaml
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: myapp
+    tier: frontend
+    component: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: myapp
+        tier: frontend
+        component: web
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.21
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: myapp
+    tier: backend
+    component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: myapp
+        tier: backend
+        component: api
+    spec:
+      containers:
+      - name: api
+        image: myapi:v1
+---
+# Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+  labels:
+    app: myapp
+    tier: database
+    component: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+      tier: database
+  template:
+    metadata:
+      labels:
+        app: myapp
+        tier: database
+        component: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14
+
+kubectl apply -f multi-tier-app.yaml
+
+# Query by different dimensions
+kubectl get pods -l app=myapp                    # All app pods
+kubectl get pods -l tier=frontend                # Only frontend
+kubectl get pods -l 'tier in (frontend,backend)' # Frontend and backend
+kubectl get pods -l app=myapp,tier=database      # Only database
+
+# Get all resources for the app
+kubectl get all -l app=myapp</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example 4: Canary Deployment with Labels</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Stable version (90% of traffic)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-stable
+spec:
+  replicas: 9
+  selector:
+    matchLabels:
+      app: myapp
+      version: stable
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: stable
+        track: stable
+    spec:
+      containers:
+      - name: app
+        image: myapp:v1.0
+---
+# Canary version (10% of traffic)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: canary
+        track: canary
+    spec:
+      containers:
+      - name: app
+        image: myapp:v2.0
+---
+# Service routes to both versions
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  selector:
+    app: myapp  # Matches both stable and canary
+  ports:
+  - port: 80
+
+# Monitor canary
+kubectl get pods -l version=canary
+kubectl logs -l version=canary --tail=50
+
+# If canary is good, promote it
+kubectl scale deployment myapp-canary --replicas=10
+kubectl scale deployment myapp-stable --replicas=0
+
+# If canary is bad, roll back
+kubectl scale deployment myapp-canary --replicas=0</code></pre>
+                </div>
+
+                <h2>📋 Annotations</h2>
+
+                <p>Annotations are also key-value pairs, but they're used for non-identifying metadata. Unlike labels, annotations are NOT used for selection.</p>
+
+                <h3 style="color: #667eea;">Labels vs Annotations</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Aspect</th>
+                                <th style="padding: 15px; text-align: left;">Labels</th>
+                                <th style="padding: 15px; text-align: left;">Annotations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Purpose</strong></td>
+                                <td style="padding: 15px;">Identify and select objects</td>
+                                <td style="padding: 15px;">Store metadata</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Queryable</strong></td>
+                                <td style="padding: 15px;">✅ Yes (with selectors)</td>
+                                <td style="padding: 15px;">❌ No</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Size Limit</strong></td>
+                                <td style="padding: 15px;">63 characters</td>
+                                <td style="padding: 15px;">256 KB total</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Used By</strong></td>
+                                <td style="padding: 15px;">Kubernetes controllers</td>
+                                <td style="padding: 15px;">Tools, libraries, humans</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Examples</strong></td>
+                                <td style="padding: 15px;">app, tier, environment</td>
+                                <td style="padding: 15px;">description, build info, URLs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">When to Use Annotations</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Use annotations for:</strong></p>
+                    <ul style="line-height: 2;">
+                        <li><strong>Build/Release Info:</strong> Build number, git commit, release date</li>
+                        <li><strong>Contact Information:</strong> Team email, Slack channel, on-call</li>
+                        <li><strong>Tool Configuration:</strong> Prometheus scrape config, Istio settings</li>
+                        <li><strong>Documentation:</strong> Descriptions, links to docs, runbooks</li>
+                        <li><strong>Client Libraries:</strong> Data used by kubectl, client libraries</li>
+                        <li><strong>Debugging Info:</strong> Last applied configuration, change cause</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Working with Annotations</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <p><strong>In YAML:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># pod-with-annotations.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+    tier: frontend
+  annotations:
+    description: "Frontend web server for customer portal"
+    contact: "platform-team@company.com"
+    slack-channel: "#platform-alerts"
+    documentation: "https://wiki.company.com/myapp"
+    git-commit: "a1b2c3d4e5f6"
+    build-number: "1234"
+    build-date: "2024-01-15T10:30:00Z"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  containers:
+  - name: app
+    image: myapp:v1
+
+kubectl apply -f pod-with-annotations.yaml</code></pre>
+
+                    <p><strong>Using kubectl:</strong></p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Add annotation
+kubectl annotate pod myapp-pod description="My application pod"
+
+# Add multiple annotations
+kubectl annotate pod myapp-pod contact="team@company.com" owner="john"
+
+# Overwrite existing annotation
+kubectl annotate pod myapp-pod description="Updated description" --overwrite
+
+# Remove annotation (note the minus sign)
+kubectl annotate pod myapp-pod description-
+
+# View annotations
+kubectl describe pod myapp-pod | grep -A 10 Annotations:
+
+# Get annotations in JSON
+kubectl get pod myapp-pod -o jsonpath='{.metadata.annotations}'</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Common Annotation Examples</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Kubernetes built-in annotations
+kubectl.kubernetes.io/last-applied-configuration: "{...}"
+kubernetes.io/change-cause: "Update to version 2.0"
+
+# Prometheus monitoring
+prometheus.io/scrape: "true"
+prometheus.io/port: "9090"
+prometheus.io/path: "/metrics"
+
+# Ingress controller
+nginx.ingress.kubernetes.io/rewrite-target: /
+nginx.ingress.kubernetes.io/ssl-redirect: "true"
+cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+# Service mesh (Istio)
+sidecar.istio.io/inject: "true"
+traffic.sidecar.istio.io/excludeOutboundPorts: "3306"
+
+# Deployment tracking
+deployment.kubernetes.io/revision: "3"
+kubernetes.io/change-cause: "Updated image to v2.0"
+
+# Custom business annotations
+company.com/cost-center: "engineering"
+company.com/project-code: "PROJ-123"
+company.com/compliance: "pci-dss"
+company.com/backup: "daily"</code></pre>
+                </div>
+
+                <h2>🎨 Recommended Label Patterns</h2>
+
+                <p>Kubernetes recommends a standard set of labels for better organization and tooling compatibility.</p>
+
+                <h3 style="color: #667eea;">Standard Recommended Labels</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Label</th>
+                                <th style="padding: 15px; text-align: left;">Description</th>
+                                <th style="padding: 15px; text-align: left;">Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><code>app.kubernetes.io/name</code></td>
+                                <td style="padding: 15px;">Application name</td>
+                                <td style="padding: 15px;">mysql</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><code>app.kubernetes.io/instance</code></td>
+                                <td style="padding: 15px;">Unique instance name</td>
+                                <td style="padding: 15px;">mysql-prod</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><code>app.kubernetes.io/version</code></td>
+                                <td style="padding: 15px;">Application version</td>
+                                <td style="padding: 15px;">5.7.21</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><code>app.kubernetes.io/component</code></td>
+                                <td style="padding: 15px;">Component within architecture</td>
+                                <td style="padding: 15px;">database</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><code>app.kubernetes.io/part-of</code></td>
+                                <td style="padding: 15px;">Higher level application</td>
+                                <td style="padding: 15px;">wordpress</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><code>app.kubernetes.io/managed-by</code></td>
+                                <td style="padding: 15px;">Tool managing the resource</td>
+                                <td style="padding: 15px;">helm</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Complete Example with Recommended Labels</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># wordpress-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  labels:
+    # Recommended labels
+    app.kubernetes.io/name: wordpress
+    app.kubernetes.io/instance: wordpress-prod
+    app.kubernetes.io/version: "6.0"
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: blog-platform
+    app.kubernetes.io/managed-by: kubectl
+    
+    # Custom labels
+    environment: production
+    tier: frontend
+    team: content
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wordpress
+      app.kubernetes.io/instance: wordpress-prod
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wordpress
+        app.kubernetes.io/instance: wordpress-prod
+        app.kubernetes.io/version: "6.0"
+        app.kubernetes.io/component: frontend
+        app.kubernetes.io/part-of: blog-platform
+        environment: production
+        tier: frontend
+    spec:
+      containers:
+      - name: wordpress
+        image: wordpress:6.0
+        ports:
+        - containerPort: 80
+
+kubectl apply -f wordpress-deployment.yaml
+
+# Query using recommended labels
+kubectl get all -l app.kubernetes.io/name=wordpress
+kubectl get all -l app.kubernetes.io/part-of=blog-platform
+kubectl get pods -l app.kubernetes.io/component=frontend</code></pre>
+                </div>
+
+                <h2>💼 Real-World Labeling Strategies</h2>
+
+                <h3 style="color: #667eea;">Strategy 1: Environment-Based</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Labels:
+  app: myapp
+  environment: production    # or staging, development
+  tier: frontend            # or backend, database
+  version: v1.2.0
+
+Use cases:
+- Get all production resources: -l environment=production
+- Get all frontend pods: -l tier=frontend
+- Get specific app in prod: -l app=myapp,environment=production</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Strategy 2: Team-Based</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Labels:
+  app: myapp
+  team: platform           # or frontend, backend, data
+  owner: john-doe
+  cost-center: engineering
+  project: customer-portal
+
+Use cases:
+- Get all platform team resources: -l team=platform
+- Get resources by owner: -l owner=john-doe
+- Cost tracking: -l cost-center=engineering</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Strategy 3: Release Management</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>Labels:
+  app: myapp
+  version: v1.2.0
+  release: stable          # or canary, beta
+  track: production        # or experimental
+  
+Use cases:
+- Canary deployments: -l release=canary
+- Stable version only: -l release=stable
+- All versions of app: -l app=myapp
+- Experimental features: -l track=experimental</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Strategy 4: Comprehensive Production Pattern</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Complete production labeling strategy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-api
+  labels:
+    # Recommended Kubernetes labels
+    app.kubernetes.io/name: customer-api
+    app.kubernetes.io/instance: customer-api-prod
+    app.kubernetes.io/version: "2.1.0"
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: customer-platform
+    app.kubernetes.io/managed-by: argocd
+    
+    # Environment and tier
+    environment: production
+    tier: backend
+    
+    # Team and ownership
+    team: backend-team
+    owner: jane-smith
+    
+    # Release management
+    version: v2.1.0
+    release: stable
+    
+    # Business metadata
+    cost-center: engineering
+    project: customer-portal
+    criticality: high
+    
+  annotations:
+    description: "Customer API service for managing customer data"
+    contact: "backend-team@company.com"
+    slack-channel: "#backend-alerts"
+    documentation: "https://docs.company.com/customer-api"
+    runbook: "https://runbooks.company.com/customer-api"
+    git-repo: "https://github.com/company/customer-api"
+    git-commit: "a1b2c3d4e5f6789"
+    build-number: "1234"
+    deployed-by: "jane.smith@company.com"
+    deployed-at: "2024-01-15T10:30:00Z"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: customer-api
+      app.kubernetes.io/instance: customer-api-prod
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: customer-api
+        app.kubernetes.io/instance: customer-api-prod
+        app.kubernetes.io/version: "2.1.0"
+        app.kubernetes.io/component: api
+        environment: production
+        tier: backend
+        team: backend-team
+        version: v2.1.0
+    spec:
+      containers:
+      - name: api
+        image: customer-api:v2.1.0</code></pre>
+                </div>
+
+                <h2>🔍 Advanced Selector Techniques</h2>
+
+                <h3 style="color: #667eea;">Using matchExpressions in YAML</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># deployment-with-matchexpressions.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    # Can use matchLabels (equality-based)
+    matchLabels:
+      app: myapp
+    
+    # AND matchExpressions (set-based)
+    matchExpressions:
+    - key: environment
+      operator: In
+      values:
+      - production
+      - staging
+    - key: tier
+      operator: NotIn
+      values:
+      - deprecated
+    - key: release
+      operator: Exists
+  template:
+    metadata:
+      labels:
+        app: myapp
+        environment: production
+        tier: backend
+        release: stable
+    spec:
+      containers:
+      - name: app
+        image: myapp:v1
+
+# This selector matches pods where:
+# - app = myapp
+# - AND environment is production OR staging
+# - AND tier is NOT deprecated
+# - AND release label exists (any value)</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Node Selector with Labels</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Label nodes
+kubectl label nodes node-1 disktype=ssd
+kubectl label nodes node-2 disktype=ssd
+kubectl label nodes node-3 disktype=hdd
+kubectl label nodes node-1 gpu=true
+
+# Deploy pod to nodes with SSD
+apiVersion: v1
+kind: Pod
+metadata:
+  name: database-pod
+spec:
+  nodeSelector:
+    disktype: ssd
+  containers:
+  - name: postgres
+    image: postgres:14
+
+# Deploy pod to nodes with GPU
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ml-training
+spec:
+  nodeSelector:
+    gpu: "true"
+  containers:
+  - name: tensorflow
+    image: tensorflow/tensorflow:latest-gpu
+
+# View node labels
+kubectl get nodes --show-labels
+
+# Get nodes with specific label
+kubectl get nodes -l disktype=ssd</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Bulk Operations with Labels</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Delete all pods with specific label
+kubectl delete pods -l app=myapp
+
+# Delete all resources with label
+kubectl delete all -l environment=staging
+
+# Scale all deployments with label
+kubectl scale deployment -l app=myapp --replicas=5
+
+# Get logs from all pods with label
+kubectl logs -l app=myapp --tail=50
+
+# Execute command in all pods with label
+kubectl exec -l app=myapp -- ls /app
+
+# Port forward to pod with label
+kubectl port-forward -l app=myapp 8080:80
+
+# Copy files from pods with label
+kubectl cp -l app=myapp:/app/logs ./logs
+
+# Watch pods with label
+kubectl get pods -l app=myapp -w
+
+# Describe all resources with label
+kubectl describe all -l app=myapp</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting with Labels</h2>
+
+                <h3 style="color: #667eea;">Issue 1: Service Not Finding Pods</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get endpoints myapp-service
+# NAME            ENDPOINTS   AGE
+# myapp-service   <none>      5m
+
+# Service has no endpoints!</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check service selector
+kubectl get service myapp-service -o yaml | grep -A 5 selector:
+# selector:
+#   app: myapp
+#   tier: web
+
+# Check pod labels
+kubectl get pods --show-labels
+# NAME         READY   STATUS    LABELS
+# myapp-pod    1/1     Running   app=myapp,tier=frontend  # ❌ tier mismatch!
+
+# The service selector requires tier=web but pod has tier=frontend</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solution:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Option 1: Fix pod labels
+kubectl label pod myapp-pod tier=web --overwrite
+
+# Option 2: Fix service selector
+kubectl edit service myapp-service
+# Change selector to match pod labels
+
+# Verify endpoints now exist
+kubectl get endpoints myapp-service
+# NAME            ENDPOINTS         AGE
+# myapp-service   10.244.1.5:80     5m</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 2: Deployment Not Selecting Pods</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get deployment myapp
+# NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+# myapp   0/3     0            0           5m
+
+# No pods are ready!</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check deployment selector
+kubectl get deployment myapp -o yaml | grep -A 5 selector:
+
+# Check if selector matches template labels
+kubectl get deployment myapp -o yaml | grep -A 10 "template:"
+
+# Common issue: selector doesn't match template labels</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solution:</h4>
+                    <p>Deployment selector is immutable! Must delete and recreate:</p>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Save current deployment
+kubectl get deployment myapp -o yaml > myapp-deployment.yaml
+
+# Edit the file to fix selector/labels mismatch
+
+# Delete and recreate
+kubectl delete deployment myapp
+kubectl apply -f myapp-deployment.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Issue 3: Can't Find Resources</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Symptoms:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>kubectl get pods -l app=myapp
+# No resources found</code></pre>
+
+                    <h4 style="color: #fca5a5;">🔍 Diagnosis:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check all pods to see actual labels
+kubectl get pods --show-labels
+
+# Maybe the label key or value is different
+# Common mistakes:
+# - Typo in label name: app vs application
+# - Wrong value: myapp vs my-app
+# - Wrong namespace</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solution:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Search across all namespaces
+kubectl get pods --all-namespaces --show-labels | grep myapp
+
+# Use partial matching with grep
+kubectl get pods --show-labels | grep -i app
+
+# Check specific namespace
+kubectl get pods -n production --show-labels</code></pre>
+                </div>
+
+                <h2>✅ Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Label Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use consistent naming:</strong> Stick to a naming convention across the organization</li>
+                        <li>✅ <strong>Use recommended labels:</strong> Follow app.kubernetes.io/* pattern</li>
+                        <li>✅ <strong>Keep labels simple:</strong> Short, meaningful values</li>
+                        <li>✅ <strong>Use multiple dimensions:</strong> app, tier, environment, version</li>
+                        <li>✅ <strong>Document your strategy:</strong> Create a labeling guide for your team</li>
+                        <li>✅ <strong>Automate labeling:</strong> Use CI/CD to add labels automatically</li>
+                        <li>✅ <strong>Don't overuse labels:</strong> Too many labels make queries complex</li>
+                        <li>✅ <strong>Use prefixes for custom labels:</strong> company.com/label-name</li>
+                        <li>✅ <strong>Test selectors:</strong> Verify they match expected resources</li>
+                        <li>✅ <strong>Version your labels:</strong> Include version information</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Annotation Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use for non-identifying metadata:</strong> Don't use for selection</li>
+                        <li>✅ <strong>Store build information:</strong> Git commit, build number, date</li>
+                        <li>✅ <strong>Add contact information:</strong> Team email, Slack channel</li>
+                        <li>✅ <strong>Link to documentation:</strong> Runbooks, wikis, repos</li>
+                        <li>✅ <strong>Tool configuration:</strong> Prometheus, Istio, Ingress settings</li>
+                        <li>✅ <strong>Use prefixes:</strong> tool.company.com/annotation-name</li>
+                        <li>✅ <strong>Keep it readable:</strong> Use JSON or YAML for complex data</li>
+                        <li>✅ <strong>Don't store secrets:</strong> Use Secrets resource instead</li>
+                    </ol>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Selector Best Practices</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use specific selectors:</strong> Multiple labels for precision</li>
+                        <li>✅ <strong>Test before deploying:</strong> Verify selector matches expected pods</li>
+                        <li>✅ <strong>Document selector logic:</strong> Explain complex selectors</li>
+                        <li>✅ <strong>Use set-based for flexibility:</strong> When you need OR logic</li>
+                        <li>✅ <strong>Avoid overly broad selectors:</strong> Don't select too many resources</li>
+                        <li>✅ <strong>Consider immutability:</strong> Deployment selectors can't be changed</li>
+                        <li>✅ <strong>Use label validation:</strong> Ensure labels exist before selecting</li>
+                    </ol>
+                </div>
+
+                <h2>📊 Monitoring and Reporting with Labels</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Count resources by label
+kubectl get pods -l app=myapp --no-headers | wc -l
+
+# Group pods by environment
+for env in production staging development; do
+  echo "Environment: $env"
+  kubectl get pods -l environment=$env --no-headers | wc -l
+done
+
+# List all unique label keys
+kubectl get pods -o json | \
+  jq -r '.items[].metadata.labels | keys[]' | \
+  sort -u
+
+# List all unique values for a label key
+kubectl get pods -o json | \
+  jq -r '.items[].metadata.labels.environment' | \
+  sort -u
+
+# Find pods without required labels
+kubectl get pods -o json | \
+  jq -r '.items[] | select(.metadata.labels.environment == null) | .metadata.name'
+
+# Resource usage by team (requires metrics-server)
+for team in frontend backend data; do
+  echo "Team: $team"
+  kubectl top pods -l team=$team --no-headers | \
+    awk '{cpu+=$2; mem+=$3} END {print "CPU:", cpu, "Memory:", mem}'
+done
+
+# Export resources with specific labels
+kubectl get all -l app=myapp -o yaml > myapp-resources.yaml
+
+# Generate report of all labeled resources
+kubectl get all --all-namespaces -o json | \
+  jq -r '.items[] | "\(.kind)\t\(.metadata.name)\t\(.metadata.labels)"'</code></pre>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Labels are key-value pairs</strong> used to organize and select resources</li>
+                        <li>✅ <strong>Selectors query resources</strong> using equality-based or set-based logic</li>
+                        <li>✅ <strong>Annotations store metadata</strong> but aren't used for selection</li>
+                        <li>✅ <strong>Use recommended labels</strong> (app.kubernetes.io/*) for consistency</li>
+                        <li>✅ <strong>Multiple labels enable</strong> flexible querying and grouping</li>
+                        <li>✅ <strong>Services use selectors</strong> to find pods automatically</li>
+                        <li>✅ <strong>Labels enable bulk operations</strong> on multiple resources</li>
+                        <li>✅ <strong>Consistent labeling strategy</strong> is essential for large clusters</li>
+                        <li>✅ <strong>Test selectors before deploying</strong> to avoid mismatches</li>
+                        <li>✅ <strong>Document your labeling conventions</strong> for team alignment</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you understand labels and selectors, you're ready to learn about <strong>StatefulSets</strong> - how to manage stateful applications with stable network identities and persistent storage!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about StatefulSets?</h3>
+                    <a href="11-statefulsets.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #11: StatefulSets - Managing Stateful Applications →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
