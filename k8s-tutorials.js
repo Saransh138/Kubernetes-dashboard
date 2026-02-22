@@ -291,8 +291,10 @@ const k8sTutorials = [
             'Alerting strategies'
         ],
         handsOn: 'Set up a complete monitoring and logging solution',
-        readTime: '40 min',
-        difficulty: 'advanced'
+        readTime: '50 min',
+        difficulty: 'advanced',
+        url: 'tutorials/17-monitoring-logging.html',
+        status: 'available'
     },
     {
         id: 18,

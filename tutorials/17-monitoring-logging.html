@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring and Logging Your Kubernetes Cluster | K8s Tutorial #17</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../blog-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Wider container for tutorials */
+        .blog-post-detail {
+            max-width: 1200px !important;
+        }
+        .blog-post-detail .container {
+            max-width: 1200px !important;
+        }
+        .post-content {
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">⚡</span>
+                    DevSecOpsSolution<span class="highlight">.in</span>
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../k8s-tutorials.html" class="nav-link">K8s Tutorials</a></li>
+                <li><a href="../blog.html" class="nav-link">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Blog Post Content -->
+    <article class="blog-post-detail">
+        <div class="container">
+            <div class="post-header">
+                <a href="../k8s-tutorials.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+                </a>
+                <div class="post-icon">📊</div>
+                <h1 class="post-title">Monitoring and Logging Your Kubernetes Cluster</h1>
+                <div class="post-meta">
+                    <span><i class="fas fa-bookmark"></i> Tutorial #17 of 20</span>
+                    <span><i class="fas fa-signal"></i> Advanced</span>
+                    <span><i class="far fa-clock"></i> 50 min read</span>
+                    <span><i class="fas fa-code"></i> Hands-On Included</span>
+                </div>
+            </div>
+            
+            <div class="post-content">
+
+                <h3 style="color: #667eea; margin-top: 0;">🎯 What You'll Learn</h3>
+                <ul style="line-height: 2;">
+                    <li>Why monitoring and logging are critical</li>
+                    <li>Metrics Server and kubectl top</li>
+                    <li>Prometheus for metrics collection</li>
+                    <li>Grafana for visualization</li>
+                    <li>Centralized logging with EFK/ELK stack</li>
+                    <li>Log aggregation patterns</li>
+                    <li>Alerting strategies with Alertmanager</li>
+                    <li>Distributed tracing basics</li>
+                    <li>Monitoring best practices</li>
+                    <li>Troubleshooting with observability tools</li>
+                </ul>
+
+                <h2>🤔 The Problem: Observability in Kubernetes</h2>
+
+                <p>Without proper monitoring and logging, you're flying blind in production.</p>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Without Monitoring & Logging:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>No visibility:</strong> Don't know what's happening in cluster</li>
+                        <li><strong>Reactive troubleshooting:</strong> Find out about issues from users</li>
+                        <li><strong>Difficult debugging:</strong> Logs scattered across pods</li>
+                        <li><strong>No historical data:</strong> Can't analyze past incidents</li>
+                        <li><strong>Resource waste:</strong> Don't know what's over/under-provisioned</li>
+                        <li><strong>Slow incident response:</strong> Takes hours to find root cause</li>
+                        <li><strong>No capacity planning:</strong> Can't predict future needs</li>
+                    </ul>
+                </div>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #9ae6b4; margin-top: 0;">✅ With Monitoring & Logging:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Real-time visibility:</strong> See cluster health at a glance</li>
+                        <li><strong>Proactive alerts:</strong> Know about issues before users do</li>
+                        <li><strong>Centralized logs:</strong> Search all logs in one place</li>
+                        <li><strong>Historical analysis:</strong> Understand trends and patterns</li>
+                        <li><strong>Resource optimization:</strong> Right-size based on actual usage</li>
+                        <li><strong>Fast troubleshooting:</strong> Find root cause in minutes</li>
+                        <li><strong>Capacity planning:</strong> Predict and plan for growth</li>
+                    </ul>
+                </div>
+
+                <h2>📊 The Three Pillars of Observability</h2>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Observability Pillars                         │
+│                                                                   │
+│  1. METRICS (What is happening?)                                │
+│     ├─ Numerical measurements over time                         │
+│     ├─ CPU, memory, request rate, latency                       │
+│     ├─ Tools: Prometheus, Grafana                               │
+│     └─ Use: Dashboards, alerts, capacity planning               │
+│                                                                   │
+│  2. LOGS (What happened?)                                       │
+│     ├─ Discrete events with context                             │
+│     ├─ Application logs, error messages                         │
+│     ├─ Tools: Elasticsearch, Fluentd, Kibana (EFK)             │
+│     └─ Use: Debugging, audit trails, compliance                 │
+│                                                                   │
+│  3. TRACES (How did it happen?)                                │
+│     ├─ Request flow through distributed system                  │
+│     ├─ Service dependencies, bottlenecks                        │
+│     ├─ Tools: Jaeger, Zipkin, OpenTelemetry                    │
+│     └─ Use: Performance optimization, debugging                 │
+│                                                                   │
+│  Together: Complete picture of system behavior                  │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h2>📈 Metrics Server</h2>
+
+                <p>Metrics Server collects resource metrics from Kubelets and exposes them via Kubernetes API.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">What Metrics Server Provides</h3>
+                    <ul style="line-height: 2;">
+                        <li><strong>CPU and memory usage:</strong> For nodes and pods</li>
+                        <li><strong>kubectl top:</strong> View resource usage</li>
+                        <li><strong>HPA support:</strong> Required for Horizontal Pod Autoscaler</li>
+                        <li><strong>Lightweight:</strong> Minimal resource overhead</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Metrics Server
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+# For minikube
+minikube addons enable metrics-server
+
+# Verify installation
+kubectl get deployment metrics-server -n kube-system
+
+# Wait a minute for metrics to be collected
+# View node metrics
+kubectl top nodes
+
+# Output:
+# NAME       CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+# minikube   250m         12%    1024Mi          25%
+
+# View pod metrics
+kubectl top pods
+
+# Output:
+# NAME                     CPU(cores)   MEMORY(bytes)
+# nginx-7c6f8f8b4d-abc12   1m           10Mi
+# redis-6d5f8c9b4d-xyz34   5m           50Mi
+
+# View pod metrics in specific namespace
+kubectl top pods -n kube-system
+
+# View pod metrics with containers
+kubectl top pods --containers
+
+# Sort by CPU
+kubectl top pods --sort-by=cpu
+
+# Sort by memory
+kubectl top pods --sort-by=memory</code></pre>
+                </div>
+
+                <h2>🔥 Prometheus and Grafana</h2>
+
+                <p>Prometheus is the de facto standard for Kubernetes monitoring. Grafana provides beautiful visualizations.</p>
+
+                <h3 style="color: #667eea;">Installing Prometheus Stack</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Add Prometheus Helm repo
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Install kube-prometheus-stack (Prometheus + Grafana + Alertmanager)
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace
+
+# Check installation
+kubectl get pods -n monitoring
+
+# Output:
+# NAME                                                   READY   STATUS
+# prometheus-kube-prometheus-operator-xxx                1/1     Running
+# prometheus-prometheus-kube-prometheus-prometheus-0     2/2     Running
+# prometheus-grafana-xxx                                 3/3     Running
+# alertmanager-prometheus-kube-prometheus-alertmanager-0 2/2     Running
+
+# Get Grafana admin password
+kubectl get secret -n monitoring prometheus-grafana \
+  -o jsonpath="{.data.admin-password}" | base64 --decode
+
+# Port-forward Grafana
+kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
+
+# Access Grafana at http://localhost:3000
+# Username: admin
+# Password: (from above command)
+
+# Port-forward Prometheus
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+
+# Access Prometheus at http://localhost:9090</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Key Prometheus Metrics</h3>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Node metrics
+node_cpu_seconds_total              # CPU usage
+node_memory_MemAvailable_bytes      # Available memory
+node_filesystem_avail_bytes         # Disk space
+
+# Pod metrics
+container_cpu_usage_seconds_total   # Container CPU
+container_memory_usage_bytes        # Container memory
+container_network_receive_bytes_total  # Network in
+container_network_transmit_bytes_total # Network out
+
+# Kubernetes metrics
+kube_pod_status_phase               # Pod status
+kube_deployment_status_replicas     # Deployment replicas
+kube_node_status_condition          # Node conditions
+
+# Application metrics (if instrumented)
+http_requests_total                 # Request count
+http_request_duration_seconds       # Request latency
+http_requests_in_flight             # Active requests</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Example PromQL Queries</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># CPU usage per pod
+sum(rate(container_cpu_usage_seconds_total[5m])) by (pod)
+
+# Memory usage per namespace
+sum(container_memory_usage_bytes) by (namespace)
+
+# Pod restart count
+kube_pod_container_status_restarts_total
+
+# Pods not ready
+kube_pod_status_phase{phase!="Running"}
+
+# Request rate (requests per second)
+rate(http_requests_total[5m])
+
+# 95th percentile latency
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+# Error rate
+rate(http_requests_total{status=~"5.."}[5m])
+
+# Available disk space
+node_filesystem_avail_bytes / node_filesystem_size_bytes * 100</code></pre>
+                </div>
+
+                <h2>📋 Centralized Logging with EFK Stack</h2>
+
+                <p>EFK (Elasticsearch, Fluentd, Kibana) provides centralized log aggregation and search.</p>
+
+                <h3 style="color: #667eea;">EFK Architecture</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 20px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;"><code>┌─────────────────────────────────────────────────────────────────┐
+│                      EFK Stack                                   │
+│                                                                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                      │
+│  │  Pod 1   │  │  Pod 2   │  │  Pod 3   │                      │
+│  │  Logs    │  │  Logs    │  │  Logs    │                      │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘                      │
+│       │             │             │                              │
+│       └─────────────┼─────────────┘                             │
+│                     │                                            │
+│                     ▼                                            │
+│            ┌─────────────────┐                                  │
+│            │  Fluentd        │  (DaemonSet on each node)       │
+│            │  Log Collector  │  Collects logs from all pods    │
+│            └────────┬────────┘                                  │
+│                     │                                            │
+│                     ▼                                            │
+│            ┌─────────────────┐                                  │
+│            │  Elasticsearch  │  Stores and indexes logs        │
+│            │  Search Engine  │                                  │
+│            └────────┬────────┘                                  │
+│                     │                                            │
+│                     ▼                                            │
+│            ┌─────────────────┐                                  │
+│            │  Kibana         │  Visualize and search logs      │
+│            │  Dashboard      │                                  │
+│            └─────────────────┘                                  │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Installing EFK Stack</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Create namespace
+kubectl create namespace logging
+
+# Install Elasticsearch
+kubectl apply -f - <<EOF
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: logging
+spec:
+  serviceName: elasticsearch
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+        env:
+        - name: discovery.type
+          value: single-node
+        - name: ES_JAVA_OPTS
+          value: "-Xms512m -Xmx512m"
+        ports:
+        - containerPort: 9200
+        - containerPort: 9300
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: logging
+spec:
+  selector:
+    app: elasticsearch
+  ports:
+  - port: 9200
+    targetPort: 9200
+EOF
+
+# Install Fluentd (DaemonSet)
+kubectl apply -f https://raw.githubusercontent.com/fluent/fluentd-kubernetes-daemonset/master/fluentd-daemonset-elasticsearch.yaml
+
+# Install Kibana
+kubectl apply -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:7.17.0
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch:9200"
+        ports:
+        - containerPort: 5601
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  selector:
+    app: kibana
+  ports:
+  - port: 5601
+    targetPort: 5601
+EOF
+
+# Port-forward Kibana
+kubectl port-forward -n logging svc/kibana 5601:5601
+
+# Access Kibana at http://localhost:5601</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Viewing Logs</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># View logs with kubectl
+kubectl logs pod-name
+
+# Follow logs (like tail -f)
+kubectl logs -f pod-name
+
+# View logs from specific container
+kubectl logs pod-name -c container-name
+
+# View logs from previous container (if crashed)
+kubectl logs pod-name --previous
+
+# View logs from all pods with label
+kubectl logs -l app=myapp
+
+# View logs with timestamps
+kubectl logs pod-name --timestamps
+
+# View last 100 lines
+kubectl logs pod-name --tail=100
+
+# View logs since 1 hour ago
+kubectl logs pod-name --since=1h
+
+# In Kibana:
+# 1. Go to Discover
+# 2. Create index pattern: logstash-*
+# 3. Search logs:
+#    - kubernetes.namespace_name: "production"
+#    - kubernetes.pod_name: "myapp-*"
+#    - log: "error"</code></pre>
+                </div>
+
+                <h2>🚨 Alerting with Alertmanager</h2>
+
+                <p>Alertmanager handles alerts from Prometheus and routes them to receivers (email, Slack, PagerDuty).</p>
+
+                <h3 style="color: #667eea;">Creating Alert Rules</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># prometheus-rules.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  alert-rules.yml: |
+    groups:
+    - name: kubernetes-alerts
+      interval: 30s
+      rules:
+      # Pod not ready
+      - alert: PodNotReady
+        expr: kube_pod_status_phase{phase!="Running"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} not ready"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been not ready for more than 5 minutes"
+      
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.pod }}"
+          description: "Pod {{ $labels.pod }} is using more than 80% CPU"
+      
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory usage on {{ $labels.pod }}"
+          description: "Pod {{ $labels.pod }} is using more than 90% of memory limit"
+      
+      # Pod restarting
+      - alert: PodRestarting
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} restarting"
+          description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes"
+      
+      # Node not ready
+      - alert: NodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.node }} not ready"
+          description: "Node {{ $labels.node }} has been not ready for more than 5 minutes"
+      
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is below 10% on {{ $labels.instance }}"
+
+kubectl apply -f prometheus-rules.yaml</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Configuring Alertmanager</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># alertmanager-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+    
+    route:
+      group_by: ['alertname', 'cluster']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'slack-notifications'
+      routes:
+      - match:
+          severity: critical
+        receiver: 'pagerduty'
+      - match:
+          severity: warning
+        receiver: 'slack-notifications'
+    
+    receivers:
+    - name: 'slack-notifications'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts'
+        title: 'Kubernetes Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    
+    - name: 'pagerduty'
+      pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_KEY'
+    
+    - name: 'email'
+      email_configs:
+      - to: 'team@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: 'alertmanager@example.com'
+        auth_password: 'password'
+
+kubectl apply -f alertmanager-config.yaml</code></pre>
+                </div>
+
+                <h2>📊 Grafana Dashboards</h2>
+
+                <p>Grafana provides pre-built dashboards for Kubernetes monitoring.</p>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Popular Kubernetes Dashboards</h3>
+                    <ul style="line-height: 2;">
+                        <li><strong>Kubernetes Cluster Monitoring:</strong> Dashboard ID 7249</li>
+                        <li><strong>Kubernetes Pod Monitoring:</strong> Dashboard ID 6417</li>
+                        <li><strong>Node Exporter Full:</strong> Dashboard ID 1860</li>
+                        <li><strong>Kubernetes Deployment:</strong> Dashboard ID 8588</li>
+                    </ul>
+                </div>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Import dashboard in Grafana:
+# 1. Go to Dashboards → Import
+# 2. Enter dashboard ID (e.g., 7249)
+# 3. Select Prometheus data source
+# 4. Click Import
+
+# Or create custom dashboard:
+# 1. Go to Dashboards → New Dashboard
+# 2. Add Panel
+# 3. Enter PromQL query
+# 4. Configure visualization
+# 5. Save dashboard
+
+# Example panels:
+# - CPU Usage: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod)
+# - Memory Usage: sum(container_memory_usage_bytes) by (pod)
+# - Network Traffic: rate(container_network_receive_bytes_total[5m])
+# - Pod Count: count(kube_pod_info)</code></pre>
+                </div>
+
+                <h2>🔍 Troubleshooting with Observability Tools</h2>
+
+                <h3 style="color: #667eea;">Scenario 1: High CPU Usage</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Problem:</h4>
+                    <p>Application is slow, users complaining about latency</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Investigation Steps:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. Check overall cluster CPU
+kubectl top nodes
+
+# 2. Find pods with high CPU
+kubectl top pods --all-namespaces --sort-by=cpu
+
+# 3. Check specific pod
+kubectl top pod high-cpu-pod
+
+# 4. View Prometheus metrics
+# Query: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod)
+
+# 5. Check pod logs for errors
+kubectl logs high-cpu-pod
+
+# 6. Describe pod to see events
+kubectl describe pod high-cpu-pod</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Scale horizontally:</strong> Add more replicas</li>
+                        <li><strong>Increase CPU limit:</strong> If being throttled</li>
+                        <li><strong>Optimize code:</strong> Profile and fix inefficiencies</li>
+                        <li><strong>Add caching:</strong> Reduce computation</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Scenario 2: Application Errors</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Problem:</h4>
+                    <p>Users reporting 500 errors</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Investigation Steps:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. Check error rate in Prometheus
+# Query: rate(http_requests_total{status=~"5.."}[5m])
+
+# 2. Search logs in Kibana
+# Filter: log: "error" AND kubernetes.namespace_name: "production"
+
+# 3. Check recent pod restarts
+kubectl get pods -o wide
+
+# 4. View logs from crashed pods
+kubectl logs pod-name --previous
+
+# 5. Check pod events
+kubectl get events --sort-by='.lastTimestamp'
+
+# 6. Check application metrics
+# Query: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>Fix application bug:</strong> Based on error logs</li>
+                        <li><strong>Increase resources:</strong> If OOMKilled</li>
+                        <li><strong>Check dependencies:</strong> Database, cache, external APIs</li>
+                        <li><strong>Rollback deployment:</strong> If recent change caused it</li>
+                    </ul>
+                </div>
+
+                <h3 style="color: #667eea;">Scenario 3: Pod Crashes</h3>
+
+                <div style="background: #742a2a; color: #fed7d7; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h4 style="color: #fca5a5; margin-top: 0;">❌ Problem:</h4>
+                    <p>Pod keeps restarting</p>
+
+                    <h4 style="color: #fca5a5;">🔍 Investigation Steps:</h4>
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># 1. Check restart count
+kubectl get pods
+
+# 2. Check why it crashed
+kubectl describe pod crashing-pod | grep -A 10 "Last State"
+
+# 3. View logs from previous instance
+kubectl logs crashing-pod --previous
+
+# 4. Check Prometheus for OOM kills
+# Query: kube_pod_container_status_terminated_reason{reason="OOMKilled"}
+
+# 5. Check memory usage before crash
+# Query: container_memory_usage_bytes{pod="crashing-pod"}
+
+# 6. Check liveness probe failures
+kubectl describe pod crashing-pod | grep -A 5 "Liveness"</code></pre>
+
+                    <h4 style="color: #fca5a5;">✅ Solutions:</h4>
+                    <ul style="line-height: 2;">
+                        <li><strong>OOMKilled:</strong> Increase memory limit</li>
+                        <li><strong>Liveness probe:</strong> Adjust probe settings</li>
+                        <li><strong>Application crash:</strong> Fix code bug</li>
+                        <li><strong>Missing dependency:</strong> Check init containers</li>
+                    </ul>
+                </div>
+
+                <h2>✅ Monitoring Best Practices</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #9ae6b4; margin-top: 0;">Metrics</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Use Prometheus:</strong> Industry standard for Kubernetes</li>
+                        <li>✅ <strong>Monitor the 4 golden signals:</strong> Latency, traffic, errors, saturation</li>
+                        <li>✅ <strong>Set up dashboards:</strong> Grafana for visualization</li>
+                        <li>✅ <strong>Define SLOs/SLIs:</strong> Service level objectives and indicators</li>
+                        <li>✅ <strong>Monitor at multiple levels:</strong> Cluster, node, pod, container</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 20px;">Logging</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Centralize logs:</strong> Use EFK or ELK stack</li>
+                        <li>✅ <strong>Structure logs:</strong> Use JSON format for easy parsing</li>
+                        <li>✅ <strong>Add context:</strong> Include request ID, user ID, etc.</li>
+                        <li>✅ <strong>Set retention policy:</strong> Balance cost vs compliance</li>
+                        <li>✅ <strong>Index efficiently:</strong> Don't index everything</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 20px;">Alerting</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Alert on symptoms:</strong> Not causes (user-facing issues)</li>
+                        <li>✅ <strong>Reduce noise:</strong> Group and deduplicate alerts</li>
+                        <li>✅ <strong>Make alerts actionable:</strong> Include runbook links</li>
+                        <li>✅ <strong>Set appropriate thresholds:</strong> Avoid false positives</li>
+                        <li>✅ <strong>Route by severity:</strong> Critical to PagerDuty, warnings to Slack</li>
+                    </ol>
+
+                    <h3 style="color: #9ae6b4; margin-top: 20px;">General</h3>
+                    <ol style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Monitor everything:</strong> Infrastructure, applications, business metrics</li>
+                        <li>✅ <strong>Automate responses:</strong> Auto-scaling, self-healing</li>
+                        <li>✅ <strong>Regular reviews:</strong> Check dashboards and alerts weekly</li>
+                        <li>✅ <strong>Document runbooks:</strong> How to respond to alerts</li>
+                        <li>✅ <strong>Test monitoring:</strong> Ensure alerts fire correctly</li>
+                    </ol>
+                </div>
+
+                <h2>📊 Key Metrics to Monitor</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Category</th>
+                                <th style="padding: 15px; text-align: left;">Metric</th>
+                                <th style="padding: 15px; text-align: left;">Alert Threshold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Node</strong></td>
+                                <td style="padding: 15px;">CPU usage</td>
+                                <td style="padding: 15px;">> 80% for 10 min</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Node</strong></td>
+                                <td style="padding: 15px;">Memory usage</td>
+                                <td style="padding: 15px;">> 85% for 5 min</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Node</strong></td>
+                                <td style="padding: 15px;">Disk space</td>
+                                <td style="padding: 15px;">< 10% available</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Pod</strong></td>
+                                <td style="padding: 15px;">Restart count</td>
+                                <td style="padding: 15px;">> 3 in 15 min</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Pod</strong></td>
+                                <td style="padding: 15px;">Not ready</td>
+                                <td style="padding: 15px;">> 5 minutes</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Application</strong></td>
+                                <td style="padding: 15px;">Error rate</td>
+                                <td style="padding: 15px;">> 1% of requests</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Application</strong></td>
+                                <td style="padding: 15px;">Latency (p95)</td>
+                                <td style="padding: 15px;">> 1 second</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Deployment</strong></td>
+                                <td style="padding: 15px;">Available replicas</td>
+                                <td style="padding: 15px;">< desired replicas</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>🎯 Key Takeaways</h2>
+
+                <div style="background: #1c4532; color: #9ae6b4; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <ul style="line-height: 2; font-size: 1.05rem;">
+                        <li>✅ <strong>Three pillars:</strong> Metrics, logs, and traces provide complete observability</li>
+                        <li>✅ <strong>Metrics Server:</strong> Basic resource metrics for kubectl top and HPA</li>
+                        <li>✅ <strong>Prometheus + Grafana:</strong> Industry standard for monitoring and visualization</li>
+                        <li>✅ <strong>EFK/ELK stack:</strong> Centralized logging for easy troubleshooting</li>
+                        <li>✅ <strong>Alertmanager:</strong> Routes alerts to appropriate channels</li>
+                        <li>✅ <strong>Alert on symptoms:</strong> Focus on user-facing issues</li>
+                        <li>✅ <strong>Monitor at all levels:</strong> Cluster, nodes, pods, applications</li>
+                        <li>✅ <strong>Structured logging:</strong> JSON format for easy parsing</li>
+                        <li>✅ <strong>Regular reviews:</strong> Check dashboards and tune alerts</li>
+                        <li>✅ <strong>Essential for production:</strong> Can't operate without observability</li>
+                    </ul>
+                </div>
+
+                <h2>🚀 What's Next?</h2>
+
+                <p>Now that you have comprehensive monitoring and logging set up, you're ready to learn about <strong>Kubernetes Networking Deep Dive</strong> - understanding CNI plugins, DNS, and service mesh!</p>
+
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin: 40px 0;">
+                    <h3 style="color: white; margin-top: 0;">Ready to learn about Networking?</h3>
+                    <a href="18-networking-deep-dive.html" style="display: inline-block; background: white; color: #667eea; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px;">
+                        Tutorial #18: Kubernetes Networking Deep Dive →
+                    </a>
+                </div>
+
+                <hr style="margin: 40px 0;">
+                
+                <div style="text-align: center; color: #718096;">
+                    <p>Questions? Connect with me on <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank" style="color: #667eea;">LinkedIn</a> or <a href="https://github.com/Saransh138" target="_blank" style="color: #667eea;">GitHub</a>!</p>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3><span class="brand-icon">⚡</span> DevSecOpsSolution<span class="highlight">.in</span></h3>
+                    <p>Building secure, scalable cloud solutions</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="../index.html#home">Home</a></li>
+                        <li><a href="../k8s-tutorials.html">K8s Tutorials</a></li>
+                        <li><a href="../blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://github.com/Saransh138" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/saransh-jain13/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevSecOps Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>
