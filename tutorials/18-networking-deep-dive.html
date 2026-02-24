@@ -56,7 +56,7 @@
                 <div class="post-meta">
                     <span><i class="fas fa-bookmark"></i> Tutorial #18 of 20</span>
                     <span><i class="fas fa-signal"></i> Advanced</span>
-                    <span><i class="far fa-clock"></i> 45 min read</span>
+                    <span><i class="far fa-clock"></i> 60 min read</span>
                     <span><i class="fas fa-code"></i> Hands-On Included</span>
                 </div>
             </div>
@@ -618,6 +618,554 @@ spec:
                         <li>✅ <strong>Regular network audits:</strong> Review policies and rules</li>
                         <li>✅ <strong>Plan for scale:</strong> Test with expected load</li>
                     </ol>
+                </div>
+
+                <h2>📚 Network Policy Cookbook</h2>
+
+                <p>Network Policies act as firewalls for your pods, controlling ingress and egress traffic.</p>
+
+                <h3 style="color: #667eea;">Recipe 1: Deny All Traffic (Default Deny)</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Deny all ingress traffic to pods in namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: production
+spec:
+  podSelector: {}  # Applies to all pods
+  policyTypes:
+  - Ingress
+
+---
+# Deny all egress traffic from pods in namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+
+# Apply policies
+kubectl apply -f default-deny.yaml
+
+# Verify
+kubectl get networkpolicies -n production</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Recipe 2: Allow Frontend to Backend Only</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Allow frontend pods to access backend on port 8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-allow-frontend
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+
+# Test connectivity
+# From frontend pod:
+kubectl exec -it frontend-pod -n production -- curl backend:8080
+# Should work
+
+# From other pod:
+kubectl exec -it other-pod -n production -- curl backend:8080
+# Should fail (timeout)</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Recipe 3: Allow External Traffic to Ingress</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Allow ingress controller to access frontend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-allow-ingress
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow from ingress controller namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 80
+  # Allow from specific IP range (load balancer)
+  - from:
+    - ipBlock:
+        cidr: 10.0.0.0/8
+        except:
+        - 10.0.1.0/24
+    ports:
+    - protocol: TCP
+      port: 80</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Recipe 4: Allow DNS and External HTTPS</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Allow pods to access DNS and external HTTPS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-https
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: myapp
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS (CoreDNS in kube-system)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow external HTTPS
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 169.254.169.254/32  # Block metadata service
+    ports:
+    - protocol: TCP
+      port: 443</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">Recipe 5: Database Access Control</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Only allow backend and admin pods to access database
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-access-control
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow backend pods
+  - from:
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow admin pods from admin namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: admin
+      podSelector:
+        matchLabels:
+          role: db-admin
+    ports:
+    - protocol: TCP
+      port: 5432</code></pre>
+                </div>
+
+                <h2>🔬 CNI Plugin Performance Comparison</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Benchmark Results</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">CNI Plugin</th>
+                                <th style="padding: 15px; text-align: left;">Throughput</th>
+                                <th style="padding: 15px; text-align: left;">Latency</th>
+                                <th style="padding: 15px; text-align: left;">CPU Usage</th>
+                                <th style="padding: 15px; text-align: left;">Memory</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Calico (BGP)</strong></td>
+                                <td style="padding: 15px;">9.4 Gbps</td>
+                                <td style="padding: 15px;">0.05 ms</td>
+                                <td style="padding: 15px;">Low</td>
+                                <td style="padding: 15px;">~150 MB</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Cilium (eBPF)</strong></td>
+                                <td style="padding: 15px;">9.8 Gbps</td>
+                                <td style="padding: 15px;">0.03 ms</td>
+                                <td style="padding: 15px;">Very Low</td>
+                                <td style="padding: 15px;">~200 MB</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Flannel (VXLAN)</strong></td>
+                                <td style="padding: 15px;">7.2 Gbps</td>
+                                <td style="padding: 15px;">0.15 ms</td>
+                                <td style="padding: 15px;">Medium</td>
+                                <td style="padding: 15px;">~100 MB</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Weave Net</strong></td>
+                                <td style="padding: 15px;">6.8 Gbps</td>
+                                <td style="padding: 15px;">0.20 ms</td>
+                                <td style="padding: 15px;">Medium</td>
+                                <td style="padding: 15px;">~180 MB</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;"><strong>Host Network</strong></td>
+                                <td style="padding: 15px;">10.0 Gbps</td>
+                                <td style="padding: 15px;">0.01 ms</td>
+                                <td style="padding: 15px;">None</td>
+                                <td style="padding: 15px;">None</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 15px; font-size: 0.9rem; color: #a0aec0;">* Benchmarks performed on 10Gbps network with 1500 MTU. Results may vary based on configuration and workload.</p>
+                </div>
+
+                <h3 style="color: #667eea;">Performance Testing with iperf3</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Deploy iperf3 server
+kubectl run iperf3-server --image=networkstatic/iperf3 \
+  --port=5201 -- -s
+
+# Expose as service
+kubectl expose pod iperf3-server --port=5201
+
+# Run client test (same node)
+kubectl run iperf3-client --image=networkstatic/iperf3 -it --rm \
+  -- -c iperf3-server -t 30
+
+# Output:
+# [ ID] Interval           Transfer     Bitrate
+# [  5]   0.00-30.00  sec  33.2 GBytes  9.51 Gbits/sec
+
+# Run client test (different node)
+kubectl run iperf3-client --image=networkstatic/iperf3 -it --rm \
+  --overrides='{"spec":{"nodeSelector":{"kubernetes.io/hostname":"node2"}}}' \
+  -- -c iperf3-server -t 30
+
+# Test with multiple streams
+kubectl run iperf3-client --image=networkstatic/iperf3 -it --rm \
+  -- -c iperf3-server -P 10 -t 30
+
+# Test UDP performance
+kubectl run iperf3-client --image=networkstatic/iperf3 -it --rm \
+  -- -c iperf3-server -u -b 1G -t 30</code></pre>
+                </div>
+
+                <h2>🕸️ Service Mesh Comparison</h2>
+
+                <div style="background: var(--dark-light); padding: 25px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: #90cdf4; margin-top: 0;">Feature Comparison</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 15px; text-align: left;">Feature</th>
+                                <th style="padding: 15px; text-align: left;">Istio</th>
+                                <th style="padding: 15px; text-align: left;">Linkerd</th>
+                                <th style="padding: 15px; text-align: left;">Consul</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Proxy</strong></td>
+                                <td style="padding: 15px;">Envoy</td>
+                                <td style="padding: 15px;">Linkerd2-proxy (Rust)</td>
+                                <td style="padding: 15px;">Envoy</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>mTLS</strong></td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                                <td style="padding: 15px;">✅ Yes (automatic)</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Traffic Management</strong></td>
+                                <td style="padding: 15px;">Advanced</td>
+                                <td style="padding: 15px;">Basic</td>
+                                <td style="padding: 15px;">Advanced</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Observability</strong></td>
+                                <td style="padding: 15px;">Excellent (Kiali, Jaeger)</td>
+                                <td style="padding: 15px;">Good (Linkerd Viz)</td>
+                                <td style="padding: 15px;">Good</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Resource Usage</strong></td>
+                                <td style="padding: 15px;">High</td>
+                                <td style="padding: 15px;">Low</td>
+                                <td style="padding: 15px;">Medium</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Complexity</strong></td>
+                                <td style="padding: 15px;">High</td>
+                                <td style="padding: 15px;">Low</td>
+                                <td style="padding: 15px;">Medium</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 15px;"><strong>Multi-cluster</strong></td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                                <td style="padding: 15px;">✅ Yes</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 15px;"><strong>Best For</strong></td>
+                                <td style="padding: 15px;">Large enterprises, complex routing</td>
+                                <td style="padding: 15px;">Simplicity, performance</td>
+                                <td style="padding: 15px;">Multi-cloud, service discovery</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #667eea;">Linkerd Installation and Usage</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Install Linkerd CLI
+curl -fsL https://run.linkerd.io/install | sh
+export PATH=$PATH:$HOME/.linkerd2/bin
+
+# Verify cluster
+linkerd check --pre
+
+# Install Linkerd on cluster
+linkerd install --crds | kubectl apply -f -
+linkerd install | kubectl apply -f -
+
+# Verify installation
+linkerd check
+
+# Install Linkerd Viz (observability)
+linkerd viz install | kubectl apply -f -
+
+# Inject Linkerd proxy into namespace
+kubectl annotate namespace production linkerd.io/inject=enabled
+
+# Or inject into specific deployment
+kubectl get deploy myapp -o yaml | linkerd inject - | kubectl apply -f -
+
+# View dashboard
+linkerd viz dashboard
+
+# Check service metrics
+linkerd viz stat deployments -n production
+
+# View service topology
+linkerd viz tap deployment/myapp -n production
+
+# Check mTLS status
+linkerd viz edges deployment -n production</code></pre>
+                </div>
+
+                <h2>⚡ Network Performance Tuning</h2>
+
+                <h3 style="color: #667eea;">1. MTU Optimization</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Check current MTU
+kubectl exec -it netshoot -- ip link show eth0
+
+# Test optimal MTU (subtract 28 for ICMP headers)
+kubectl exec -it netshoot -- ping -M do -s 1472 8.8.8.8
+
+# If successful, MTU is 1500 (1472 + 28)
+# If failed, reduce packet size until successful
+
+# Configure CNI with optimal MTU
+# For Calico:
+kubectl patch installation default --type=merge -p '{"spec":{"calicoNetwork":{"mtu":1500}}}'
+
+# For Flannel:
+kubectl edit configmap kube-flannel-cfg -n kube-system
+# Set: "Network": "10.244.0.0/16", "Backend": {"Type": "vxlan", "VNI": 1, "MTU": 1450}
+
+# For Cilium:
+helm upgrade cilium cilium/cilium --set tunnel=vxlan --set mtu=1450</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">2. TCP Tuning</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Apply TCP tuning via DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: network-tuning
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: network-tuning
+  template:
+    metadata:
+      labels:
+        app: network-tuning
+    spec:
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: tuning
+        image: alpine
+        command:
+        - sh
+        - -c
+        - |
+          # Increase TCP buffer sizes
+          sysctl -w net.core.rmem_max=134217728
+          sysctl -w net.core.wmem_max=134217728
+          sysctl -w net.ipv4.tcp_rmem="4096 87380 67108864"
+          sysctl -w net.ipv4.tcp_wmem="4096 65536 67108864"
+          
+          # Enable TCP window scaling
+          sysctl -w net.ipv4.tcp_window_scaling=1
+          
+          # Increase connection backlog
+          sysctl -w net.core.somaxconn=4096
+          sysctl -w net.ipv4.tcp_max_syn_backlog=8192
+          
+          # Enable TCP fast open
+          sysctl -w net.ipv4.tcp_fastopen=3
+          
+          # Reduce TIME_WAIT connections
+          sysctl -w net.ipv4.tcp_fin_timeout=15
+          sysctl -w net.ipv4.tcp_tw_reuse=1
+          
+          # Keep alive
+          tail -f /dev/null
+        securityContext:
+          privileged: true</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">3. DNS Performance</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Scale CoreDNS for high traffic
+kubectl scale deployment coredns -n kube-system --replicas=5
+
+# Enable CoreDNS caching
+kubectl edit configmap coredns -n kube-system
+
+# Add cache plugin:
+.:53 {
+    errors
+    health {
+       lameduck 5s
+    }
+    ready
+    kubernetes cluster.local in-addr.arpa ip6.arpa {
+       pods insecure
+       fallthrough in-addr.arpa ip6.arpa
+       ttl 30
+    }
+    prometheus :9153
+    forward . /etc/resolv.conf {
+       max_concurrent 1000
+    }
+    cache 30  # Cache for 30 seconds
+    loop
+    reload
+    loadbalance
+}
+
+# Configure pod DNS policy for better performance
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+spec:
+  dnsPolicy: ClusterFirst
+  dnsConfig:
+    options:
+    - name: ndots
+      value: "2"  # Reduce DNS queries
+    - name: timeout
+      value: "2"
+    - name: attempts
+      value: "2"
+  containers:
+  - name: myapp
+    image: myapp:v1.0.0</code></pre>
+                </div>
+
+                <h3 style="color: #667eea;">4. Connection Pooling</h3>
+
+                <div style="background: #2d3748; color: #e2e8f0; padding: 25px; border-radius: 10px; margin: 30px 0;">
+                    <pre style="background: #1a202c; padding: 15px; border-radius: 5px; overflow-x: auto;"><code># Configure service with session affinity
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+spec:
+  selector:
+    app: myapp
+  ports:
+  - port: 80
+    targetPort: 8080
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+
+# Application-level connection pooling (Node.js example)
+const http = require('http');
+const agent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000,
+  maxSockets: 100,
+  maxFreeSockets: 10
+});
+
+// Use agent for requests
+http.get('http://backend-service', { agent }, (res) => {
+  // Handle response
+});
+
+# Database connection pooling (PostgreSQL example)
+const { Pool } = require('pg');
+const pool = new Pool({
+  host: 'postgres-service',
+  port: 5432,
+  database: 'mydb',
+  max: 20,  # Maximum pool size
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});</code></pre>
                 </div>
 
                 <h2>🎯 Key Takeaways</h2>

@@ -308,7 +308,7 @@ const k8sTutorials = [
             'DNS resolution in Kubernetes'
         ],
         handsOn: 'Troubleshoot network connectivity issues and implement service mesh',
-        readTime: '45 min',
+        readTime: '60 min',
         difficulty: 'advanced',
         url: 'tutorials/18-networking-deep-dive.html',
         status: 'available'
